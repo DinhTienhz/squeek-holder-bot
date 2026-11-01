@@ -1,0 +1,19 @@
+[Unit]
+Description=Squeek Holder Bot (Telegram)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/dinhtien02/squeek-holder-bot
+ExecStart=/usr/bin/node src/index.ts
+Restart=always
+RestartSec=5
+EnvironmentFile=/home/dinhtien02/squeek-holder-bot/.env
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/dinhtien02/squeek-holder-bot/data /home/dinhtien02/squeek-holder-bot/logs
+
+[Install]
+WantedBy=default.target
