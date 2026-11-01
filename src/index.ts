@@ -1,7 +1,8 @@
 import { loadConfig } from './config.ts';
-import { createBot } from './bot.ts';
+import { createBot, registerCommands } from './bot.ts';
+import { alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from './format.ts';
 import { ChatQueue, inQuietHours } from './queue.ts';
-import { evaluateAccount, evaluateHamster, formatSqk, snapshot, type AccountState } from './rules.ts';
+import { evaluateAccount, evaluateHamster, snapshot, type AccountState } from './rules.ts';
 import {
   allWallets, firstTime, getMeta, getUser, markDigest, newActivity, pruneActivity, pruneSent, setMeta,
 } from './db.ts';
@@ -14,6 +15,8 @@ let prevHamster: string | null = null;
 
 const log = (...a: unknown[]) => console.log(new Date().toISOString(), ...a);
 
+const langOf = (u: { lang: string }): Lang => (u.lang === 'vi' ? 'vi' : 'en');
+
 async function notify(tgId: string, text: string, force = false): Promise<void> {
   const u = getUser(db, tgId);
   if (!u || u.blocked || !u.alerts) return;
@@ -21,7 +24,7 @@ async function notify(tgId: string, text: string, force = false): Promise<void> 
   await queue.run(tgId, async () => {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        await bot.api.sendMessage(tgId, text);
+        await bot.api.sendMessage(tgId, text, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
         return;
       } catch (e: any) {
         const retry = Number(e?.parameters?.retry_after);
@@ -47,10 +50,11 @@ async function pollStatus(): Promise<void> {
     const alert = evaluateHamster(prevHamster, s);
     prevHamster = s.coreStatus;
     if (alert) {
-      const text = s.coreStatus === 'SPINNING'
-        ? `🐹 Hamster đang chạy — ${(s.rpmMilli / 1000).toFixed(2)} rpm\nBlock ${s.blockHeight}`
-        : `😴 Hamster đã dừng — block ${s.blockHeight} (${((s.blockProgress / 1e9) * 100).toFixed(1)}%)`;
-      for (const u of usersWith('alerts')) if (firstTime(db, u.tg_id, alert.key)) await notify(u.tg_id, text);
+      for (const u of usersWith('alerts')) {
+        const user = getUser(db, u.tg_id);
+        if (!user) continue;
+        if (firstTime(db, u.tg_id, alert.key)) await notify(u.tg_id, alertHamster(langOf(user), s));
+      }
     }
     await maybeBlockAlert(s.blockHeight);
   } catch (e) {
@@ -74,8 +78,13 @@ async function maybeBlockAlert(height: number): Promise<void> {
     setMeta(db, 'last_minted', minted.toString());
   } catch { /* vẫn báo block */ }
 
-  const text = `⛏ Block #${height} hoàn thành${mintedDelta > 0n ? ` · +${formatSqk(mintedDelta)}` : ''}`;
   for (const u of usersWith('block_alerts')) {
+    const user = getUser(db, u.tg_id);
+    if (!user) continue;
+    const text = alertBlock(langOf(user), {
+      height,
+      minted: mintedDelta > 0n ? mintedDelta : null,
+    });
     if (firstTime(db, u.tg_id, `block:${height}`)) await notify(u.tg_id, text);
   }
 }
@@ -105,9 +114,11 @@ async function pollWallets(): Promise<void> {
       for (const a of evaluateAccount(prev, acct, BigInt(u.threshold))) {
         if (!firstTime(db, tgId, a.key)) continue;
         if (a.kind === 'claim') {
-          await notify(tgId, `💰 Claimable: ${formatSqk(a.value ?? 0n)}\nVí ${address.slice(0, 6)}…${address.slice(-4)}\nMở app để ký: https://sepolia.squeekchain.com/genesis/me`);
+          await notify(tgId, alertClaim(langOf(u), {
+            address, amount: a.value ?? 0n, threshold: BigInt(u.threshold),
+          }));
         } else if (a.kind === 'cooldown') {
-          await notify(tgId, `🔁 Squeek #${a.tokenId} đã hết cooldown merge.\nVí ${address.slice(0, 6)}…${address.slice(-4)}`);
+          await notify(tgId, alertCooldown(langOf(u), { address, tokenId: a.tokenId ?? '?' }));
         }
       }
     }
@@ -123,9 +134,14 @@ async function pollWallets(): Promise<void> {
       for (const it of items) {
         if (it.kind === 'rewards_claimed') continue;
         if (!newActivity(db, address, it.id)) continue;
-        const amount = it.amount > 0n ? ` · ${formatSqk(it.amount)}` : '';
         for (const tgId of watchers) {
-          await notify(tgId, `🔔 Ví ${address.slice(0, 6)}…${address.slice(-4)}: ${it.kind}${amount}\nhttps://sepolia.etherscan.io/tx/${it.txHash}`);
+          const user = getUser(db, tgId);
+          if (!user) continue;
+          await notify(tgId, alertActivity(langOf(user), {
+            address, kind: it.kind,
+            amount: it.amount > 0n ? it.amount : null,
+            tx: it.txHash || undefined,
+          }));
         }
       }
     } catch (e) {
@@ -158,7 +174,9 @@ async function maybeDigest(): Promise<void> {
     let height = 0;
     try { height = (await api.status()).blockHeight; } catch { /* ignore */ }
 
-    await notify(u.tg_id, `📊 Digest ${day}\nVí: ${wallets.length} · Claimable: ${formatSqk(claimable)}\nMerge được: ${ready} · Block: ${height}`, true);
+    await notify(u.tg_id, digestMsg(langOf(user), {
+      day, wallets: wallets.length, claimable, ready, height,
+    }), true);
     markDigest(db, u.tg_id, day);
   }
 }
@@ -182,7 +200,10 @@ async function main(): Promise<void> {
   const t4 = setInterval(() => { pruneSent(db); pruneActivity(db); }, 24 * 3600_000);
   const t5 = setInterval(maybeDigest, 60_000);
 
-  if (!cfg.dryRun) await bot.start({ onStart: (me) => log('bot @' + me.username + ' ready') });
+  if (!cfg.dryRun) {
+    try { await registerCommands(bot); } catch (e) { log('setMyCommands failed', (e as Error).message); }
+    await bot.start({ onStart: (me) => log('bot @' + me.username + ' ready') });
+  }
   else log('DRY_RUN: không kết nối Telegram; giữ poll để kiểm tra dữ liệu');
 
   const shutdown = async () => {

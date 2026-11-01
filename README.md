@@ -14,7 +14,7 @@ Ai biết username bot đều có thể `/start` và dùng — không cần mờ
 7. **Biến động ví** — activity mới (transfer/stake/merge…), trừ `rewards_claimed`
 8. **Watchlist + quiet hours + digest** — 5 ví/người, im lặng ban đêm, digest hằng ngày
 
-Kèm: song ngữ vi/en, `/privacy`, `/delete`, admin `/stats` `/block` `/unblock`.
+Kèm: **mặc định tiếng Anh**, đổi sang tiếng Việt bằng `/lang vi`; `/privacy`, `/delete`; admin `/stats`, `/ban`, `/unban`.
 
 ## Lệnh
 
@@ -53,13 +53,14 @@ npm run dry
 npm test
 ```
 
-26 test: rule claim/cooldown/hamster, claim optimizer, merge ladder, format số, rate-limit queue, quiet hours, DB (giới hạn ví, dedupe, activity, meta, wipe).
+37 test: rule claim/cooldown/hamster, claim optimizer, merge ladder, format tin nhắn (HTML escape, locale số en/vi), rate-limit queue, quiet hours, DB (giới hạn ví, dedupe, activity, meta, wipe).
 
 ## Kiến trúc
 
 ```
 src/api.ts     client API Squeekchain (ETag, backoff 429/5xx, timeout)
-src/rules.ts   pure: evaluateAccount / evaluateHamster / optimizeClaim / planLadder / formatSqk
+src/format.ts  toàn bộ nội dung hiển thị (HTML, locale en/vi) — pure, có test
+src/rules.ts   pure: evaluateAccount / evaluateHamster / optimizeClaim / planLadder
 src/db.ts      node:sqlite (users, wallets, sent) — không cần dependency native
 src/queue.ts   1 tin/giây mỗi chat + quiet hours
 src/bot.ts     grammY handlers + i18n vi/en

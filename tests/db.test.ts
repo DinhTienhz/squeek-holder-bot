@@ -17,7 +17,7 @@ function withDb(fn: (db: ReturnType<typeof openDb>, dir: string) => void) {
 
 test('user mặc định + cài đặt', () => withDb((db) => {
   const u = upsertUser(db, '123');
-  assert.equal(u.lang, 'vi');
+  assert.equal(u.lang, 'en');
   assert.equal(u.alerts, 1);
   setThreshold(db, '123', 2n * 10n ** 18n);
   setQuiet(db, '123', 1320, 420);

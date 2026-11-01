@@ -22,7 +22,7 @@ Người dùng tìm bot bằng username, `/start` là dùng được. Không c�
 
 | # | Yêu cầu | Tiêu chí nghiệm thu (test) |
 |---|---|---|
-| F1 | `/start` tạo user, trả hướng dẫn | user mới có `lang=vi`, `alerts=1`; gọi lại không tạo trùng |
+| F1 | `/start` tạo user, trả hướng dẫn | user mới có `lang=en`, `alerts=1`; gọi lại không tạo trùng |
 | F2 | `/watch 0x… [label]` | validate 0x+40 hex; trùng → báo; quá 5 ví → báo limit |
 | F3 | Alert claimable vượt ngưỡng | vượt ngưỡng lần đầu → 1 alert; cùng ngưỡng không lặp; vượt bội số tiếp → alert mới |
 | F4 | Alert cooldown → ready | chuyển `cooldown→ready` → alert đúng tokenId; `ready` sẵn từ đầu **không** alert |
@@ -35,7 +35,7 @@ Người dùng tìm bot bằng username, `/start` là dùng được. Không c�
 | F11 | `/threshold` | đổi ngưỡng, lưu base units chính xác (0.5 SQK = 5e17) |
 | F12 | `/alerts off` | tắt hoàn toàn alert của user đó |
 | F13 | `/privacy`, `/delete` | giải thích dữ liệu; xoá user + ví + sent |
-| F14 | Admin | non-admin gọi `/stats` bị từ chối; `/block` chặn user |
+| F14 | Admin | non-admin gọi `/stats` bị từ chối; `/ban` chặn user, `/unban` bỏ chặn |
 | F15 | API lỗi/429 | backoff, không crash, không gửi alert sai |
 | F16 | Multi-user | 2 user watch cùng 1 ví → API chỉ gọi 1 lần/vòng, mỗi người nhận alert riêng |
 | F17 | Claim optimizer | 40 token → chọn 32 lớn nhất, `skipped=8`, `batches=2`, dust = tổng % 1e18 |
@@ -64,6 +64,9 @@ Người dùng tìm bot bằng username, `/start` là dùng được. Không c�
 
 ## Định dạng tin nhắn
 
-- Plain text, không Markdown (tránh vỡ ký tự trong địa chỉ)
-- Số SQK: `1.234,56 SQK` (vi), tối đa 2 chữ số lẻ
-- Alert claim: số tiền + 6 ký tự đầu/cuối địa chỉ + link app
+- **HTML parse mode**; mọi dữ liệu người dùng nhập phải escape (`&`, `<`, `>`)
+- Số theo locale: `1,234.56 SQK` (en) · `1.234,56 SQK` (vi), tối đa 2 chữ số lẻ
+- Mỗi tin có cấu trúc: tiêu đề in đậm + dòng số liệu + ghi chú in nghiêng; không dòng trắng thừa
+- Địa chỉ: rút gọn `0x32cd…cc41` trong alert; đầy đủ trong `/list`
+- Alert claim: số tiền + ví + ngưỡng + link app
+- Ngôn ngữ mặc định: **tiếng Anh**; `/lang vi` để đổi

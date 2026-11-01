@@ -1,9 +1,13 @@
-import { Bot } from 'grammy';
+import { Bot, type Context } from 'grammy';
 import type { Config } from './config.ts';
 import { ApiClient } from './api.ts';
-import { formatSqk, ladderPowerGain, optimizeClaim, planLadder, progressPct } from './rules.ts';
+import { ladderPowerGain, optimizeClaim, planLadder } from './rules.ts';
 import { claimablePerToken } from './chain.ts';
 import { parseQuietRange } from './queue.ts';
+import {
+  alertBlock, alertCooldown, alertHamster, addrShort, claimMsg, digestMsg, esc, fmtSqk, fullAddr,
+  help, ladderMsg, mergeMsg, privacy, statusMsg, t as tr, walletAdded, walletList, welcome, type Lang,
+} from './format.ts';
 import {
   addWallet, getUser, listWallets, openDb, removeWallet, setAlerts, setBlockAlerts,
   setBlocked, setDigest, setLang, setQuiet, setThreshold, stats, upsertUser, wipeUser, type User,
@@ -11,111 +15,60 @@ import {
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 
-const TEXT: Record<string, Record<string, string>> = {
+const MSG = {
   vi: {
-    welcome: 'Bot theo dõi Squeekchain.\n\n/watch 0x… [tên]  — thêm ví\nTheo dõi: claimable, cooldown merge, hamster chạy/dừng.\n\n/help để xem tất cả lệnh.',
-    help: [
-      'LỆNH',
-      '/watch 0x… [tên] — thêm ví (tối đa 5)',
-      '/unwatch 0x… | tên — bỏ ví',
-      '/list — danh sách ví',
-      '/status — trạng thái bánh xe + block',
-      '/claim [0x…] — batch tối ưu 32 token + dust',
-      '/ladder [0x…] — kế hoạch merge + power gain',
-      '/block on|off · /digest on|off',
-      '/mergecheck [0x…] — Squeek đã hết cooldown',
-      '/threshold 0.5 — ngưỡng báo claim (SQK)',
-      '/alerts on|off · /quiet 22:00-07:00|off',
-      '/lang vi|en · /privacy · /delete',
-    ].join('\n'),
-    noWallet: 'Chưa có ví nào. Dùng /watch 0x… trước.',
-    badAddr: 'Địa chỉ không hợp lệ (cần 0x + 40 ký tự hex).',
-    added: 'Đã thêm {addr}{label}.',
-    exists: 'Ví này đã có trong danh sách.',
-    limit: 'Đã đạt giới hạn số ví.',
-    removed: 'Đã bỏ {n} ví.',
-    notFound: 'Không tìm thấy ví đó.',
-    list: 'VÍ ĐANG THEO DÕI\n{rows}',
-    status: 'HAMSTER: {state} · {rpm} rpm\nBLOCK: {height} · {pct}% tới block kế\nSETTLED: round {round} · API {age}s trước',
-    claim: 'VÍ {addr}\nClaimable: {amount}\nNFT: {n} · batch cần: {batches}\nMở app để ký: https://sepolia.squeekchain.com/genesis/me',
-    merge: 'MERGE ĐƯỢC ({n})\n{rows}\nCòn cooldown: {cool}',
-    mergeNone: 'Không có Squeek nào merge được lúc này.',
-    claimPlan: 'VÍ {addr}\nBatch tốt nhất: {n} token\nTổng claim: {amount}\nDust (không trả được): {dust}\nCòn lại ngoài batch: {skipped} token · cần {batches} tx để claim hết{approx}\nToken: {ids}\nMở app để ký: https://sepolia.squeekchain.com/genesis/me',
-    ladder: 'KẾ HOẠCH MERGE\n{rows}\nPower: {before} → {after} (+{gain})\nCooldown tính bằng block; merge xong chờ theo level.',
-    ladderNone: 'Không đủ cặp cùng level để merge.',
-    blockOn: 'Đã bật thông báo block hoàn thành.',
-    blockOff: 'Đã tắt thông báo block.',
-    digestOn: 'Đã bật digest hằng ngày.',
-    digestOff: 'Đã tắt digest.',
-    quietOn: 'Đã đặt im lặng {range} (giờ máy).',
-    quietOff: 'Đã tắt im lặng.',
-    badQuiet: 'Sai định dạng. Ví dụ: /quiet 22:00-07:00',
-    alertsOn: 'Đã bật alert.', alertsOff: 'Đã tắt alert.',
-    threshold: 'Ngưỡng báo claim: {amount}',
-    badNum: 'Số không hợp lệ.',
-    langSet: 'Đã đổi ngôn ngữ sang tiếng Việt.',
-    privacy: 'Bot chỉ lưu: Telegram ID, địa chỉ ví bạn thêm, cài đặt alert. Không lưu private key, không ký giao dịch.\n/delete để xoá toàn bộ.',
-    deleted: 'Đã xoá dữ liệu của bạn.',
-    adminOnly: 'Lệnh quản trị.',
-    stats: 'Users: {users} · Wallets: {wallets} · Blocked: {blocked}',
-    blocked: 'Đã chặn {id}.', unblocked: 'Đã bỏ chặn {id}.',
+    exists: '⚠️ Ví này đã có trong danh sách.',
+    limit: '⚠️ Đã đạt giới hạn số ví.',
+    removed: '🗑 Đã bỏ {n} ví.',
+    notFound: '⚠️ Không tìm thấy ví đó.',
+    mergeNone: '✅ Không có Squeek nào merge được lúc này.',
+    ladderNone: 'ℹ️ Không đủ cặp cùng level để merge.',
+    blockOn: '⛏ Đã bật thông báo block.',
+    blockOff: '⛏ Đã tắt thông báo block.',
+    digestOn: '📊 Đã bật digest hằng ngày.',
+    digestOff: '📊 Đã tắt digest.',
+    quietOn: '🌙 Im lặng {range} (giờ máy).',
+    quietOff: '🌙 Đã tắt im lặng.',
+    badQuiet: '⚠️ Sai định dạng.\nVí dụ: <code>/quiet 22:00-07:00</code>',
+    alertsOn: '🔔 Đã bật thông báo.',
+    alertsOff: '🔕 Đã tắt thông báo.',
+    threshold: '🎯 Ngưỡng báo claim: <b>{amount}</b>',
+    badNum: '⚠️ Số không hợp lệ.',
+    langSet: '🇻🇳 Đã đổi sang tiếng Việt.',
+    deleted: '🗑 Đã xoá toàn bộ dữ liệu của bạn.',
+    adminOnly: '⛔ Lệnh quản trị.',
+    stats: '👥 Users: <b>{users}</b>\n👛 Wallets: <b>{wallets}</b>\n⛔ Blocked: <b>{blocked}</b>',
+    banned: '⛔ Đã chặn <code>{id}</code>.',
+    unbanned: '✅ Đã bỏ chặn <code>{id}</code>.',
+    noId: '⚠️ Thiếu ID.',
   },
   en: {
-    welcome: 'Squeekchain watcher bot.\n\n/watch 0x… [label] — add a wallet\nAlerts: claimable, merge cooldown, hamster spin.\n\n/help for all commands.',
-    help: [
-      'COMMANDS',
-      '/watch 0x… [label] — add wallet (max 5)',
-      '/unwatch 0x… | label — remove',
-      '/list — your wallets',
-      '/status — wheel + block state',
-      '/claim [0x…] — best 32-token batch + dust',
-      '/ladder [0x…] — merge plan + power gain',
-      '/block on|off · /digest on|off',
-      '/mergecheck [0x…] — Squeeks off cooldown',
-      '/threshold 0.5 — claim alert threshold (SQK)',
-      '/alerts on|off · /quiet 22:00-07:00|off',
-      '/lang vi|en · /privacy · /delete',
-    ].join('\n'),
-    noWallet: 'No wallets yet. Use /watch 0x… first.',
-    badAddr: 'Invalid address (0x + 40 hex chars).',
-    added: 'Added {addr}{label}.',
-    exists: 'Wallet already on your list.',
-    limit: 'Wallet limit reached.',
-    removed: 'Removed {n} wallet(s).',
-    notFound: 'Wallet not found.',
-    list: 'YOUR WALLETS\n{rows}',
-    status: 'HAMSTER: {state} · {rpm} rpm\nBLOCK: {height} · {pct}% to next\nSETTLED: round {round} · API {age}s ago',
-    claim: 'WALLET {addr}\nClaimable: {amount}\nNFTs: {n} · batches: {batches}\nOpen app to sign: https://sepolia.squeekchain.com/genesis/me',
-    merge: 'MERGEABLE ({n})\n{rows}\nStill cooling: {cool}',
-    mergeNone: 'No Squeek is mergeable right now.',
-    claimPlan: 'WALLET {addr}\nBest batch: {n} tokens\nTotal claim: {amount}\nDust (not payable): {dust}\nLeft out: {skipped} tokens · {batches} tx to claim all{approx}\nTokens: {ids}\nOpen app to sign: https://sepolia.squeekchain.com/genesis/me',
-    ladder: 'MERGE PLAN\n{rows}\nPower: {before} → {after} (+{gain})\nCooldowns are in blocks; each level waits longer.',
-    ladderNone: 'Not enough same-level pairs to merge.',
-    blockOn: 'Block alerts on.',
-    blockOff: 'Block alerts off.',
-    digestOn: 'Daily digest on.',
-    digestOff: 'Daily digest off.',
-    quietOn: 'Quiet hours set to {range} (server time).',
-    quietOff: 'Quiet hours off.',
-    badQuiet: 'Bad format. Example: /quiet 22:00-07:00',
-    alertsOn: 'Alerts on.', alertsOff: 'Alerts off.',
-    threshold: 'Claim threshold: {amount}',
-    badNum: 'Invalid number.',
-    langSet: 'Language set to English.',
-    privacy: 'Stored: Telegram ID, wallet addresses you add, alert settings. No private keys, no signing.\n/delete to wipe.',
-    deleted: 'Your data was deleted.',
-    adminOnly: 'Admin only.',
-    stats: 'Users: {users} · Wallets: {wallets} · Blocked: {blocked}',
-    blocked: 'Blocked {id}.', unblocked: 'Unblocked {id}.',
+    exists: '⚠️ Wallet already on your list.',
+    limit: '⚠️ Wallet limit reached.',
+    removed: '🗑 Removed {n} wallet(s).',
+    notFound: '⚠️ Wallet not found.',
+    mergeNone: '✅ No Squeek is mergeable right now.',
+    ladderNone: 'ℹ️ Not enough same-level pairs to merge.',
+    blockOn: '⛏ Block alerts on.',
+    blockOff: '⛏ Block alerts off.',
+    digestOn: '📊 Daily digest on.',
+    digestOff: '📊 Daily digest off.',
+    quietOn: '🌙 Quiet hours {range} (server time).',
+    quietOff: '🌙 Quiet hours off.',
+    badQuiet: '⚠️ Bad format.\nExample: <code>/quiet 22:00-07:00</code>',
+    alertsOn: '🔔 Alerts on.',
+    alertsOff: '🔕 Alerts off.',
+    threshold: '🎯 Claim threshold: <b>{amount}</b>',
+    badNum: '⚠️ Invalid number.',
+    langSet: '🇬🇧 Language set to English.',
+    deleted: '🗑 Your data was deleted.',
+    adminOnly: '⛔ Admin only.',
+    stats: '👥 Users: <b>{users}</b>\n👛 Wallets: <b>{wallets}</b>\n⛔ Blocked: <b>{blocked}</b>',
+    banned: '⛔ Blocked <code>{id}</code>.',
+    unbanned: '✅ Unblocked <code>{id}</code>.',
+    noId: '⚠️ Missing ID.',
   },
-};
-
-function t(user: User | undefined, key: string, vars: Record<string, string | number> = {}): string {
-  const lang = user?.lang === 'en' ? 'en' : 'vi';
-  let s = TEXT[lang][key] ?? TEXT.vi[key] ?? key;
-  for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
-  return s;
-}
+} as const;
 
 function evenSplit(ids: string[], total: bigint): { tokenId: string; amount: bigint }[] {
   if (!ids.length) return [];
@@ -130,42 +83,51 @@ export function createBot(cfg: Config) {
 
   const userOf = (id: string | number): User => upsertUser(db, String(id));
   const isAdmin = (id: string | number) => cfg.adminIds.has(String(id));
+  const langOf = (u: User): Lang => (u.lang === 'vi' ? 'vi' : 'en');
+  const m = (u: User, key: keyof typeof MSG.vi, vars: Record<string, string | number> = {}): string => {
+    let s: string = MSG[langOf(u)][key];
+    for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
+    return s;
+  };
+
+  const reply = (ctx: Context, text: string) =>
+    ctx.reply(text, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
 
   bot.command('start', async (ctx) => {
     const u = userOf(ctx.from!.id);
     if (u.blocked) return;
-    await ctx.reply(t(u, 'welcome'));
+    await reply(ctx, welcome(langOf(u)));
   });
 
   bot.command('help', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    await ctx.reply(t(u, 'help'));
+    await reply(ctx, help(langOf(u)));
   });
 
   bot.command('watch', async (ctx) => {
     const u = userOf(ctx.from!.id);
     if (u.blocked) return;
     const [addr, ...rest] = (ctx.match ?? '').trim().split(/\s+/);
-    if (!addr || !ADDRESS.test(addr)) return void (await ctx.reply(t(u, 'badAddr')));
-    const r = addWallet(db, u.tg_id, addr.toLowerCase(), rest.join(' ') || null, cfg.maxWallets);
-    if (!r.ok) return void (await ctx.reply(t(u, r.reason === 'limit' ? 'limit' : 'exists')));
-    await ctx.reply(t(u, 'added', { addr: addr.toLowerCase(), label: rest.length ? ` (${rest.join(' ')})` : '' }));
+    if (!addr || !ADDRESS.test(addr)) return void (await reply(ctx, tr(langOf(u), 'badAddr')));
+    const label = rest.join(' ') || null;
+    const r = addWallet(db, u.tg_id, addr.toLowerCase(), label, cfg.maxWallets);
+    if (!r.ok) return void (await reply(ctx, m(u, r.reason === 'limit' ? 'limit' : 'exists')));
+    await reply(ctx, walletAdded(langOf(u), addr.toLowerCase(), label));
   });
 
   bot.command('unwatch', async (ctx) => {
     const u = userOf(ctx.from!.id);
     const key = (ctx.match ?? '').trim();
-    if (!key) return void (await ctx.reply(t(u, 'notFound')));
+    if (!key) return void (await reply(ctx, m(u, 'notFound')));
     const n = removeWallet(db, u.tg_id, key);
-    await ctx.reply(t(u, n ? 'removed' : 'notFound', { n }));
+    await reply(ctx, m(u, n ? 'removed' : 'notFound', { n }));
   });
 
   bot.command('list', async (ctx) => {
     const u = userOf(ctx.from!.id);
     const ws = listWallets(db, u.tg_id);
-    if (!ws.length) return void (await ctx.reply(t(u, 'noWallet')));
-    const rows = ws.map((w, i) => `${i + 1}. ${w.address}${w.label ? ` — ${w.label}` : ''}`).join('\n');
-    await ctx.reply(t(u, 'list', { rows }));
+    if (!ws.length) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
+    await reply(ctx, walletList(langOf(u), ws, cfg.maxWallets));
   });
 
   bot.command('status', async (ctx) => {
@@ -173,12 +135,9 @@ export function createBot(cfg: Config) {
     try {
       const s = await api.status();
       const age = Math.max(0, Math.round((Date.now() - Date.parse(s.generatedAt)) / 1000));
-      await ctx.reply(t(u, 'status', {
-        state: s.coreStatus, rpm: (s.rpmMilli / 1000).toFixed(2), height: s.blockHeight,
-        pct: progressPct(s.blockProgress).toFixed(1), round: s.settledThroughRound, age,
-      }));
+      await reply(ctx, statusMsg(langOf(u), s, age));
     } catch {
-      await ctx.reply('API không phản hồi / API unreachable.');
+      await reply(ctx, tr(langOf(u), 'apiDown'));
     }
   });
 
@@ -191,12 +150,17 @@ export function createBot(cfg: Config) {
   bot.command('claim', async (ctx) => {
     const u = userOf(ctx.from!.id);
     const addr = targetWallet(u, ctx.match);
-    if (!addr) return void (await ctx.reply(t(u, 'noWallet')));
+    if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
+    const lang = langOf(u);
     try {
       const a = await api.account(addr);
-      if (!a.tokenCount) return void (await ctx.reply(t(u, 'claim', { addr, amount: formatSqk(0n), n: 0, batches: 0 })));
+      if (!a.tokenCount) {
+        return void (await reply(ctx, claimMsg(lang, {
+          address: addr, total: 0n, dust: 0n, tokens: 0, skipped: 0, batches: 0, approx: null,
+        })));
+      }
 
-      let approx = '';
+      let approx: 'rpc' | 'noRpc' | null = null;
       let per: { tokenId: string; amount: bigint }[];
       if (cfg.rpcUrl) {
         try {
@@ -204,28 +168,27 @@ export function createBot(cfg: Config) {
           per = a.tokens.map((x, i) => ({ tokenId: x.tokenId, amount: amounts[i] }));
         } catch {
           per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
-          approx = ' (ước lượng — RPC lỗi)';
+          approx = 'rpc';
         }
       } else {
         per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
-        approx = ' (ước lượng — chưa cấu hình RPC_URL)';
+        approx = 'noRpc';
       }
 
       const plan = optimizeClaim(per);
-      await ctx.reply(t(u, 'claimPlan', {
-        addr, n: plan.tokens.length, amount: formatSqk(plan.total), dust: formatSqk(plan.dust),
-        skipped: plan.skipped, batches: plan.batches, approx,
-        ids: plan.tokens.slice(0, 8).join(', ') + (plan.tokens.length > 8 ? '…' : ''),
+      await reply(ctx, claimMsg(lang, {
+        address: addr, total: plan.total, dust: plan.dust,
+        tokens: plan.tokens.length, skipped: plan.skipped, batches: plan.batches, approx,
       }));
     } catch {
-      await ctx.reply('API không phản hồi / API unreachable.');
+      await reply(ctx, tr(lang, 'apiDown'));
     }
   });
 
   bot.command('ladder', async (ctx) => {
     const u = userOf(ctx.from!.id);
     const addr = targetWallet(u, ctx.match);
-    if (!addr) return void (await ctx.reply(t(u, 'noWallet')));
+    if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
     try {
       const [a, eco] = await Promise.all([api.account(addr), api.economy()]);
       const counts: Record<number, number> = {};
@@ -233,62 +196,57 @@ export function createBot(cfg: Config) {
       const basePower: number[] = (eco?.nft?.basePower ?? []).map(Number);
       const cooldowns: number[] = (eco?.nft?.cooldownBlocks ?? []).map(Number);
       const steps = planLadder(counts, cooldowns, basePower.length || 10);
-      if (!steps.length) return void (await ctx.reply(t(u, 'ladderNone')));
-      const rows = steps.map((x) => `L${x.level} ×${x.merges * 2} → L${x.level + 1} ×${x.produced}  (chờ ${x.cooldownBlocks} block)`).join('\n');
+      if (!steps.length) return void (await reply(ctx, m(u, 'ladderNone')));
       const gain = ladderPowerGain(counts, basePower);
-      await ctx.reply(t(u, 'ladder', {
-        rows, before: gain.before.toString(), after: gain.after.toString(),
-        gain: (gain.after - gain.before).toString(),
-      }));
+      await reply(ctx, ladderMsg(langOf(u), { address: addr, steps, before: gain.before, after: gain.after }));
     } catch {
-      await ctx.reply('API không phản hồi / API unreachable.');
+      await reply(ctx, tr(langOf(u), 'apiDown'));
     }
-  });
-
-  bot.command('block', async (ctx) => {
-    const u = userOf(ctx.from!.id);
-    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
-    setBlockAlerts(db, u.tg_id, on);
-    await ctx.reply(t(u, on ? 'blockOn' : 'blockOff'));
-  });
-
-  bot.command('digest', async (ctx) => {
-    const u = userOf(ctx.from!.id);
-    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
-    setDigest(db, u.tg_id, on);
-    await ctx.reply(t(u, on ? 'digestOn' : 'digestOff'));
   });
 
   bot.command('mergecheck', async (ctx) => {
     const u = userOf(ctx.from!.id);
     const addr = targetWallet(u, ctx.match);
-    if (!addr) return void (await ctx.reply(t(u, 'noWallet')));
+    if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
     try {
       const a = await api.account(addr);
-      const ready = a.tokens.filter((x) => x.mergeState === 'ready');
-      const cooling = a.tokens.filter((x) => x.mergeState === 'cooldown');
-      if (!ready.length) return void (await ctx.reply(t(u, 'mergeNone')));
-      const rows = ready.slice(0, 15).map((x) => `#${x.tokenId} · level ${x.level}`).join('\n');
-      await ctx.reply(t(u, 'merge', { n: ready.length, rows, cool: cooling.length }));
+      const ready = a.tokens.filter((x) => x.mergeState === 'ready').map((x) => ({ tokenId: x.tokenId, level: x.level }));
+      const cooling = a.tokens.filter((x) => x.mergeState === 'cooldown').length;
+      if (!ready.length) return void (await reply(ctx, m(u, 'mergeNone')));
+      await reply(ctx, mergeMsg(langOf(u), { address: addr, ready, cooling }));
     } catch {
-      await ctx.reply('API không phản hồi / API unreachable.');
+      await reply(ctx, tr(langOf(u), 'apiDown'));
     }
   });
 
   bot.command('threshold', async (ctx) => {
     const u = userOf(ctx.from!.id);
     const v = Number((ctx.match ?? '').trim().replace(',', '.'));
-    if (!Number.isFinite(v) || v <= 0) return void (await ctx.reply(t(u, 'badNum')));
-    const base = BigInt(Math.round(v * 1e6)) * 10n ** 12n; // 6 số lẻ → base units
+    if (!Number.isFinite(v) || v <= 0) return void (await reply(ctx, m(u, 'badNum')));
+    const base = BigInt(Math.round(v * 1e6)) * 10n ** 12n;
     setThreshold(db, u.tg_id, base);
-    await ctx.reply(t(u, 'threshold', { amount: formatSqk(base) }));
+    await reply(ctx, m(u, 'threshold', { amount: fmtSqk(base, langOf(u)) }));
   });
 
   bot.command('alerts', async (ctx) => {
     const u = userOf(ctx.from!.id);
     const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
     setAlerts(db, u.tg_id, on);
-    await ctx.reply(t(u, on ? 'alertsOn' : 'alertsOff'));
+    await reply(ctx, m(u, on ? 'alertsOn' : 'alertsOff'));
+  });
+
+  bot.command('block', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
+    setBlockAlerts(db, u.tg_id, on);
+    await reply(ctx, m(u, on ? 'blockOn' : 'blockOff'));
+  });
+
+  bot.command('digest', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
+    setDigest(db, u.tg_id, on);
+    await reply(ctx, m(u, on ? 'digestOn' : 'digestOff'));
   });
 
   bot.command('quiet', async (ctx) => {
@@ -296,52 +254,54 @@ export function createBot(cfg: Config) {
     const arg = (ctx.match ?? '').trim();
     if (!arg || arg.toLowerCase() === 'off') {
       setQuiet(db, u.tg_id, null, null);
-      return void (await ctx.reply(t(u, 'quietOff')));
+      return void (await reply(ctx, m(u, 'quietOff')));
     }
     const r = parseQuietRange(arg);
-    if (!r) return void (await ctx.reply(t(u, 'badQuiet')));
+    if (!r) return void (await reply(ctx, m(u, 'badQuiet')));
     setQuiet(db, u.tg_id, r.start, r.end);
-    await ctx.reply(t(u, 'quietOn', { range: arg }));
+    await reply(ctx, m(u, 'quietOn', { range: esc(arg) }));
   });
 
   bot.command('lang', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const lang = (ctx.match ?? '').trim().toLowerCase() === 'en' ? 'en' : 'vi';
+    const lang = (ctx.match ?? '').trim().toLowerCase() === 'vi' ? 'vi' : 'en';
     setLang(db, u.tg_id, lang);
-    await ctx.reply(t(getUser(db, u.tg_id), 'langSet'));
+    await reply(ctx, m(getUser(db, u.tg_id)!, 'langSet'));
   });
 
   bot.command('privacy', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    await ctx.reply(t(u, 'privacy'));
+    await reply(ctx, privacy(langOf(u)));
   });
 
   bot.command('delete', async (ctx) => {
     const u = userOf(ctx.from!.id);
     wipeUser(db, u.tg_id);
-    await ctx.reply(t(u, 'deleted'));
+    await reply(ctx, m(u, 'deleted'));
   });
 
   bot.command('stats', async (ctx) => {
-    if (!isAdmin(ctx.from!.id)) return void (await ctx.reply('Admin only.'));
-    const s = stats(db);
-    await ctx.reply(t(userOf(ctx.from!.id), 'stats', s));
+    const u = userOf(ctx.from!.id);
+    if (!isAdmin(ctx.from!.id)) return void (await reply(ctx, m(u, 'adminOnly')));
+    await reply(ctx, m(u, 'stats', stats(db)));
   });
 
-  bot.command('block', async (ctx) => {
-    if (!isAdmin(ctx.from!.id)) return void (await ctx.reply('Admin only.'));
+  bot.command('ban', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    if (!isAdmin(ctx.from!.id)) return void (await reply(ctx, m(u, 'adminOnly')));
     const id = (ctx.match ?? '').trim();
-    if (!id) return;
+    if (!id) return void (await reply(ctx, m(u, 'noId')));
     setBlocked(db, id, true);
-    await ctx.reply(t(userOf(ctx.from!.id), 'blocked', { id }));
+    await reply(ctx, m(u, 'banned', { id }));
   });
 
-  bot.command('unblock', async (ctx) => {
-    if (!isAdmin(ctx.from!.id)) return void (await ctx.reply('Admin only.'));
+  bot.command('unban', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    if (!isAdmin(ctx.from!.id)) return void (await reply(ctx, m(u, 'adminOnly')));
     const id = (ctx.match ?? '').trim();
-    if (!id) return;
+    if (!id) return void (await reply(ctx, m(u, 'noId')));
     setBlocked(db, id, false);
-    await ctx.reply(t(userOf(ctx.from!.id), 'unblocked', { id }));
+    await reply(ctx, m(u, 'unbanned', { id }));
   });
 
   bot.catch((err) => {
@@ -349,4 +309,21 @@ export function createBot(cfg: Config) {
   });
 
   return { bot, db, api };
+}
+
+/** Menu lệnh trong Telegram (gọn, chỉ các lệnh chính). */
+export async function registerCommands(bot: Bot): Promise<void> {
+  await bot.api.setMyCommands([
+    { command: 'start', description: 'Bắt đầu / Start' },
+    { command: 'watch', description: 'Thêm ví / Add wallet' },
+    { command: 'list', description: 'Danh sách ví / Wallets' },
+    { command: 'status', description: 'Trạng thái / Status' },
+    { command: 'claim', description: 'SQK claim được / Claimable' },
+    { command: 'mergecheck', description: 'Squeek merge được / Mergeable' },
+    { command: 'ladder', description: 'Kế hoạch merge / Merge plan' },
+    { command: 'threshold', description: 'Ngưỡng báo / Threshold' },
+    { command: 'alerts', description: 'Bật/tắt thông báo / Alerts' },
+    { command: 'quiet', description: 'Giờ im lặng / Quiet hours' },
+    { command: 'help', description: 'Tất cả lệnh / All commands' },
+  ]);
 }

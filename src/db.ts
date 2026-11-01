@@ -17,7 +17,7 @@ export type Wallet = { id: number; tg_id: string; address: string; label: string
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
   tg_id       TEXT PRIMARY KEY,
-  lang        TEXT NOT NULL DEFAULT 'vi',
+  lang        TEXT NOT NULL DEFAULT 'en',
   quiet_start INTEGER,
   quiet_end   INTEGER,
   threshold   TEXT NOT NULL DEFAULT '500000000000000000',
