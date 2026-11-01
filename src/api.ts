@@ -22,6 +22,15 @@ export type Holding = {
   custody: string;
 };
 
+export type ActivityItem = {
+  id: string;
+  kind: string;
+  amount: bigint;
+  blockNumber: number;
+  txHash: string;
+  at: string;
+};
+
 export type Account = {
   address: string;
   claimable: bigint;
@@ -122,5 +131,17 @@ export class ApiClient {
 
   async economy(): Promise<any> {
     return this.getJson('/economy/state');
+  }
+
+  async activity(address: string): Promise<ActivityItem[]> {
+    const d: any = await this.getJson(`/accounts/${address}/activity`);
+    return (d.activity ?? []).map((a: any) => ({
+      id: String(a.id),
+      kind: String(a.kind ?? 'unknown'),
+      amount: BigInt(a.amountBaseUnits ?? '0'),
+      blockNumber: Number(a.source?.blockNumber ?? 0),
+      txHash: String(a.source?.transactionHash ?? ''),
+      at: String(a.source?.blockTimestamp ?? ''),
+    }));
   }
 }

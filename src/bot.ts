@@ -1,11 +1,12 @@
 import { Bot } from 'grammy';
 import type { Config } from './config.ts';
 import { ApiClient } from './api.ts';
-import { formatSqk, progressPct } from './rules.ts';
+import { formatSqk, ladderPowerGain, optimizeClaim, planLadder, progressPct } from './rules.ts';
+import { claimablePerToken } from './chain.ts';
 import { parseQuietRange } from './queue.ts';
 import {
-  addWallet, getUser, listWallets, openDb, removeWallet, setAlerts, setBlocked, setLang,
-  setQuiet, setThreshold, stats, upsertUser, wipeUser, type User,
+  addWallet, getUser, listWallets, openDb, removeWallet, setAlerts, setBlockAlerts,
+  setBlocked, setDigest, setLang, setQuiet, setThreshold, stats, upsertUser, wipeUser, type User,
 } from './db.ts';
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -19,7 +20,9 @@ const TEXT: Record<string, Record<string, string>> = {
       '/unwatch 0x… | tên — bỏ ví',
       '/list — danh sách ví',
       '/status — trạng thái bánh xe + block',
-      '/claim [0x…] — SQK claim được + số batch',
+      '/claim [0x…] — batch tối ưu 32 token + dust',
+      '/ladder [0x…] — kế hoạch merge + power gain',
+      '/block on|off · /digest on|off',
       '/mergecheck [0x…] — Squeek đã hết cooldown',
       '/threshold 0.5 — ngưỡng báo claim (SQK)',
       '/alerts on|off · /quiet 22:00-07:00|off',
@@ -37,6 +40,13 @@ const TEXT: Record<string, Record<string, string>> = {
     claim: 'VÍ {addr}\nClaimable: {amount}\nNFT: {n} · batch cần: {batches}\nMở app để ký: https://sepolia.squeekchain.com/genesis/me',
     merge: 'MERGE ĐƯỢC ({n})\n{rows}\nCòn cooldown: {cool}',
     mergeNone: 'Không có Squeek nào merge được lúc này.',
+    claimPlan: 'VÍ {addr}\nBatch tốt nhất: {n} token\nTổng claim: {amount}\nDust (không trả được): {dust}\nCòn lại ngoài batch: {skipped} token · cần {batches} tx để claim hết{approx}\nToken: {ids}\nMở app để ký: https://sepolia.squeekchain.com/genesis/me',
+    ladder: 'KẾ HOẠCH MERGE\n{rows}\nPower: {before} → {after} (+{gain})\nCooldown tính bằng block; merge xong chờ theo level.',
+    ladderNone: 'Không đủ cặp cùng level để merge.',
+    blockOn: 'Đã bật thông báo block hoàn thành.',
+    blockOff: 'Đã tắt thông báo block.',
+    digestOn: 'Đã bật digest hằng ngày.',
+    digestOff: 'Đã tắt digest.',
     quietOn: 'Đã đặt im lặng {range} (giờ máy).',
     quietOff: 'Đã tắt im lặng.',
     badQuiet: 'Sai định dạng. Ví dụ: /quiet 22:00-07:00',
@@ -58,7 +68,9 @@ const TEXT: Record<string, Record<string, string>> = {
       '/unwatch 0x… | label — remove',
       '/list — your wallets',
       '/status — wheel + block state',
-      '/claim [0x…] — claimable SQK + batches',
+      '/claim [0x…] — best 32-token batch + dust',
+      '/ladder [0x…] — merge plan + power gain',
+      '/block on|off · /digest on|off',
       '/mergecheck [0x…] — Squeeks off cooldown',
       '/threshold 0.5 — claim alert threshold (SQK)',
       '/alerts on|off · /quiet 22:00-07:00|off',
@@ -76,6 +88,13 @@ const TEXT: Record<string, Record<string, string>> = {
     claim: 'WALLET {addr}\nClaimable: {amount}\nNFTs: {n} · batches: {batches}\nOpen app to sign: https://sepolia.squeekchain.com/genesis/me',
     merge: 'MERGEABLE ({n})\n{rows}\nStill cooling: {cool}',
     mergeNone: 'No Squeek is mergeable right now.',
+    claimPlan: 'WALLET {addr}\nBest batch: {n} tokens\nTotal claim: {amount}\nDust (not payable): {dust}\nLeft out: {skipped} tokens · {batches} tx to claim all{approx}\nTokens: {ids}\nOpen app to sign: https://sepolia.squeekchain.com/genesis/me',
+    ladder: 'MERGE PLAN\n{rows}\nPower: {before} → {after} (+{gain})\nCooldowns are in blocks; each level waits longer.',
+    ladderNone: 'Not enough same-level pairs to merge.',
+    blockOn: 'Block alerts on.',
+    blockOff: 'Block alerts off.',
+    digestOn: 'Daily digest on.',
+    digestOff: 'Daily digest off.',
     quietOn: 'Quiet hours set to {range} (server time).',
     quietOff: 'Quiet hours off.',
     badQuiet: 'Bad format. Example: /quiet 22:00-07:00',
@@ -96,6 +115,12 @@ function t(user: User | undefined, key: string, vars: Record<string, string | nu
   let s = TEXT[lang][key] ?? TEXT.vi[key] ?? key;
   for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
   return s;
+}
+
+function evenSplit(ids: string[], total: bigint): { tokenId: string; amount: bigint }[] {
+  if (!ids.length) return [];
+  const each = total / BigInt(ids.length);
+  return ids.map((tokenId) => ({ tokenId, amount: each }));
 }
 
 export function createBot(cfg: Config) {
@@ -169,12 +194,69 @@ export function createBot(cfg: Config) {
     if (!addr) return void (await ctx.reply(t(u, 'noWallet')));
     try {
       const a = await api.account(addr);
-      await ctx.reply(t(u, 'claim', {
-        addr, amount: formatSqk(a.claimable), n: a.tokenCount, batches: Math.ceil(a.tokenCount / 32),
+      if (!a.tokenCount) return void (await ctx.reply(t(u, 'claim', { addr, amount: formatSqk(0n), n: 0, batches: 0 })));
+
+      let approx = '';
+      let per: { tokenId: string; amount: bigint }[];
+      if (cfg.rpcUrl) {
+        try {
+          const amounts = await claimablePerToken(cfg.rpcUrl, cfg.miningAddress, a.tokens.map((x) => x.tokenId), cfg.collection);
+          per = a.tokens.map((x, i) => ({ tokenId: x.tokenId, amount: amounts[i] }));
+        } catch {
+          per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
+          approx = ' (ước lượng — RPC lỗi)';
+        }
+      } else {
+        per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
+        approx = ' (ước lượng — chưa cấu hình RPC_URL)';
+      }
+
+      const plan = optimizeClaim(per);
+      await ctx.reply(t(u, 'claimPlan', {
+        addr, n: plan.tokens.length, amount: formatSqk(plan.total), dust: formatSqk(plan.dust),
+        skipped: plan.skipped, batches: plan.batches, approx,
+        ids: plan.tokens.slice(0, 8).join(', ') + (plan.tokens.length > 8 ? '…' : ''),
       }));
     } catch {
       await ctx.reply('API không phản hồi / API unreachable.');
     }
+  });
+
+  bot.command('ladder', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    const addr = targetWallet(u, ctx.match);
+    if (!addr) return void (await ctx.reply(t(u, 'noWallet')));
+    try {
+      const [a, eco] = await Promise.all([api.account(addr), api.economy()]);
+      const counts: Record<number, number> = {};
+      for (const tok of a.tokens) counts[tok.level] = (counts[tok.level] ?? 0) + 1;
+      const basePower: number[] = (eco?.nft?.basePower ?? []).map(Number);
+      const cooldowns: number[] = (eco?.nft?.cooldownBlocks ?? []).map(Number);
+      const steps = planLadder(counts, cooldowns, basePower.length || 10);
+      if (!steps.length) return void (await ctx.reply(t(u, 'ladderNone')));
+      const rows = steps.map((x) => `L${x.level} ×${x.merges * 2} → L${x.level + 1} ×${x.produced}  (chờ ${x.cooldownBlocks} block)`).join('\n');
+      const gain = ladderPowerGain(counts, basePower);
+      await ctx.reply(t(u, 'ladder', {
+        rows, before: gain.before.toString(), after: gain.after.toString(),
+        gain: (gain.after - gain.before).toString(),
+      }));
+    } catch {
+      await ctx.reply('API không phản hồi / API unreachable.');
+    }
+  });
+
+  bot.command('block', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
+    setBlockAlerts(db, u.tg_id, on);
+    await ctx.reply(t(u, on ? 'blockOn' : 'blockOff'));
+  });
+
+  bot.command('digest', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
+    setDigest(db, u.tg_id, on);
+    await ctx.reply(t(u, on ? 'digestOn' : 'digestOff'));
   });
 
   bot.command('mergecheck', async (ctx) => {

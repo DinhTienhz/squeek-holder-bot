@@ -4,8 +4,9 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  addWallet, firstTime, getUser, listWallets, openDb, pruneSent, removeWallet, setThreshold,
-  setQuiet, stats, upsertUser, wipeUser,
+  addWallet, firstTime, getMeta, getUser, listWallets, markDigest, newActivity, openDb,
+  pruneSent, removeWallet, setBlockAlerts, setDigest, setMeta, setQuiet, setThreshold, stats,
+  upsertUser, wipeUser,
 } from '../src/db.ts';
 
 function withDb(fn: (db: ReturnType<typeof openDb>, dir: string) => void) {
@@ -63,4 +64,31 @@ test('stats + pruneSent chạy được', () => withDb((db) => {
   pruneSent(db, 14);
   const n = db.prepare('SELECT COUNT(*) AS n FROM sent').get() as { n: number };
   assert.equal(n.n, 0);
+}));
+
+test('meta set/get', () => withDb((db) => {
+  assert.equal(getMeta(db, 'x'), null);
+  setMeta(db, 'x', '42');
+  assert.equal(getMeta(db, 'x'), '42');
+  setMeta(db, 'x', '43');
+  assert.equal(getMeta(db, 'x'), '43');
+}));
+
+test('newActivity: chỉ true lần đầu', () => withDb((db) => {
+  assert.equal(newActivity(db, '0xABC', 'id1'), true);
+  assert.equal(newActivity(db, '0xabc', 'id1'), false);
+  assert.equal(newActivity(db, '0xabc', 'id2'), true);
+}));
+
+test('digest + block alerts mặc định bật', () => withDb((db) => {
+  const u = upsertUser(db, '5');
+  assert.equal(u.digest, 1);
+  assert.equal(u.block_alerts, 1);
+  setDigest(db, '5', false);
+  setBlockAlerts(db, '5', false);
+  markDigest(db, '5', '2026-11-01');
+  const u2 = getUser(db, '5')!;
+  assert.equal(u2.digest, 0);
+  assert.equal(u2.block_alerts, 0);
+  assert.equal(u2.last_digest, '2026-11-01');
 }));

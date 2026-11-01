@@ -12,6 +12,10 @@ export type Config = {
   defaultThresholdSqk: bigint;
   dryRun: boolean;
   logPath: string | null;
+  rpcUrl: string;
+  miningAddress: string;
+  collection: number;
+  digestHour: number;
 };
 
 export function sqkToBaseUnits(s: string): bigint {
@@ -39,5 +43,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     defaultThresholdSqk: sqkToBaseUnits(env.DEFAULT_THRESHOLD_SQK ?? '0.5'),
     dryRun: env.DRY_RUN === '1' || !env.TELEGRAM_BOT_TOKEN,
     logPath: env.LOG_PATH ?? null,
+    rpcUrl: env.RPC_URL ?? '',
+    miningAddress: env.MINING_ADDRESS ?? '0xcd46990f8349057335289ef282c276204b6cdc62',
+    collection: Number(env.COLLECTION ?? 0),
+    digestHour: Number(env.DIGEST_HOUR ?? 9),
   };
 }

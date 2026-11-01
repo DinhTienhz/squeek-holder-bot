@@ -3,16 +3,18 @@
 Bot Telegram đa người dùng cho holder [Squeekchain](https://squeekchain.com) (Sepolia testnet).
 Ai biết username bot đều có thể `/start` và dùng — không cần mời.
 
-## Tính năng (MVP)
+## 8 chức năng
 
-- **Watchlist**: mỗi người thêm tối đa 5 ví, đặt tên
-- **Claimable alert**: báo khi SQK claim được vượt ngưỡng (mặc định 0.5 SQK), báo lại ở mỗi bội số ngưỡng
-- **Merge cooldown alert**: báo khi Squeek chuyển `cooldown → ready`
-- **Hamster alert**: báo khi bánh xe đổi trạng thái `SPINNING ↔ IDLE`
-- **Quiet hours + alerts on/off** theo từng người
-- **Song ngữ** vi/en
-- **Riêng tư**: chỉ lưu Telegram ID, địa chỉ ví, cài đặt; `/delete` xoá sạch
-- **Admin**: `/stats`, `/block`, `/unblock`
+1. **Claimable vượt ngưỡng** — DM khi SQK chưa claim ≥ ngưỡng, báo lại ở mỗi bội số
+2. **Claim optimizer** — `/claim`: batch tối đa 32 token, tổng nhận, dust, số tx cần
+3. **Cooldown + /mergecheck** — báo khi `cooldown → ready`, liệt kê token merge được
+4. **Merge ladder** — `/ladder`: kế hoạch merge theo level, cooldown block, power gain
+5. **Hamster chạy/dừng** — alert khi `SPINNING ↔ IDLE`, có RPM
+6. **Block hoàn thành** — height + SQK phát ra (chênh lệch supply)
+7. **Biến động ví** — activity mới (transfer/stake/merge…), trừ `rewards_claimed`
+8. **Watchlist + quiet hours + digest** — 5 ví/người, im lặng ban đêm, digest hằng ngày
+
+Kèm: song ngữ vi/en, `/privacy`, `/delete`, admin `/stats` `/block` `/unblock`.
 
 ## Lệnh
 
@@ -51,17 +53,18 @@ npm run dry
 npm test
 ```
 
-17 test: rule claim/cooldown/hamster, format số, rate-limit queue, quiet hours, DB (giới hạn ví, dedupe, wipe).
+26 test: rule claim/cooldown/hamster, claim optimizer, merge ladder, format số, rate-limit queue, quiet hours, DB (giới hạn ví, dedupe, activity, meta, wipe).
 
 ## Kiến trúc
 
 ```
 src/api.ts     client API Squeekchain (ETag, backoff 429/5xx, timeout)
-src/rules.ts   pure functions: evaluateAccount / evaluateHamster / formatSqk
+src/rules.ts   pure: evaluateAccount / evaluateHamster / optimizeClaim / planLadder / formatSqk
 src/db.ts      node:sqlite (users, wallets, sent) — không cần dependency native
 src/queue.ts   1 tin/giây mỗi chat + quiet hours
 src/bot.ts     grammY handlers + i18n vi/en
-src/index.ts   vòng poll: status 15s, ví 45s, healthcheck 5 phút
+src/chain.ts   claimable() per token qua multicall (fail-soft về API)
+src/index.ts   poll: status 15s, ví 45s, digest 60s, healthcheck 5 phút
 ```
 
 Dữ liệu lấy từ API công khai `api.squeekchain.com/v1` (`/status`, `/accounts/{address}`).
@@ -69,6 +72,6 @@ Không đọc private key, không ký giao dịch — mọi hành động đều
 
 ## Giới hạn đã biết
 
-- Claim số liệu lấy từ API (indexer), có thể trễ vài block so với contract
-- Chưa hỗ trợ Discord (v2)
-- Alert chỉ gửi khi không trong quiet hours; không có digest (v2)
+- Số claimable lấy từ API indexer (trễ vài block); `claimable()` on-chain hiện revert trên deployment Sepolia này nên optimizer ghi rõ "ước lượng" khi không đọc được từng token
+- Chưa hỗ trợ Discord
+- Alert thường bị bỏ (không xếp hàng) trong quiet hours; digest thì vẫn gửi

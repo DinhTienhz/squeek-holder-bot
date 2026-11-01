@@ -38,6 +38,12 @@ Người dùng tìm bot bằng username, `/start` là dùng được. Không c�
 | F14 | Admin | non-admin gọi `/stats` bị từ chối; `/block` chặn user |
 | F15 | API lỗi/429 | backoff, không crash, không gửi alert sai |
 | F16 | Multi-user | 2 user watch cùng 1 ví → API chỉ gọi 1 lần/vòng, mỗi người nhận alert riêng |
+| F17 | Claim optimizer | 40 token → chọn 32 lớn nhất, `skipped=8`, `batches=2`, dust = tổng % 1e18 |
+| F18 | Merge ladder | 4×L1 → 2 merge L2 → 1 merge L3; power trước/sau tính từ `basePower` |
+| F19 | Block alert | block height tăng → 1 alert/người/block, kèm delta SQK minted; lần đầu chỉ lấy mốc |
+| F20 | Wallet movement | activity mới → alert; `rewards_claimed` bị bỏ; lần đầu thêm ví không bắn loạt cũ |
+| F21 | Digest | mỗi ngày 1 tin/người (đúng giờ cấu hình), tổng claimable + mergeable + block |
+| F22 | Bật/tắt riêng | `/block on\|off`, `/digest on\|off` độc lập với `/alerts` |
 
 ## Không làm (non-goals)
 
