@@ -12,6 +12,7 @@ const { bot, db, api } = createBot(cfg);
 const queue = new ChatQueue(1100);
 const prevAccounts = new Map<string, AccountState>();
 let prevHamster: string | null = null;
+let lastStatusOkAt = 0;
 
 const log = (...a: unknown[]) => console.log(new Date().toISOString(), ...a);
 
@@ -47,6 +48,7 @@ function usersWith(column: 'alerts' | 'block_alerts' | 'digest'): { tg_id: strin
 async function pollStatus(): Promise<void> {
   try {
     const s = await api.status();
+    lastStatusOkAt = Date.now();
     const alert = evaluateHamster(prevHamster, s);
     prevHamster = s.coreStatus;
     if (alert) {
@@ -181,10 +183,18 @@ async function maybeDigest(): Promise<void> {
   }
 }
 
+/**
+ * Dead-man's switch: ping healthchecks.io mỗi 5 phút.
+ * Chỉ ping "ok" khi dữ liệu còn tươi; mất API quá 3 chu kỳ → ping /fail
+ * để dịch vụ ngoài báo động dù tiến trình vẫn sống.
+ */
 async function healthcheck(): Promise<void> {
   const url = process.env.HEALTHCHECK_URL;
-  if (!url) return;
-  try { await fetch(url, { signal: AbortSignal.timeout(8000) }); } catch { /* ignore */ }
+  if (!url || lastStatusOkAt === 0) return;
+  const staleAfter = Math.max(120_000, cfg.pollStatusMs * 3);
+  const ok = Date.now() - lastStatusOkAt < staleAfter;
+  const target = ok ? url : url.replace(/\/+$/, '') + '/fail';
+  try { await fetch(target, { signal: AbortSignal.timeout(8000) }); } catch { /* ignore */ }
 }
 
 async function main(): Promise<void> {
