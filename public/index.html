@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Squeek Holder Bot — Telegram alerts for Squeekchain</title>
+<meta name="description" content="A multi-user Telegram bot for Squeekchain holders: claimable alerts, merge ladder, block alerts, wallet activity and a daily digest. Read-only, no private keys.">
+<meta property="og:title" content="Squeek Holder Bot">
+<meta property="og:description" content="Telegram alerts for Squeekchain holders. Claimable SQK, merge cooldowns, block and wallet activity.">
+<meta property="og:type" content="website">
+<style>
+  :root{
+    --bg:#0b0b10; --panel:#14141c; --line:#262633; --text:#e9e9f2; --muted:#9a9ab0;
+    --accent:#c9f24d; --accent-2:#7de2d1; --warn:#ffcf66;
+    --radius:14px; --max:1040px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(1200px 600px at 50% -200px, #1b1b28 0%, var(--bg) 60%);
+    color:var(--text);
+    font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent-2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+  .wrap{max:var(--max);margin:0 auto;padding:0 22px}
+  header{padding:22px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+  .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;color:#0b0b10;font-size:19px}
+  nav a{color:var(--muted);font-size:14px;margin-left:18px}
+  .hero{padding:56px 0 26px}
+  .kicker{color:var(--accent);font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:700}
+  h1{font-size:clamp(34px,6vw,58px);line-height:1.05;margin:14px 0 16px;letter-spacing:-.02em}
+  h1 span{color:var(--accent)}
+  .lead{color:var(--muted);font-size:clamp(16px,2vw,19px);max-width:60ch;margin:0 0 26px}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .btn{display:inline-block;padding:13px 20px;border-radius:11px;font-weight:700;border:1px solid transparent;transition:.15s}
+  .btn-primary{background:var(--accent);color:#0b0b10}
+  .btn-primary:hover{filter:brightness(1.06);text-decoration:none}
+  .btn-ghost{border-color:var(--line);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--accent);text-decoration:none}
+  .note{color:var(--muted);font-size:13px}
+  section{padding:40px 0;border-top:1px solid var(--line)}
+  h2{font-size:22px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0 0 22px;font-size:15px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h3{margin:0 0 6px;font-size:15px;display:flex;gap:9px;align-items:center}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .num{width:22px;height:22px;border-radius:7px;background:#20202c;color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+  .cmds{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .cmd{display:flex;gap:12px;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .cmd code{color:var(--accent);white-space:nowrap}
+  .cmd span{color:var(--muted);font-size:14px}
+  .steps{counter-reset:s;display:grid;gap:12px}
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step .n{counter-increment:s;content:counter(s);width:28px;height:28px;border-radius:50%;border:1px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+  .step p{margin:0;color:var(--muted)}
+  .step b{color:var(--text)}
+  .callout{background:#141a12;border:1px solid #2b3a20;border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px;color:#d9e8bf;font-size:14px}
+  footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  @media (max-width:560px){nav{display:none}.hero{padding-top:34px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="logo">🐹</div> Squeek Holder Bot</div>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#commands">Commands</a>
+      <a href="#how">How it works</a>
+      <a href="https://github.com/DinhTienhz/squeek-holder-bot">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="kicker">Squeekchain · Sepolia</div>
+      <h1>Your Squeek, <span>in your pocket.</span></h1>
+      <p class="lead">
+        A Telegram bot that watches your Squeekchain wallets and tells you the moment
+        there is SQK to claim, a Squeek to merge, or the hamster starts running.
+        Public: anyone can find it and type <code>/start</code>.
+      </p>
+      <div class="cta">
+        <!-- Replace this URL with https://t.me/<your_bot_username> after creating the bot with @BotFather -->
+        <a class="btn btn-primary" href="https://t.me/squeekholderbot">Open in Telegram</a>
+        <a class="btn btn-ghost" href="https://github.com/DinhTienhz/squeek-holder-bot">View source</a>
+        <span class="note">Free · read-only · no private keys</span>
+      </div>
+    </div>
+
+    <section id="features">
+      <h2>Eight things it does</h2>
+      <p class="sub">Built on the public Squeekchain API and the Squeek contracts.</p>
+      <div class="grid">
+        <div class="card"><h3><span class="num">1</span> Claim alerts</h3><p>Get a DM when unclaimed SQK crosses your threshold, and again at every multiple.</p></div>
+        <div class="card"><h3><span class="num">2</span> Claim optimizer</h3><p><code>/claim</code> packs the best 32 tokens into one batch and shows the dust left behind.</p></div>
+        <div class="card"><h3><span class="num">3</span> Cooldowns</h3><p>Know the moment a Squeek leaves cooldown, plus <code>/mergecheck</code> for the full list.</p></div>
+        <div class="card"><h3><span class="num">4</span> Merge ladder</h3><p><code>/ladder</code> turns your holdings into an ordered merge plan with the power gain.</p></div>
+        <div class="card"><h3><span class="num">5</span> Hamster status</h3><p>Running or resting, with live RPM — the heartbeat of the whole chain.</p></div>
+        <div class="card"><h3><span class="num">6</span> Block alerts</h3><p>Every completed Squeek block, with the SQK it minted.</p></div>
+        <div class="card"><h3><span class="num">7</span> Wallet activity</h3><p>Transfers, stakes and merges on watched wallets — the safety net for your Squeeks.</p></div>
+        <div class="card"><h3><span class="num">8</span> Quiet hours + digest</h3><p>Silence at night, one clean summary at the hour you choose.</p></div>
+      </div>
+    </section>
+
+    <section id="commands">
+      <h2>Commands</h2>
+      <p class="sub">Everything runs inside the chat. No dashboard to learn.</p>
+      <div class="cmds">
+        <div class="cmd"><code>/start</code><span>create your account</span></div>
+        <div class="cmd"><code>/watch 0x… label</code><span>track a wallet (max 5)</span></div>
+        <div class="cmd"><code>/list</code><span>your wallets</span></div>
+        <div class="cmd"><code>/status</code><span>hamster, block, round</span></div>
+        <div class="cmd"><code>/claim</code><span>best batch + dust</span></div>
+        <div class="cmd"><code>/mergecheck</code><span>Squeeks off cooldown</span></div>
+        <div class="cmd"><code>/ladder</code><span>merge plan + power gain</span></div>
+        <div class="cmd"><code>/threshold 0.5</code><span>claim alert level</span></div>
+        <div class="cmd"><code>/block on|off</code><span>block notifications</span></div>
+        <div class="cmd"><code>/digest on|off</code><span>daily summary</span></div>
+        <div class="cmd"><code>/quiet 22:00-07:00</code><span>sleep hours</span></div>
+        <div class="cmd"><code>/lang vi|en</code><span>language</span></div>
+      </div>
+    </section>
+
+    <section id="how">
+      <h2>How it works</h2>
+      <p class="sub">Three steps, no wallet connection needed for alerts.</p>
+      <div class="steps">
+        <div class="step"><div class="n"></div><p><b>Find the bot</b> by its Telegram username and press <code>/start</code>. It is public — no invite required.</p></div>
+        <div class="step"><div class="n"></div><p><b>Add a wallet</b> with <code>/watch 0x… label</code>. The bot only reads public chain data for that address.</p></div>
+        <div class="step"><div class="n"></div><p><b>Get pinged</b> when something matters. To act, the bot links you to the official Squeekchain app — signing always happens in your own wallet.</p></div>
+      </div>
+    </section>
+
+    <section id="security">
+      <h2>Security</h2>
+      <div class="callout">
+        The bot never asks for a seed phrase or private key and cannot sign transactions.
+        It stores only your Telegram ID, the wallet addresses you add, and your alert settings.
+        <code>/delete</code> wipes everything.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>MIT licensed · open source on <a href="https://github.com/DinhTienhz/squeek-holder-bot">GitHub</a></div>
+    <div>Not affiliated with Squeekchain. Data from api.squeekchain.com.</div>
+  </footer>
+</div>
+</body>
+</html>
