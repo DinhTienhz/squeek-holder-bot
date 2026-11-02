@@ -40,7 +40,7 @@ async function notify(tgId: string, text: string, force = false): Promise<void> 
   });
 }
 
-function usersWith(column: 'alerts' | 'block_alerts' | 'digest'): { tg_id: string }[] {
+function usersWith(column: 'alerts' | 'block_alerts' | 'digest' | 'hamster_alerts'): { tg_id: string }[] {
   return db.prepare(`SELECT tg_id FROM users WHERE blocked = 0 AND ${column} = 1`).all() as { tg_id: string }[];
 }
 
@@ -52,7 +52,7 @@ async function pollStatus(): Promise<void> {
     const alert = evaluateHamster(prevHamster, s);
     prevHamster = s.coreStatus;
     if (alert) {
-      for (const u of usersWith('alerts')) {
+      for (const u of usersWith('hamster_alerts')) {
         const user = getUser(db, u.tg_id);
         if (!user) continue;
         if (firstTime(db, u.tg_id, alert.key)) await notify(u.tg_id, alertHamster(langOf(user), s));

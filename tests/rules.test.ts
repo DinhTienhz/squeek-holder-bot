@@ -51,6 +51,9 @@ test('cooldown: ready sẵn từ đầu không báo (tránh spam khi thêm ví)'
 test('hamster: đổi trạng thái → alert, giữ nguyên → null', () => {
   const s = { coreStatus: 'SPINNING' } as Status;
   assert.ok(evaluateHamster('IDLE', s, 1_700_000_000_000));
+  // running -> resting must alert too (both directions)
+  const idle = { ...s, coreStatus: 'IDLE' } as Status;
+  assert.ok(evaluateHamster('SPINNING', idle, 1_700_000_000_000));
   assert.equal(evaluateHamster('SPINNING', s, 1_700_000_000_000), null);
   assert.equal(evaluateHamster(null, s), null);
 });

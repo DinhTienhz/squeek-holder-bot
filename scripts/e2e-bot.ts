@@ -127,6 +127,15 @@ try {
   r = await cmd('/alerts on', 700);
   record('9c. /alerts on', /on|bật/i.test(r), r);
 
+  r = await cmd('/hamster', 700);
+  record('9e. /hamster (bare shows state)', /Hamster alerts:/i.test(r), r);
+
+  r = await cmd('/hamster off', 700);
+  record('9f. /hamster off', /off|tắt/i.test(r), r);
+
+  r = await cmd('/hamster on', 700);
+  record('9g. /hamster on', /on|bật/i.test(r), r);
+
   r = await cmd('/block', 700);
   record('9d. /block (bare shows state)', /Block alerts:/i.test(r), r);
 
@@ -154,7 +163,8 @@ try {
   record('13. claim alert text', claimAlert.length > 0, claimAlert);
 
   const st = await api.status();
-  record('14. hamster alert text', true, alertHamster('en', st));
+  record('14. hamster alert text (stopped)', true, alertHamster('en', { ...st, coreStatus: 'IDLE' }));
+  record('14b. hamster alert text (running)', true, alertHamster('en', { ...st, coreStatus: 'SPINNING', rpmMilli: 4200 }));
 
   record('15. block alert text', true, alertBlock('en', { height: st.blockHeight, minted: null }));
 

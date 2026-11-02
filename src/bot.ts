@@ -9,7 +9,7 @@ import {
   help, ladderMsg, mergeMsg, privacy, statusMsg, t as tr, walletAdded, walletList, welcome, type Lang,
 } from './format.ts';
 import {
-  addWallet, getUser, listWallets, openDb, removeWallet, setAlerts, setBlockAlerts,
+  addWallet, getUser, listWallets, openDb, removeWallet, setAlerts, setBlockAlerts, setHamsterAlerts,
   setBlocked, setDigest, setLang, setQuiet, setThreshold, stats, upsertUser, wipeUser, type User,
 } from './db.ts';
 
@@ -34,6 +34,9 @@ const MSG = {
     alertsNow: '🔔 Thông báo: <b>{state}</b>\nĐổi bằng <code>/alerts on</code> hoặc <code>/alerts off</code>',
     alertsOff: '🔕 Đã tắt thông báo.',
     blockNow: '⛏ Block alerts: <b>{state}</b>\nĐổi bằng <code>/block on</code> hoặc <code>/block off</code>',
+    hamsterOn: '🐹 Đã bật cảnh báo hamster chạy/dừng.',
+    hamsterOff: '🐹 Đã tắt cảnh báo hamster.',
+    hamsterNow: '🐹 Cảnh báo hamster: <b>{state}</b>\nĐổi bằng <code>/hamster on</code> hoặc <code>/hamster off</code>',
     digestNow: '📊 Digest: <b>{state}</b>\nĐổi bằng <code>/digest on</code> hoặc <code>/digest off</code>',
     quietNow: '🌙 Im lặng: <b>{state}</b>\nĐổi bằng <code>/quiet 22:00-07:00</code> hoặc <code>/quiet off</code>',
     threshold: '🎯 Ngưỡng báo claim: <b>{amount}</b>',
@@ -65,6 +68,9 @@ const MSG = {
     alertsNow: '🔔 Alerts: <b>{state}</b>\nChange with <code>/alerts on</code> or <code>/alerts off</code>',
     alertsOff: '🔕 Alerts off.',
     blockNow: '⛏ Block alerts: <b>{state}</b>\nChange with <code>/block on</code> or <code>/block off</code>',
+    hamsterOn: '🐹 Hamster started/stopped alerts on.',
+    hamsterOff: '🐹 Hamster alerts off.',
+    hamsterNow: '🐹 Hamster alerts: <b>{state}</b>\nChange with <code>/hamster on</code> or <code>/hamster off</code>',
     digestNow: '📊 Digest: <b>{state}</b>\nChange with <code>/digest on</code> or <code>/digest off</code>',
     quietNow: '🌙 Quiet hours: <b>{state}</b>\nChange with <code>/quiet 22:00-07:00</code> or <code>/quiet off</code>',
     threshold: '🎯 Claim threshold: <b>{amount}</b>',
@@ -264,6 +270,15 @@ export function createBot(cfg: Config) {
     const on = arg !== 'off';
     setAlerts(db, u.tg_id, on);
     await reply(ctx, m(u, on ? 'alertsOn' : 'alertsOff'));
+  });
+
+  bot.command('hamster', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    const arg = (ctx.match ?? '').trim().toLowerCase();
+    if (!arg) return void (await reply(ctx, m(u, 'hamsterNow', { state: stateWord(u, !!u.hamster_alerts) })));
+    const on = arg !== 'off';
+    setHamsterAlerts(db, u.tg_id, on);
+    await reply(ctx, m(u, on ? 'hamsterOn' : 'hamsterOff'));
   });
 
   bot.command('block', async (ctx) => {

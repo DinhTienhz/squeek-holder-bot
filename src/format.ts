@@ -98,7 +98,7 @@ export function help(lang: Lang): string {
       '',
       '<b>Track</b>',
       '/status · /claim · /mergecheck · /ladder',
-      '/threshold 0.5 · /block on|off',
+      '/threshold 0.5 · /hamster on|off · /block on|off',
       '',
       '<b>Notifications</b>',
       '/alerts on|off · /quiet 22:00-07:00',
