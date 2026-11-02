@@ -84,7 +84,9 @@ Không đọc private key, không ký giao dịch — mọi hành động đều
 ## Landing page
 
 `public/` is a static site (dark landing page with a live Squeekchain panel).
-Live: <https://squeek-holder-bot.chainn.workers.dev/> — see [DEPLOY.md](DEPLOY.md).
+Live: <https://squeek-holder-bot.chainn.workers.dev/>
+
+Verify the deployment: `./scripts/smoke.sh` (12 checks: page, headers, assets, 404). — see [DEPLOY.md](DEPLOY.md).
 
 ## License
 
