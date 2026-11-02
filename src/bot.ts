@@ -31,7 +31,11 @@ const MSG = {
     quietOff: '🌙 Đã tắt im lặng.',
     badQuiet: '⚠️ Sai định dạng.\nVí dụ: <code>/quiet 22:00-07:00</code>',
     alertsOn: '🔔 Đã bật thông báo.',
+    alertsNow: '🔔 Thông báo: <b>{state}</b>\nĐổi bằng <code>/alerts on</code> hoặc <code>/alerts off</code>',
     alertsOff: '🔕 Đã tắt thông báo.',
+    blockNow: '⛏ Block alerts: <b>{state}</b>\nĐổi bằng <code>/block on</code> hoặc <code>/block off</code>',
+    digestNow: '📊 Digest: <b>{state}</b>\nĐổi bằng <code>/digest on</code> hoặc <code>/digest off</code>',
+    quietNow: '🌙 Im lặng: <b>{state}</b>\nĐổi bằng <code>/quiet 22:00-07:00</code> hoặc <code>/quiet off</code>',
     threshold: '🎯 Ngưỡng báo claim: <b>{amount}</b>',
     thresholdNow: '🎯 Ngưỡng hiện tại: <b>{amount}</b>\nĐổi bằng <code>/threshold 5</code>',
     badNum: '⚠️ Số không hợp lệ.',
@@ -58,7 +62,11 @@ const MSG = {
     quietOff: '🌙 Quiet hours off.',
     badQuiet: '⚠️ Bad format.\nExample: <code>/quiet 22:00-07:00</code>',
     alertsOn: '🔔 Alerts on.',
+    alertsNow: '🔔 Alerts: <b>{state}</b>\nChange with <code>/alerts on</code> or <code>/alerts off</code>',
     alertsOff: '🔕 Alerts off.',
+    blockNow: '⛏ Block alerts: <b>{state}</b>\nChange with <code>/block on</code> or <code>/block off</code>',
+    digestNow: '📊 Digest: <b>{state}</b>\nChange with <code>/digest on</code> or <code>/digest off</code>',
+    quietNow: '🌙 Quiet hours: <b>{state}</b>\nChange with <code>/quiet 22:00-07:00</code> or <code>/quiet off</code>',
     threshold: '🎯 Claim threshold: <b>{amount}</b>',
     thresholdNow: '🎯 Current threshold: <b>{amount}</b>\nChange with <code>/threshold 5</code>',
     badNum: '⚠️ Invalid number.',
@@ -91,6 +99,9 @@ export function createBot(cfg: Config) {
     for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
     return s;
   };
+
+  const stateWord = (u: User, on: boolean): string =>
+    langOf(u) === 'vi' ? (on ? 'đang bật' : 'đang tắt') : (on ? 'on' : 'off');
 
   const reply = (ctx: Context, text: string) =>
     ctx.reply(text, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
@@ -248,21 +259,27 @@ export function createBot(cfg: Config) {
 
   bot.command('alerts', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
+    const arg = (ctx.match ?? '').trim().toLowerCase();
+    if (!arg) return void (await reply(ctx, m(u, 'alertsNow', { state: stateWord(u, !!u.alerts) })));
+    const on = arg !== 'off';
     setAlerts(db, u.tg_id, on);
     await reply(ctx, m(u, on ? 'alertsOn' : 'alertsOff'));
   });
 
   bot.command('block', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
+    const arg = (ctx.match ?? '').trim().toLowerCase();
+    if (!arg) return void (await reply(ctx, m(u, 'blockNow', { state: stateWord(u, !!u.block_alerts) })));
+    const on = arg !== 'off';
     setBlockAlerts(db, u.tg_id, on);
     await reply(ctx, m(u, on ? 'blockOn' : 'blockOff'));
   });
 
   bot.command('digest', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const on = (ctx.match ?? '').trim().toLowerCase() !== 'off';
+    const arg = (ctx.match ?? '').trim().toLowerCase();
+    if (!arg) return void (await reply(ctx, m(u, 'digestNow', { state: stateWord(u, !!u.digest) })));
+    const on = arg !== 'off';
     setDigest(db, u.tg_id, on);
     await reply(ctx, m(u, on ? 'digestOn' : 'digestOff'));
   });
@@ -270,7 +287,14 @@ export function createBot(cfg: Config) {
   bot.command('quiet', async (ctx) => {
     const u = userOf(ctx.from!.id);
     const arg = (ctx.match ?? '').trim();
-    if (!arg || arg.toLowerCase() === 'off') {
+    if (!arg) {
+      const hhmm = (mins: number) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+      const state = u.quiet_start === null || u.quiet_end === null
+        ? stateWord(u, false)
+        : `${hhmm(u.quiet_start)}-${hhmm(u.quiet_end)}`;
+      return void (await reply(ctx, m(u, 'quietNow', { state })));
+    }
+    if (arg.toLowerCase() === 'off') {
       setQuiet(db, u.tg_id, null, null);
       return void (await reply(ctx, m(u, 'quietOff')));
     }

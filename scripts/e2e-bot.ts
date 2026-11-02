@@ -118,14 +118,32 @@ try {
   r = await cmd('/threshold', 700);
   record('8b. /threshold show', /5/.test(r) && /threshold/i.test(r), r);
 
+  r = await cmd('/alerts', 700);
+  record('9a. /alerts (bare shows state)', /Alerts:|Thông báo:/i.test(r), r);
+
+  r = await cmd('/alerts off', 700);
+  record('9b. /alerts off', /off|tắt/i.test(r), r);
+
+  r = await cmd('/alerts on', 700);
+  record('9c. /alerts on', /on|bật/i.test(r), r);
+
+  r = await cmd('/block', 700);
+  record('9d. /block (bare shows state)', /Block alerts:/i.test(r), r);
+
   r = await cmd('/block on', 700);
   record('9. /block on', /block/i.test(r), r);
+
+  r = await cmd('/digest', 700);
+  record('10a. /digest (bare shows state)', /Digest:/i.test(r), r);
 
   r = await cmd('/digest on', 700);
   record('10. /digest on', /digest/i.test(r), r);
 
   r = await cmd('/quiet 22:00-07:00', 700);
   record('11. /quiet range', /22|07|quiet/i.test(r), r);
+
+  r = await cmd('/quiet', 700);
+  record('11b. /quiet (bare shows state)', /Quiet hours:|Im lặng:/i.test(r), r);
 
   r = await cmd('/lang vi', 700);
   record('12. /lang vi', r.length > 0, r);

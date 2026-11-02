@@ -10,6 +10,9 @@ export type User = {
   threshold: string;
   alerts: number;
   blocked: number;
+  block_alerts: number;
+  digest: number;
+  last_digest: string | null;
 };
 
 export type Wallet = { id: number; tg_id: string; address: string; label: string | null };
