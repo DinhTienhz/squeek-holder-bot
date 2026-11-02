@@ -258,9 +258,25 @@ export function alertBlock(lang: Lang, p: { height: number; minted: bigint | nul
   return [`⛏️ <b>Block #${fmtInt(p.height, lang)}</b>`, second].join('\n');
 }
 
+const ACTIVITY_KINDS: Record<string, { en: string; vi: string }> = {
+  nft_deposited: { en: 'Squeek received', vi: 'Nhận Squeek' },
+  nft_withdrawn: { en: 'Squeek sent', vi: 'Gửi Squeek' },
+  nft_merged: { en: 'Squeek merged', vi: 'Merge Squeek' },
+  claimed: { en: 'SQK claimed', vi: 'Đã claim SQK' },
+  claim: { en: 'SQK claimed', vi: 'Đã claim SQK' },
+  transfer: { en: 'Transfer', vi: 'Chuyển' },
+};
+
+export function activityLabel(lang: Lang, kind: string): string {
+  const k = ACTIVITY_KINDS[kind];
+  if (!k) return kind;
+  return lang === 'en' ? k.en : k.vi;
+}
+
 export function alertActivity(lang: Lang, p: { address: string; kind: string; amount: bigint | null; tx?: string }): string {
   const vi = lang !== 'en';
-  const line = p.amount ? `${esc(p.kind)} · ${fmtSqk(p.amount, lang)}` : esc(p.kind);
+  const label = esc(activityLabel(lang, p.kind));
+  const line = p.amount ? `${label} · ${fmtSqk(p.amount, lang)}` : label;
   const out = [
     `🔔 <b>${vi ? 'Biến động ví' : 'Wallet activity'}</b> · ${addrShort(p.address)}`,
     line,

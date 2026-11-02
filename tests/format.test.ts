@@ -111,3 +111,11 @@ test('không có dòng trắng thừa ở cuối tin', () => {
     assert.doesNotMatch(m, /\n\n\n/, 'double blank line');
   }
 });
+
+test('activityLabel: known kinds are translated, unknown pass through', async () => {
+  const { activityLabel } = await import('../src/format.ts');
+  assert.equal(activityLabel('en', 'nft_deposited'), 'Squeek received');
+  assert.equal(activityLabel('vi', 'nft_deposited'), 'Nhận Squeek');
+  assert.equal(activityLabel('en', 'nft_merged'), 'Squeek merged');
+  assert.equal(activityLabel('en', 'something_new'), 'something_new');
+});
