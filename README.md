@@ -81,6 +81,11 @@ Không đọc private key, không ký giao dịch — mọi hành động đều
 - Chưa hỗ trợ Discord
 - Alert thường bị bỏ (không xếp hàng) trong quiet hours; digest thì vẫn gửi
 
+## Landing page
+
+`public/` is a static site (dark landing page with a live Squeekchain panel).
+Deploy it with Cloudflare Pages — see [DEPLOY.md](DEPLOY.md).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
