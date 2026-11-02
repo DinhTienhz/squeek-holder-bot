@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Squeek Holder Bot — Telegram alerts for Squeekchain</title>
-<meta name="description" content="A multi-user Telegram bot for Squeekchain holders: claimable alerts, merge ladder, block alerts, wallet activity and a daily digest. Read-only, no private keys.">
+<meta name="description" content="A multi-user Telegram bot for Squeekchain holders: claimable SQK alerts, merge ladder, hamster start/stop alerts, block alerts, wallet activity and a daily digest. Read-only, no private keys.">
 <meta property="og:title" content="Squeek Holder Bot">
 <meta property="og:description" content="Telegram alerts for Squeekchain holders. Claimable SQK, merge cooldowns, block and wallet activity.">
 <meta property="og:type" content="website">
@@ -97,6 +97,7 @@
     .live-top .note{font-size:11px}
   }
   @media (prefers-reduced-motion: reduce){.dot.on{animation:none}.bar i{transition:none}}
+  .cmdgroup{margin:28px 0 10px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
   footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
   @media (max-width:560px){nav{display:none}.hero{padding-top:34px}}
 </style>
@@ -119,7 +120,7 @@
       <h1>Your Squeek, <span>in your pocket.</span></h1>
       <p class="lead">
         A Telegram bot that watches your Squeekchain wallets and tells you the moment
-        there is SQK to claim, a Squeek to merge, or the hamster starts running.
+        there is SQK to claim, a Squeek to merge, or the hamster starts or stops.
         Public: anyone can find it and type <code>/start</code>.
       </p>
       <div class="cta">
@@ -155,7 +156,7 @@
         <div class="card"><h3><span class="num">2</span> Claim optimizer</h3><p><code>/claim</code> packs the best 32 tokens into one batch and shows the dust left behind.</p></div>
         <div class="card"><h3><span class="num">3</span> Cooldowns</h3><p>Know the moment a Squeek leaves cooldown, plus <code>/mergecheck</code> for the full list.</p></div>
         <div class="card"><h3><span class="num">4</span> Merge ladder</h3><p><code>/ladder</code> turns your holdings into an ordered merge plan with the power gain.</p></div>
-        <div class="card"><h3><span class="num">5</span> Hamster status</h3><p>Running or resting, with live RPM — the heartbeat of the whole chain.</p></div>
+        <div class="card"><h3><span class="num">5</span> Hamster alerts</h3><p>A DM when the wheel starts <b>or</b> stops, with live RPM. Toggle with <code>/hamster</code>.</p></div>
         <div class="card"><h3><span class="num">6</span> Block alerts</h3><p>Every completed Squeek block, with the SQK it minted.</p></div>
         <div class="card"><h3><span class="num">7</span> Wallet activity</h3><p>Transfers, stakes and merges on watched wallets — the safety net for your Squeeks.</p></div>
         <div class="card"><h3><span class="num">8</span> Quiet hours + digest</h3><p>Silence at night, one clean summary at the hour you choose.</p></div>
@@ -164,20 +165,39 @@
 
     <section id="commands">
       <h2>Commands</h2>
-      <p class="sub">Everything runs inside the chat. No dashboard to learn.</p>
+      <p class="sub">Everything runs inside the chat. When a command needs a wallet it uses the one holding the most Squeeks, unless you pass an address.</p>
+
+      <h3 class="cmdgroup">Wallets</h3>
       <div class="cmds">
-        <div class="cmd"><code>/start</code><span>create your account</span></div>
         <div class="cmd"><code>/watch 0x… label</code><span>track a wallet (max 5)</span></div>
+        <div class="cmd"><code>/unwatch 0x…</code><span>stop tracking a wallet</span></div>
         <div class="cmd"><code>/list</code><span>your wallets</span></div>
+      </div>
+
+      <h3 class="cmdgroup">Track</h3>
+      <div class="cmds">
         <div class="cmd"><code>/status</code><span>hamster, block, round</span></div>
-        <div class="cmd"><code>/claim</code><span>best batch + dust</span></div>
+        <div class="cmd"><code>/claim [0x…]</code><span>best batch + dust left</span></div>
         <div class="cmd"><code>/mergecheck</code><span>Squeeks off cooldown</span></div>
         <div class="cmd"><code>/ladder</code><span>merge plan + power gain</span></div>
         <div class="cmd"><code>/threshold 0.5</code><span>claim alert level</span></div>
-        <div class="cmd"><code>/block on|off</code><span>block notifications</span></div>
+      </div>
+
+      <h3 class="cmdgroup">Notifications</h3>
+      <div class="cmds">
+        <div class="cmd"><code>/alerts on|off</code><span>all wallet alerts</span></div>
+        <div class="cmd"><code>/hamster on|off</code><span>wheel starts or stops</span></div>
+        <div class="cmd"><code>/block on|off</code><span>completed blocks</span></div>
         <div class="cmd"><code>/digest on|off</code><span>daily summary</span></div>
         <div class="cmd"><code>/quiet 22:00-07:00</code><span>sleep hours</span></div>
+      </div>
+
+      <h3 class="cmdgroup">Other</h3>
+      <div class="cmds">
         <div class="cmd"><code>/lang vi|en</code><span>language</span></div>
+        <div class="cmd"><code>/privacy</code><span>what is stored</span></div>
+        <div class="cmd"><code>/delete</code><span>wipe your data</span></div>
+        <div class="cmd"><code>/help</code><span>full command list</span></div>
       </div>
     </section>
 
