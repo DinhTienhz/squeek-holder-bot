@@ -8,6 +8,9 @@
 <meta property="og:title" content="Squeek Holder Bot">
 <meta property="og:description" content="Telegram alerts for Squeekchain holders. Claimable SQK, merge cooldowns, block and wallet activity.">
 <meta property="og:type" content="website">
+<link rel="icon" type="image/png" sizes="32x32" href="logo-mark-32.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="logo-mark.png">
 <style>
   :root{
     --bg:#0b0b10; --panel:#14141c; --line:#262633; --text:#e9e9f2; --muted:#9a9ab0;
@@ -28,7 +31,7 @@
   .wrap{max:var(--max);margin:0 auto;padding:0 22px}
   header{padding:22px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:16px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
-  .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;color:#0b0b10;font-size:19px}
+  .logo{width:36px;height:36px;display:block;object-fit:contain;filter:drop-shadow(0 2px 10px rgba(240,180,60,.18))}
   nav a{color:var(--muted);font-size:14px;margin-left:18px}
   .hero{padding:56px 0 26px}
   .kicker{color:var(--accent);font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:700}
@@ -81,7 +84,7 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="brand"><div class="logo">🐹</div> Squeek Holder Bot</div>
+    <div class="brand"><img class="logo" src="logo-mark.png" alt="" width="36" height="36"> Squeek Holder Bot</div>
     <nav>
       <a href="#features">Features</a>
       <a href="#commands">Commands</a>
