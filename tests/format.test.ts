@@ -119,3 +119,11 @@ test('activityLabel: known kinds are translated, unknown pass through', async ()
   assert.equal(activityLabel('en', 'nft_merged'), 'Squeek merged');
   assert.equal(activityLabel('en', 'something_new'), 'something_new');
 });
+
+test('claim và alert claim có link mở app bấm được', async () => {
+  const { claimMsg, alertClaim } = await import('../src/format.ts');
+  const c = claimMsg('vi', { address: '0x4e6fc32b6a0adc1cd1e13949666fe66ec40e01f2', total: 15075n * 10n ** 18n, dust: 4n * 10n ** 17n, tokens: 10, skipped: 0, batches: 1, approx: 'rpc' });
+  const a = alertClaim('en', { address: '0x4e6fc32b6a0adc1cd1e13949666fe66ec40e01f2', amount: 15075n * 10n ** 18n, threshold: 5n * 10n ** 18n });
+  assert.match(c, /href="https:\/\/sepolia\.squeekchain\.com\/"/);
+  assert.match(a, /href="https:\/\/sepolia\.squeekchain\.com\/"/);
+});

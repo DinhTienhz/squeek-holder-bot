@@ -38,7 +38,7 @@ export const fullAddr = (a: string): string => `<code>${esc(a)}</code>`;
 
 const L = {
   vi: {
-    appLink: '🔗 Mở app để ký',
+    appLink: '🔗 <a href="https://sepolia.squeekchain.com/">Mở app để ký</a>',
     approxRpc: 'Ước lượng từ API — RPC không đọc được từng token.',
     approxNoRpc: 'Ước lượng từ API — chưa cấu hình RPC_URL.',
     noWallet: '👛 Chưa có ví nào.\nThêm bằng <code>/watch 0x…</code>',
@@ -46,7 +46,7 @@ const L = {
     apiDown: '⚠️ API không phản hồi. Thử lại sau ít phút.',
   },
   en: {
-    appLink: '🔗 Open app to sign',
+    appLink: '🔗 <a href="https://sepolia.squeekchain.com/">Open app to sign</a>',
     approxRpc: 'Estimated from the API — RPC could not read per-token amounts.',
     approxNoRpc: 'Estimated from the API — RPC_URL is not configured.',
     noWallet: '👛 No wallets yet.\nAdd one with <code>/watch 0x…</code>',
