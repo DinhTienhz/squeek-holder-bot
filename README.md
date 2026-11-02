@@ -1,5 +1,9 @@
 # Squeek Holder Bot
 
+[![test](https://github.com/DinhTienhz/squeek-holder-bot/actions/workflows/test.yml/badge.svg)](https://github.com/DinhTienhz/squeek-holder-bot/actions/workflows/test.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%E2%89%A522.6-brightgreen.svg)](package.json)
+
 Bot Telegram đa người dùng cho holder [Squeekchain](https://squeekchain.com) (Sepolia testnet).
 Ai biết username bot đều có thể `/start` và dùng — không cần mời.
 
@@ -76,3 +80,7 @@ Không đọc private key, không ký giao dịch — mọi hành động đều
 - Số claimable lấy từ API indexer (trễ vài block); `claimable()` on-chain hiện revert trên deployment Sepolia này nên optimizer ghi rõ "ước lượng" khi không đọc được từng token
 - Chưa hỗ trợ Discord
 - Alert thường bị bỏ (không xếp hàng) trong quiet hours; digest thì vẫn gửi
+
+## License
+
+MIT — see [LICENSE](LICENSE).

@@ -1,0 +1,26 @@
+name: test
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Dry run against the public API
+        if: matrix.node == '24'
+        run: |
+          DRY_RUN=1 DB_PATH=/tmp/ci.db timeout 20 node src/index.ts || test $? -eq 124
