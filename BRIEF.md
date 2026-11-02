@@ -35,7 +35,7 @@ Start from the repository skeleton provided: keep the architecture, command name
 - Idempotency: the same alert must never be sent twice after a restart (`sent` table).
 - Do not notify on historical activity when a wallet is first added.
 - Plain-text messages (addresses contain underscores); amounts as base units, formatted with 2 decimals.
-- Node ≥ 22.6 running `.ts` directly, `node:sqlite`, grammY. No build step.
+- Node ≥ 24 running `.ts` directly, `node:sqlite` (unflagged), grammY. No build step.
 
 ## Acceptance criteria
 

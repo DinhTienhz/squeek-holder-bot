@@ -55,7 +55,7 @@ Người dùng tìm bot bằng username, `/start` là dùng được. Không c�
 
 ## Yêu cầu phi chức năng
 
-- Node.js ≥ 22.6 (chạy trực tiếp `.ts`, không cần build)
+- Node.js ≥ 24 (chạy trực tiếp `.ts`, `node:sqlite` không cần flag)
 - Không dependency native; SQLite qua `node:sqlite`
 - Chạy 24/7 dưới systemd `Restart=always`
 - Healthcheck ngoài (healthchecks.io) mỗi 5 phút

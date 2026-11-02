@@ -2,7 +2,7 @@
 
 [![test](https://github.com/DinhTienhz/squeek-holder-bot/actions/workflows/test.yml/badge.svg)](https://github.com/DinhTienhz/squeek-holder-bot/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![node](https://img.shields.io/badge/node-%E2%89%A522.6-brightgreen.svg)](package.json)
+[![node](https://img.shields.io/badge/node-%E2%89%A524-brightgreen.svg)](package.json)
 
 Bot Telegram đa người dùng cho holder [Squeekchain](https://squeekchain.com) (Sepolia testnet).
 Ai biết username bot đều có thể `/start` và dùng — không cần mời.
