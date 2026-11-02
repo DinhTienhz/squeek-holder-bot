@@ -84,7 +84,7 @@ Không đọc private key, không ký giao dịch — mọi hành động đều
 ## Landing page
 
 `public/` is a static site (dark landing page with a live Squeekchain panel).
-Deploy it with Cloudflare Pages — see [DEPLOY.md](DEPLOY.md).
+Live: <https://squeek-holder-bot.gohan81200.workers.dev/> — see [DEPLOY.md](DEPLOY.md).
 
 ## License
 

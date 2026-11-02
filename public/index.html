@@ -64,7 +64,7 @@
   .step b{color:var(--text)}
   .callout{background:#141a12;border:1px solid #2b3a20;border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px;color:#d9e8bf;font-size:14px}
   .live{background:linear-gradient(180deg,#161622,#111119);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-top:26px}
-  .live-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .live-top{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:12px;flex-wrap:wrap}
   .live-title{font-weight:700;font-size:14px;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 3px rgba(255,255,255,.04)}
   .dot.on{background:var(--accent);animation:pulse 2s infinite}
@@ -221,7 +221,7 @@
     el('live-bar').style.width = pct.toFixed(1) + '%';
     el('live-dot').className = 'dot ' + (running ? 'on' : 'off');
     lastOk = Date.now();
-    set('live-updated', 'updated ' + new Date().toLocaleTimeString());
+    set('live-updated', 'updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   }
   function paintError() {
     if (!lastOk || Date.now() - lastOk > 60000) {
