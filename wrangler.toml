@@ -1,3 +1,8 @@
 name = "squeek-holder-bot"
-pages_build_output_dir = "public"
+main = "src/worker.js"
 compatibility_date = "2026-11-01"
+
+# Static site: everything in ./public is served at the root.
+[assets]
+directory = "./public"
+binding = "ASSETS"

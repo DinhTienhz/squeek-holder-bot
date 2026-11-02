@@ -1,8 +1,22 @@
-# Deploy the landing page (Cloudflare Pages)
+# Deploy the landing page
 
 The site is static: everything lives in `public/`. No build step.
 
-## Option 1 — Git integration (recommended, auto-deploy on every push)
+## Option A — Workers Builds (Git-connected Worker + static assets)
+
+`wrangler.toml` serves `public/` through a minimal Worker (`src/worker.js` das ASSETS).
+
+1. Cloudflare dashboard → **Create an app** → connect repo `DinhTienhz/squeek-holder-bot`
+2. **Build command**: *(empty)*
+3. **Deploy command**: `npx wrangler deploy`
+4. **Enable Preview builds**: off (optional)
+5. **Advanced → Path**: `/`
+6. If asked for an API token, click **Create new token**
+7. **Deploy** → URL `https://squeek-holder-bot.<account>.workers.dev`
+
+Every push to the connected branch rebuilds and redeploys.
+
+## Option B — Cloudflare Pages, Git integration (auto-deploy on every push)
 
 1. Open <https://dash.cloudflare.com/> → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
 2. Authorise GitHub and pick repository **`DinhTienhz/squeek-holder-bot`**, branch **`master`**
@@ -15,7 +29,7 @@ The site is static: everything lives in `public/`. No build step.
 
 Every `git push` to `master` redeploys automatically. No secrets, no CI config.
 
-## Option 2 — Direct upload with wrangler (manual)
+## Option C — Direct upload with wrangler (manual, Pages)
 
 ```bash
 export CLOUDFLARE_API_TOKEN=...      # token with "Cloudflare Pages: Edit"
