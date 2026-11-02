@@ -13,7 +13,7 @@ Ai biết username bot đều có thể `/start` và dùng — không cần mờ
 2. **Claim optimizer** — `/claim`: batch tối đa 32 token, tổng nhận, dust, số tx cần
 3. **Cooldown + /mergecheck** — báo khi `cooldown → ready`, liệt kê token merge được
 4. **Merge ladder** — `/ladder`: kế hoạch merge theo level, cooldown block, power gain
-5. **Hamster chạy/dừng** — alert khi `SPINNING ↔ IDLE`, có RPM
+5. **Hamster chạy/dừng** — alert cả hai chiều `SPINNING ↔ IDLE`, có RPM; bật/tắt bằng `/hamster on|off`
 6. **Block hoàn thành** — height + SQK phát ra (chênh lệch supply)
 7. **Biến động ví** — activity mới (transfer/stake/merge…), trừ `rewards_claimed`
 8. **Watchlist + quiet hours + digest** — 5 ví/người, im lặng ban đêm, digest hằng ngày
@@ -32,7 +32,11 @@ Kèm: **mặc định tiếng Anh**, đổi sang tiếng Việt bằng `/lang vi
 | `/claim [0x…]` | SQK claim được + số batch (32 NFT/batch) |
 | `/mergecheck [0x…]` | Squeek đã hết cooldown |
 | `/threshold 0.5` | ngưỡng báo claim |
-| `/alerts on\|off` | bật/tắt alert |
+| `/alerts on\|off` | bật/tắt alert ví |
+| `/hamster on\|off` | alert khi hamster chạy/dừng |
+| `/block on\|off` | alert block hoàn thành |
+| `/digest on\|off` | digest hằng ngày |
+| `/help` | danh sách lệnh |
 | `/quiet 22:00-07:00` | im lặng theo giờ máy |
 | `/lang vi\|en` | đổi ngôn ngữ |
 | `/privacy`, `/delete` | dữ liệu |
@@ -57,7 +61,7 @@ npm run dry
 npm test
 ```
 
-37 test: rule claim/cooldown/hamster, claim optimizer, merge ladder, format tin nhắn (HTML escape, locale số en/vi), rate-limit queue, quiet hours, DB (giới hạn ví, dedupe, activity, meta, wipe).
+44 test: rule claim/cooldown/hamster, claim optimizer, merge ladder, format tin nhắn (HTML escape, locale số en/vi), rate-limit queue, quiet hours, DB (giới hạn ví, dedupe, activity, meta, wipe).
 
 ## Kiến trúc
 
