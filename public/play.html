@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Squeek Runner — pixel game</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0b10;color:#ececf5;
+    font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+  #wrap{height:100%;display:grid;place-items:center;padding:12px;box-sizing:border-box}
+  canvas{width:min(100%,960px);aspect-ratio:16/9;image-rendering:pixelated;
+    border:1px solid #262633;border-radius:12px;background:#0b0b10;touch-action:manipulation}
+  #hint{position:fixed;left:0;right:0;bottom:10px;text-align:center;font-size:12px;color:#6d6d84}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="480" height="270"></canvas></div>
+<div id="hint">SPACE / click / tap to jump · collect SQK · don't hit the blocks</div>
+<script>
+(() => {
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  const W = 480, H = 270, GROUND = 214;
+  const COL = {
+    bg: '#0b0b10', far: '#141420', mid: '#1b1b28', line: '#262633',
+    body: '#f0b43c', light: '#ffe7b0', dark: '#a9752a', eye: '#141018',
+    accent: '#c9f24d', accent2: '#7de2d1', red: '#ff6b6b'
+  };
+
+  // ---- pixel sprites -------------------------------------------------
+  const PAL = { a: COL.body, b: COL.light, d: COL.dark, e: COL.eye, w: '#ffffff' };
+  const RUN1 = [
+    '...aaaa.....',
+    '..aaaaaa....',
+    '.aabbbbaa...',
+    '.abebebba...',
+    '.abbbbbba...',
+    '..abbbba....',
+    '..aaaaaa....',
+    '.aa.aa.aa...',
+    'a..a..a..a..'
+  ];
+  const RUN2 = [
+    '...aaaa.....',
+    '..aaaaaa....',
+    '.aabbbbaa...',
+    '.abebebba...',
+    '.abbbbbba...',
+    '..abbbba....',
+    '..aaaaaa....',
+    '..aaa.aa....',
+    '.a..aa..a...'
+  ];
+  const PX = 4;
+
+  function drawSprite(map, x, y, flip) {
+    for (let r = 0; r < map.length; r++) {
+      const row = map[r];
+      for (let c = 0; c < row.length; c++) {
+        const ch = row[c];
+        if (ch === '.') continue;
+        ctx.fillStyle = PAL[ch] || COL.body;
+        const px = flip ? x + (row.length - 1 - c) * PX : x + c * PX;
+        ctx.fillRect(Math.round(px), Math.round(y + r * PX), PX, PX);
+      }
+    }
+  }
+
+  function coin(x, y, t) {
+    const s = 3;
+    ctx.fillStyle = COL.accent;
+    const bob = Math.sin(t * 6 + x) * 2;
+    ctx.fillRect(x, y + bob, 10, 10);
+    ctx.fillStyle = COL.accent2;
+    ctx.fillRect(x + s, y + bob + s, 4, 4);
+  }
+
+  function crate(x, y, w, h) {
+    ctx.fillStyle = '#2b2b3b';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#3a3a4f';
+    ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
+    ctx.fillStyle = COL.line;
+    ctx.fillRect(x + w / 2 - 1, y + 3, 2, h - 6);
+  }
+
+  // ---- game state ----------------------------------------------------
+  const S = {
+    y: 0, vy: 0, onGround: true,
+    speed: 150, dist: 0, coins: 0, score: 0,
+    obstacles: [], pickups: [], t: 0,
+    over: false, started: false,
+    best: Number(localStorage.getItem('sqk_best') || 0),
+    spawnIn: 900, coinIn: 1200, shake: 0
+  };
+  const hamsterX = 74;
+  const hamsterW = 12 * PX, hamsterH = 9 * PX;
+
+  function reset() {
+    S.y = 0; S.vy = 0; S.onGround = true; S.speed = 150; S.dist = 0;
+    S.coins = 0; S.score = 0; S.obstacles = []; S.pickups = [];
+    S.over = false; S.started = true; S.spawnIn = 900; S.coinIn = 1200; S.shake = 0;
+  }
+
+  function jump() {
+    if (S.over) { reset(); return; }
+    if (!S.started) { reset(); return; }
+    if (S.onGround) { S.vy = -430; S.onGround = false; }
+  }
+
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); jump(); }
+  });
+  cv.addEventListener('pointerdown', (e) => { e.preventDefault(); jump(); });
+
+  // ---- loop ----------------------------------------------------------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    update(dt); render();
+    requestAnimationFrame(frame);
+  }
+
+  function update(dt) {
+    S.t += dt;
+    if (!S.started || S.over) return;
+
+    S.speed = 150 + Math.min(160, S.dist * 0.05);
+    S.dist += S.speed * dt;
+    S.score = Math.floor(S.dist / 10) + S.coins * 10;
+
+    // physics
+    S.vy += 1250 * dt;
+    S.y += S.vy * dt;
+    if (S.y > 0) { S.y = 0; S.vy = 0; S.onGround = true; }
+
+    // obstacles
+    S.spawnIn -= dt * 1000;
+    if (S.spawnIn <= 0) {
+      const h = 26 + Math.random() * 16;
+      S.obstacles.push({ x: W + 20, w: 18 + Math.random() * 10, h });
+      S.spawnIn = 900 + Math.random() * 600 - Math.min(350, S.dist * 0.05);
+    }
+    for (const o of S.obstacles) o.x -= S.speed * dt;
+    S.obstacles = S.obstacles.filter((o) => o.x + o.w > -10);
+
+    // pickups
+    S.coinIn -= dt * 1000;
+    if (S.coinIn <= 0) {
+      const y = GROUND - 40 - Math.random() * 60;
+      S.pickups.push({ x: W + 20, y });
+      S.coinIn = 900 + Math.random() * 1200;
+    }
+    for (const p of S.pickups) p.x -= S.speed * dt;
+    S.pickups = S.pickups.filter((p) => p.x > -20);
+
+    // collisions
+    const hx = hamsterX + 8, hy = GROUND - hamsterH + S.y + 6;
+    const hw = hamsterW - 18, hh = hamsterH - 10;
+
+    for (const o of S.obstacles) {
+      const ox = o.x, oy = GROUND - o.h;
+      if (hx < ox + o.w && hx + hw > ox && hy < oy + o.h && hy + hh > oy) {
+        S.over = true; S.shake = 8;
+        if (S.score > S.best) { S.best = S.score; localStorage.setItem('sqk_best', String(S.best)); }
+      }
+    }
+    for (const p of S.pickups) {
+      if (p.x > -20 && p.x < hx + hw && p.x + 10 > hx && p.y + 10 > hy && p.y < hy + hh) {
+        p.x = -100; S.coins++;
+      }
+    }
+  }
+
+  function render() {
+    // shake
+    ctx.save();
+    if (S.shake > 0) { ctx.translate((Math.random() - .5) * S.shake, (Math.random() - .5) * S.shake); S.shake *= 0.85; }
+
+    // sky
+    ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
+
+    // distant wheels
+    for (let i = 0; i < 3; i++) {
+      const wx = ((S.t * (18 + i * 6)) % (W + 160)) - 80;
+      const wy = 120 + i * 18;
+      ctx.strokeStyle = '#232334'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(wx, wy, 26 + i * 6, 0, Math.PI * 2); ctx.stroke();
+      for (let s = 0; s < 6; s++) {
+        const a = S.t * (1 + i * .3) + s * Math.PI / 3;
+        ctx.beginPath();
+        ctx.moveTo(wx, wy);
+        ctx.lineTo(wx + Math.cos(a) * (26 + i * 6), wy + Math.sin(a) * (26 + i * 6));
+        ctx.strokeStyle = '#232334'; ctx.stroke();
+      }
+    }
+
+    // stars / parallax dots
+    for (let i = 0; i < 26; i++) {
+      const sx = ((i * 97 + S.dist * (0.15 + (i % 3) * 0.05)) % (W + 20)) - 10;
+      const sy = 18 + ((i * 53) % 90);
+      ctx.fillStyle = i % 5 === 0 ? '#2f2f45' : '#1e1e2c';
+      ctx.fillRect(Math.round(sx), sy, 2, 2);
+    }
+
+    // ground
+    ctx.fillStyle = COL.mid; ctx.fillRect(0, GROUND, W, H - GROUND);
+    ctx.fillStyle = COL.line; ctx.fillRect(0, GROUND, W, 2);
+    const off = (S.dist * 1) % 24;
+    ctx.fillStyle = '#20202c';
+    for (let x = -off; x < W; x += 24) ctx.fillRect(x, GROUND + 8, 12, 3);
+
+    // obstacles + pickups
+    for (const o of S.obstacles) crate(o.x, GROUND - o.h, o.w, o.h);
+    for (const p of S.pickups) coin(p.x, p.y, S.t);
+
+    // hamster
+    const bob = S.onGround ? Math.sin(S.t * 12) * 2 : 0;
+    drawSprite(Math.floor(S.t * 10) % 2 === 0 ? RUN1 : RUN2, hamsterX, GROUND - hamsterH + S.y + bob, false);
+
+    // HUD
+    ctx.fillStyle = COL.light;
+    ctx.font = 'bold 13px ui-monospace,Menlo,monospace';
+    ctx.fillText('SCORE ' + String(S.score).padStart(5, '0'), 14, 24);
+    ctx.fillStyle = COL.accent;
+    ctx.fillText('SQK ' + S.coins, 14, 42);
+    ctx.fillStyle = '#6d6d84';
+    ctx.textAlign = 'right';
+    ctx.fillText('BEST ' + S.best, W - 14, 24);
+    ctx.textAlign = 'left';
+
+    // start / over overlay
+    if (!S.started || S.over) {
+      ctx.fillStyle = 'rgba(11,11,16,.86)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = S.over ? COL.red : COL.accent2;
+      ctx.font = 'bold 26px ui-monospace,Menlo,monospace';
+      ctx.fillText(S.over ? 'CRASHED' : 'SQUEEK RUNNER', W / 2, 104);
+      ctx.fillStyle = COL.light;
+      ctx.font = '13px ui-monospace,Menlo,monospace';
+      if (S.over) {
+        ctx.fillText('score ' + S.score + '  ·  sqk ' + S.coins, W / 2, 132);
+        ctx.fillText('best ' + S.best, W / 2, 152);
+      } else {
+        ctx.fillText('collect SQK, jump the blocks', W / 2, 132);
+      }
+      ctx.fillStyle = COL.accent;
+      ctx.fillText('press SPACE / tap to ' + (S.over ? 'restart' : 'start'), W / 2, 186);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  }
+
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
