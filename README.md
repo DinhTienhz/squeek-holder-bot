@@ -86,6 +86,8 @@ Không đọc private key, không ký giao dịch — mọi hành động đều
 `public/` is a static site (dark landing page with a live Squeekchain panel).
 Live: <https://squeek-holder-bot.chainn.workers.dev/>
 
+Exercise every bot command without a Telegram user: `node scripts/e2e-bot.ts`.
+
 Verify the deployment: `./scripts/smoke.sh` (12 checks: page, headers, assets, 404). — see [DEPLOY.md](DEPLOY.md).
 
 ## License
