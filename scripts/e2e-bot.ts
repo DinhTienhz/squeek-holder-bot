@@ -88,8 +88,14 @@ try {
   let r = await cmd('/start', 1200);
   record('1. /start (welcome)', r.includes('/watch') || r.includes('Squeek'), r);
 
+  // Two wallets, thin one added first: commands without an address must still
+  // target the wallet that actually holds Squeeks.
+  const THIN = '0xe0c18c32f0838d9c295d9cff433f2eff9deacc2c';
+  r = await cmd(`/watch ${THIN} thin`, 1500);
+  record('2a. /watch thin wallet', r.includes('thin') || r.toLowerCase().includes('added'), r);
+
   r = await cmd(`/watch ${WALLET} whale`, 1500);
-  record('2. /watch wallet', r.includes('whale') || r.toLowerCase().includes('watch'), r);
+  record('2b. /watch whale wallet', r.includes('whale') || r.toLowerCase().includes('added'), r);
 
   r = await cmd('/list', 900);
   record('3. /list wallets', r.includes('0x4e6f') || r.includes('whale'), r);
@@ -104,10 +110,13 @@ try {
   record('6. /mergecheck cooldown', r.length > 0, r);
 
   r = await cmd('/ladder', 9000);
-  record('7. /ladder planner', r.length > 0, r);
+  record('7. /ladder planner', /L2|ladder|Merge plan/i.test(r), r);
 
   r = await cmd('/threshold 5', 700);
-  record('8. /threshold', /5/.test(r), r);
+  record('8. /threshold set', /5/.test(r), r);
+
+  r = await cmd('/threshold', 700);
+  record('8b. /threshold show', /5/.test(r) && /threshold/i.test(r), r);
 
   r = await cmd('/block on', 700);
   record('9. /block on', /block/i.test(r), r);

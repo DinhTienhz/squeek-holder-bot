@@ -33,6 +33,7 @@ const MSG = {
     alertsOn: '🔔 Đã bật thông báo.',
     alertsOff: '🔕 Đã tắt thông báo.',
     threshold: '🎯 Ngưỡng báo claim: <b>{amount}</b>',
+    thresholdNow: '🎯 Ngưỡng hiện tại: <b>{amount}</b>\nĐổi bằng <code>/threshold 5</code>',
     badNum: '⚠️ Số không hợp lệ.',
     langSet: '🇻🇳 Đã đổi sang tiếng Việt.',
     deleted: '🗑 Đã xoá toàn bộ dữ liệu của bạn.',
@@ -59,6 +60,7 @@ const MSG = {
     alertsOn: '🔔 Alerts on.',
     alertsOff: '🔕 Alerts off.',
     threshold: '🎯 Claim threshold: <b>{amount}</b>',
+    thresholdNow: '🎯 Current threshold: <b>{amount}</b>\nChange with <code>/threshold 5</code>',
     badNum: '⚠️ Invalid number.',
     langSet: '🇬🇧 Language set to English.',
     deleted: '🗑 Your data was deleted.',
@@ -141,15 +143,27 @@ export function createBot(cfg: Config) {
     }
   });
 
-  const targetWallet = (u: User, arg?: string) => {
+  const targetWallet = async (u: User, arg?: string): Promise<string | undefined> => {
     const ws = listWallets(db, u.tg_id);
     if (arg && ADDRESS.test(arg.trim())) return arg.trim().toLowerCase();
-    return ws[0]?.address;
+    if (!ws.length) return undefined;
+    if (ws.length === 1) return ws[0].address;
+    // Several wallets: default to the one with the most Squeeks (then most claimable).
+    const scored = await Promise.all(ws.map(async (w) => {
+      try {
+        const a = await api.account(w.address);
+        return { addr: w.address, score: BigInt(a.tokenCount) * 10n ** 24n + a.claimable };
+      } catch {
+        return { addr: w.address, score: -1n };
+      }
+    }));
+    scored.sort((x, y) => (y.score > x.score ? 1 : y.score < x.score ? -1 : 0));
+    return scored[0].addr;
   };
 
   bot.command('claim', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const addr = targetWallet(u, ctx.match);
+    const addr = await targetWallet(u, ctx.match);
     if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
     const lang = langOf(u);
     try {
@@ -187,7 +201,7 @@ export function createBot(cfg: Config) {
 
   bot.command('ladder', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const addr = targetWallet(u, ctx.match);
+    const addr = await targetWallet(u, ctx.match);
     if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
     try {
       const [a, eco] = await Promise.all([api.account(addr), api.economy()]);
@@ -206,7 +220,7 @@ export function createBot(cfg: Config) {
 
   bot.command('mergecheck', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const addr = targetWallet(u, ctx.match);
+    const addr = await targetWallet(u, ctx.match);
     if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
     try {
       const a = await api.account(addr);
@@ -221,7 +235,11 @@ export function createBot(cfg: Config) {
 
   bot.command('threshold', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const v = Number((ctx.match ?? '').trim().replace(',', '.'));
+    const raw = (ctx.match ?? '').trim();
+    if (!raw) {
+      return void (await reply(ctx, m(u, 'thresholdNow', { amount: fmtSqk(BigInt(u.threshold), langOf(u)) })));
+    }
+    const v = Number(raw.replace(',', '.'));
     if (!Number.isFinite(v) || v <= 0) return void (await reply(ctx, m(u, 'badNum')));
     const base = BigInt(Math.round(v * 1e6)) * 10n ** 12n;
     setThreshold(db, u.tg_id, base);
