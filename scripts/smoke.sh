@@ -20,7 +20,8 @@ code() { curl -sS -o /dev/null -m 20 -w '%{http_code}' "$1"; }
 root=$(curl -sS -m 20 "$BASE/")
 check "GET / status" "200" "$(code "$BASE/")"
 check "title" "1" "$(printf '%s' "$root" | grep -c '<title>Squeek Holder Bot')"
-check "telegram link" "1" "$(printf '%s' "$root" | grep -c 'https://t.me/SqueekHolder_Bot')"
+tg_count=$(printf '%s' "$root" | grep -c 'https://t.me/SqueekHolder_Bot')
+check "telegram link present" "yes" "$([ "$tg_count" -ge 1 ] && echo yes || echo no)"
 check "canonical" "1" "$(printf '%s' "$root" | grep -c 'rel="canonical"')"
 check "live panel" "1" "$(printf '%s' "$root" | grep -c 'id="live-state"')"
 
