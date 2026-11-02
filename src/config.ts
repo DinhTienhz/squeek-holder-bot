@@ -31,8 +31,10 @@ const num = (v: string | undefined, d: number): number => {
 };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
+  // .env files in the wild use either name; accept both, TELEGRAM_BOT_TOKEN wins.
+  const botToken = env.TELEGRAM_BOT_TOKEN ?? env.BOT_TOKEN ?? '';
   return {
-    botToken: env.TELEGRAM_BOT_TOKEN ?? '',
+    botToken,
     apiBase: (env.API_BASE ?? 'https://api.squeekchain.com/v1').replace(/\/+$/, ''),
     dbPath: env.DB_PATH ?? new URL('../data/bot.db', import.meta.url).pathname,
     adminIds: new Set((env.ADMIN_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean)),
@@ -41,7 +43,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     maxWallets: num(env.MAX_WALLETS, 5),
     // 0.5 SQK = 5e17 base units (18 decimals)
     defaultThresholdSqk: sqkToBaseUnits(env.DEFAULT_THRESHOLD_SQK ?? '0.5'),
-    dryRun: env.DRY_RUN === '1' || !env.TELEGRAM_BOT_TOKEN,
+    dryRun: env.DRY_RUN === '1' || !botToken,
     logPath: env.LOG_PATH ?? null,
     rpcUrl: env.RPC_URL ?? '',
     miningAddress: env.MINING_ADDRESS ?? '0xcd46990f8349057335289ef282c276204b6cdc62',
