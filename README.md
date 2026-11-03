@@ -13,7 +13,7 @@ Ai biết username bot đều có thể `/start` và dùng — không cần mờ
 2. **Claim optimizer** — `/claim`: batch tối đa 32 token, tổng nhận, dust, số tx cần
 3. **Cooldown + /mergecheck** — báo khi `cooldown → ready`, liệt kê token merge được
 4. **Merge ladder** — `/ladder`: kế hoạch merge theo level, cooldown block, power gain
-5. **Hamster chạy/dừng** — alert cả hai chiều `SPINNING ↔ IDLE`, có RPM; bật/tắt bằng `/hamster on|off`
+5. **Hamster chạy/dừng** — alert cả hai chiều (dựa trên RPM + work counter, không tin `coreStatus` vì sensor giữ IDLE khi đang quay); phiên ngắn <30 giây không báo, dừng chỉ xác nhận sau ~60 giây im lặng; có thời lượng chạy; bật/tắt bằng `/hamster on|off`
 6. **Block hoàn thành** — height + SQK phát ra (chênh lệch supply)
 7. **Biến động ví** — activity mới (transfer/stake/merge…), trừ `rewards_claimed`
 8. **Watchlist + quiet hours + digest** — 5 ví/người, im lặng ban đêm, digest hằng ngày

@@ -57,10 +57,10 @@ export function claimAlertDue(
  * Squeekchain reports the running state as ACTIVE (older docs said SPINNING).
  * Treat any unknown non-idle state as running only when the wheel is turning.
  */
-export function isHamsterRunning(coreStatus: string, rpmMilli = 0): boolean {
+export function isHamsterRunning(coreStatus: string, rpmMilli = 0, workDelta = 0): boolean {
   // The sensor keeps coreStatus at IDLE while the wheel is already turning, so
-  // rpm is the only trustworthy signal; the status string is a fallback.
-  if (Number(rpmMilli) > 0) return true;
+  // rpm and the work counter are the trustworthy signals; status is a fallback.
+  if (Number(rpmMilli) > 0 || Number(workDelta) > 0) return true;
   const s = String(coreStatus || '').toUpperCase();
   return ['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].includes(s);
 }

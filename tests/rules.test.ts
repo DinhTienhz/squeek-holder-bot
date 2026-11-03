@@ -127,6 +127,8 @@ test('isHamsterRunning: ACTIVE is running, IDLE is not', () => {
   assert.equal(isHamsterRunning('IDLE', 0), false);
   assert.equal(isHamsterRunning('IDLE', 4200), true);   // sensor lags: rpm wins
   assert.equal(isHamsterRunning('MAINTENANCE', 1200), true);
+  assert.equal(isHamsterRunning('IDLE', 0, 9), true);      // work counter moved
+  assert.equal(isHamsterRunning('IDLE', 0, 0), false);
   assert.equal(isHamsterRunning('MAINTENANCE', 0), false);
 });
 

@@ -14,6 +14,7 @@ const queue = new ChatQueue(1100);
 const prevAccounts = new Map<string, AccountState>();
 let hamsterTrack: HamsterState = { confirmed: null, pending: null, count: 0 };
 let lastRunningAt = 0;
+let lastWorkUnits = 0;
 let lastStatusOkAt = 0;
 let statusFailures = 0;
 
@@ -54,14 +55,19 @@ async function pollStatus(): Promise<void> {
     const s = await api.status();
     lastStatusOkAt = Date.now();
     if (statusFailures > 0) { log('status recovered after', statusFailures, 'failure(s)'); statusFailures = 0; }
-    const runningNow = isHamsterRunning(s.coreStatus, s.rpmMilli);
+    const work = Number(s.cumulativeWorkUnits) || 0;
+    const workDelta = lastWorkUnits > 0 ? Math.max(0, work - lastWorkUnits) : 0;
+    lastWorkUnits = work;
+    const runningNow = isHamsterRunning(s.coreStatus, s.rpmMilli, workDelta);
     if (hamsterTrack.confirmed === null) {
       // First observation after a restart: no transition to report, but the run
       // marker must match reality or the next duration would be wrong.
       setMeta(db, 'hamster_since', runningNow ? String(Date.now()) : '');
     }
     if (runningNow) lastRunningAt = Date.now();
-    const step = stepHamster(hamsterTrack, runningNow);
+    // Starting is reported after 2 samples; a stop needs ~60 s of silence so a
+    // 15 s burst that restarts immediately does not produce a false "stopped".
+    const step = stepHamster(hamsterTrack, runningNow, runningNow ? 2 : 4);
     hamsterTrack = step.state;
     if (step.transition !== null) {
       const running = step.transition;
