@@ -58,10 +58,11 @@ export function claimAlertDue(
  * Treat any unknown non-idle state as running only when the wheel is turning.
  */
 export function isHamsterRunning(coreStatus: string, rpmMilli = 0): boolean {
+  // The sensor keeps coreStatus at IDLE while the wheel is already turning, so
+  // rpm is the only trustworthy signal; the status string is a fallback.
+  if (Number(rpmMilli) > 0) return true;
   const s = String(coreStatus || '').toUpperCase();
-  if (['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].includes(s)) return true;
-  if (['IDLE', 'RESTING', 'STOPPED', 'PAUSED', 'OFFLINE'].includes(s)) return false;
-  return rpmMilli > 0;
+  return ['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].includes(s);
 }
 
 /** Alert khi trạng thái bánh xe đổi (ACTIVE ↔ IDLE). */

@@ -3,7 +3,7 @@ import { createBot, registerCommands } from './bot.ts';
 import { alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from './format.ts';
 import { ChatQueue, inQuietHours } from './queue.ts';
 import { isTransientTelegramError, retryDelayMs } from './retry.ts';
-import { claimAlertDue, evaluateAccount, evaluateHamster, hamsterRunMs, isHamsterRunning, snapshot, type AccountState } from './rules.ts';
+import { claimAlertDue, evaluateAccount, hamsterRunMs, isHamsterRunning, snapshot, type AccountState } from './rules.ts';
 import {
   allWallets, firstTime, getMeta, getUser, markDigest, newActivity, pruneActivity, pruneSent, setMeta, stats,
 } from './db.ts';
@@ -12,7 +12,7 @@ const cfg = loadConfig();
 const { bot, db, api } = createBot(cfg);
 const queue = new ChatQueue(1100);
 const prevAccounts = new Map<string, AccountState>();
-let prevHamster: string | null = null;
+let prevRunning: boolean | null = null;
 let lastStatusOkAt = 0;
 let statusFailures = 0;
 
@@ -53,15 +53,16 @@ async function pollStatus(): Promise<void> {
     const s = await api.status();
     lastStatusOkAt = Date.now();
     if (statusFailures > 0) { log('status recovered after', statusFailures, 'failure(s)'); statusFailures = 0; }
+    const runningNow = isHamsterRunning(s.coreStatus, s.rpmMilli);
     // First observation after a restart: no transition to report, but the run
     // marker must match reality or the next duration would be wrong.
-    if (prevHamster === null) {
-      setMeta(db, 'hamster_since', isHamsterRunning(s.coreStatus, s.rpmMilli) ? String(Date.now()) : '');
+    if (prevRunning === null) {
+      setMeta(db, 'hamster_since', runningNow ? String(Date.now()) : '');
     }
-    const alert = evaluateHamster(prevHamster, s);
-    prevHamster = s.coreStatus;
-    if (alert) {
-      const running = isHamsterRunning(s.coreStatus, s.rpmMilli);
+    const changed = prevRunning !== null && prevRunning !== runningNow;
+    prevRunning = runningNow;
+    if (changed) {
+      const running = runningNow;
       const sinceStored = Number(getMeta(db, 'hamster_since') ?? '0') || null;
       const { runMs, nextSince } = hamsterRunMs(running, sinceStored, Date.now());
       setMeta(db, 'hamster_since', nextSince ? String(nextSince) : '');

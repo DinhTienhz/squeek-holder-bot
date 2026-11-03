@@ -258,8 +258,8 @@
   function paintStatus(d) {
     var m = d.measurement || {}, b = d.builder || {}, a = b.anchor || {}, p = b.projected || {};
     var cs = String(m.coreStatus || '').toUpperCase();
-    var running = ['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].indexOf(cs) >= 0 ||
-      (cs !== 'IDLE' && Number(m.rpmMilli) > 0);
+    var running = Number(m.rpmMilli) > 0 ||
+      ['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].indexOf(cs) >= 0;
     var pct = Math.max(0, Math.min(100, (Number(p.blockProgress ?? a.blockProgress) || 0) / 1e9 * 100));
     set('live-state', running ? 'Running' : 'Resting');
     set('live-rpm', running ? nf.format((Number(m.rpmMilli) || 0) / 1000) + ' rpm' : '—');
