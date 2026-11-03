@@ -33,7 +33,7 @@ export const COMMANDS: CommandDef[] = [
   { name: 'digest', usage: '[on|off]', group: 'notifications', en: 'daily summary', vi: 'tổng hợp hằng ngày' },
   { name: 'quiet', usage: '[22:00-07:00 | off]', group: 'notifications', en: 'quiet hours (bare: show state)', vi: 'giờ im lặng (trống: xem trạng thái)' },
 
-  { name: 'lang', usage: '[vi|en]', group: 'other', en: 'language', vi: 'ngôn ngữ' },
+  { name: 'lang', usage: 'vi | en', group: 'other', en: 'switch language (bare: show current)', vi: 'đổi ngôn ngữ (trống: xem hiện tại)' },
   { name: 'privacy', group: 'other', en: 'what is stored', vi: 'dữ liệu được lưu gì' },
   { name: 'delete', group: 'other', en: 'wipe your data', vi: 'xoá toàn bộ dữ liệu' },
 

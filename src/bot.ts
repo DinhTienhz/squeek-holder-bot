@@ -43,7 +43,9 @@ const MSG = {
     threshold: '🎯 Ngưỡng báo claim: <b>{amount}</b>',
     thresholdNow: '🎯 Ngưỡng hiện tại: <b>{amount}</b>\nĐổi bằng <code>/threshold 5</code>',
     badNum: '⚠️ Số không hợp lệ.',
-    langSet: '🇻🇳 Đã đổi sang tiếng Việt.',
+    langSet: '🇻🇳 Đã đổi sang tiếng Việt. Đổi lại bằng <code>/lang en</code>.',
+    langNow: '🌐 Ngôn ngữ hiện tại: <b>{lang}</b>\nĐổi bằng <code>/lang vi</code> hoặc <code>/lang en</code>',
+    badLang: '⚠️ Chỉ hỗ trợ <code>vi</code> hoặc <code>en</code>.\nVí dụ: <code>/lang en</code>',
     deleted: '🗑 Đã xoá toàn bộ dữ liệu của bạn.',
     adminOnly: '⛔ Lệnh quản trị.',
     stats: '👥 Users: <b>{users}</b>\n👛 Wallets: <b>{wallets}</b>\n⛔ Blocked: <b>{blocked}</b>',
@@ -77,7 +79,9 @@ const MSG = {
     threshold: '🎯 Claim threshold: <b>{amount}</b>',
     thresholdNow: '🎯 Current threshold: <b>{amount}</b>\nChange with <code>/threshold 5</code>',
     badNum: '⚠️ Invalid number.',
-    langSet: '🇬🇧 Language set to English.',
+    langSet: '🇬🇧 Language set to English. Switch back with <code>/lang vi</code>.',
+    langNow: '🌐 Current language: <b>{lang}</b>\nChange with <code>/lang vi</code> or <code>/lang en</code>',
+    badLang: '⚠️ Only <code>vi</code> or <code>en</code> are supported.\nExample: <code>/lang vi</code>',
     deleted: '🗑 Your data was deleted.',
     adminOnly: '⛔ Admin only.',
     stats: '👥 Users: <b>{users}</b>\n👛 Wallets: <b>{wallets}</b>\n⛔ Blocked: <b>{blocked}</b>',
@@ -322,7 +326,13 @@ export function createBot(cfg: Config) {
 
   bot.command('lang', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const lang = (ctx.match ?? '').trim().toLowerCase() === 'vi' ? 'vi' : 'en';
+    const arg = (ctx.match ?? '').trim().toLowerCase();
+    if (!arg) {
+      const name = u.lang === 'vi' ? 'Tiếng Việt' : 'English';
+      return void (await reply(ctx, m(u, 'langNow', { lang: name })));
+    }
+    if (arg !== 'vi' && arg !== 'en') return void (await reply(ctx, m(u, 'badLang')));
+    const lang = arg;
     setLang(db, u.tg_id, lang);
     await reply(ctx, m(getUser(db, u.tg_id)!, 'langSet'));
   });

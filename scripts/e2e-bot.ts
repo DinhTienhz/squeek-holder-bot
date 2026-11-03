@@ -157,6 +157,12 @@ try {
   r = await cmd('/lang vi', 700);
   record('12. /lang vi', r.length > 0, r);
 
+  r = await cmd('/lang', 700);
+  record('12b. /lang (bare shows current)', /Current language|Ngôn ngữ hiện tại/i.test(r), r);
+
+  r = await cmd('/lang de', 700);
+  record('12c. /lang unsupported', /Only|Chỉ hỗ trợ/i.test(r), r);
+
   // Alert payloads the poller would send, built from live data.
   const acct = await api.account(WALLET);
   const claimAlert = alertClaim('en', { address: WALLET, amount: acct.claimable, threshold: 5n * 10n ** 18n });
