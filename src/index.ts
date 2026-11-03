@@ -125,6 +125,7 @@ async function pollWallets(): Promise<void> {
       if (claimAlertDue(acct.claimable, threshold, memo, Date.now(), cfg.claimAlertMinHours)) {
         await notify(tgId, alertClaim(langOf(u), { address, amount: acct.claimable, threshold }));
         setMeta(db, memoKey, `${acct.claimable}:${Date.now()}`);
+        log('claim alert', tgId, address, String(acct.claimable));
       }
 
       for (const a of evaluateAccount(prev, acct, threshold)) {
