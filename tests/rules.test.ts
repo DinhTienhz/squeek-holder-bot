@@ -129,3 +129,12 @@ test('isHamsterRunning: ACTIVE is running, IDLE is not', () => {
   assert.equal(isHamsterRunning('MAINTENANCE', 1200), true);
   assert.equal(isHamsterRunning('MAINTENANCE', 0), false);
 });
+
+test('hamsterRunMs: bắt đầu, chạy tiếp, dừng', async () => {
+  const { hamsterRunMs } = await import('../src/rules.ts');
+  const t0 = 1_000_000;
+  assert.deepEqual(hamsterRunMs(true, null, t0), { runMs: null, nextSince: t0 });
+  assert.deepEqual(hamsterRunMs(true, t0, t0 + 5_000), { runMs: null, nextSince: t0 });
+  assert.deepEqual(hamsterRunMs(false, t0, t0 + 15_000), { runMs: 15_000, nextSince: null });
+  assert.deepEqual(hamsterRunMs(false, null, t0), { runMs: null, nextSince: null });
+});

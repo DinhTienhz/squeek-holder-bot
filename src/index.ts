@@ -3,7 +3,7 @@ import { createBot, registerCommands } from './bot.ts';
 import { alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from './format.ts';
 import { ChatQueue, inQuietHours } from './queue.ts';
 import { isTransientTelegramError, retryDelayMs } from './retry.ts';
-import { claimAlertDue, evaluateAccount, evaluateHamster, isHamsterRunning, snapshot, type AccountState } from './rules.ts';
+import { claimAlertDue, evaluateAccount, evaluateHamster, hamsterRunMs, isHamsterRunning, snapshot, type AccountState } from './rules.ts';
 import {
   allWallets, firstTime, getMeta, getUser, markDigest, newActivity, pruneActivity, pruneSent, setMeta, stats,
 } from './db.ts';
@@ -57,14 +57,9 @@ async function pollStatus(): Promise<void> {
     prevHamster = s.coreStatus;
     if (alert) {
       const running = isHamsterRunning(s.coreStatus, s.rpmMilli);
-      let runMs: number | null = null;
-      if (running) {
-        if (!getMeta(db, 'hamster_since')) setMeta(db, 'hamster_since', String(Date.now()));
-      } else {
-        const since = Number(getMeta(db, 'hamster_since') ?? '0');
-        if (since > 0) runMs = Date.now() - since;
-        setMeta(db, 'hamster_since', '');
-      }
+      const sinceStored = Number(getMeta(db, 'hamster_since') ?? '0') || null;
+      const { runMs, nextSince } = hamsterRunMs(running, sinceStored, Date.now());
+      setMeta(db, 'hamster_since', nextSince ? String(nextSince) : '');
       log('hamster', running ? 'running' : 'stopped', runMs ? `${Math.round(runMs / 1000)}s` : '');
       for (const u of usersWith('hamster_alerts')) {
         const user = getUser(db, u.tg_id);

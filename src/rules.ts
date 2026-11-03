@@ -151,3 +151,18 @@ export function ladderPowerGain(counts: Record<number, number>, basePower: numbe
   const after = Object.entries(c).reduce((s, [lvl, n]) => s + BigInt(basePower[Number(lvl) - 1] ?? 0) * BigInt(n), 0n);
   return { before, after };
 }
+
+
+/**
+ * Track how long the wheel has been running across polls (and restarts, via meta).
+ * Returns the run length when it stops and the marker to persist for next time.
+ */
+export function hamsterRunMs(
+  running: boolean,
+  sinceMs: number | null,
+  nowMs: number,
+): { runMs: number | null; nextSince: number | null } {
+  if (running) return { runMs: null, nextSince: sinceMs && sinceMs > 0 ? sinceMs : nowMs };
+  if (sinceMs && sinceMs > 0) return { runMs: nowMs - sinceMs, nextSince: null };
+  return { runMs: null, nextSince: null };
+}
