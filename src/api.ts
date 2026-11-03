@@ -12,6 +12,7 @@ export type Status = {
   settledHeight?: number;      // last block confirmed on-chain by the reporter
   settledThroughRound: number;
   generatedAt: string;
+  observedAt?: string;         // sensor sample time (changes every ~10 s)
   freshness: string;
 };
 
@@ -115,6 +116,7 @@ export class ApiClient {
       settledHeight: Number(a.blockHeight ?? p.blockHeight ?? 0),
       settledThroughRound: Number(a.settledThroughRound ?? 0),
       generatedAt: String(d.generatedAt ?? ''),
+      observedAt: String(m.observedAt ?? ''),
       freshness: String(m.freshness ?? 'unknown'),
     };
   }

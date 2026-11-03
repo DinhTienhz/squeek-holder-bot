@@ -58,8 +58,8 @@ async function pollStatus(): Promise<void> {
     if (statusFailures > 0) { log('status recovered after', statusFailures, 'failure(s)'); statusFailures = 0; }
     // The sensor publishes every ~10 s; poll faster than that only to catch the
     // new sample sooner. Ignore duplicate reads of the same sample entirely.
-    if (s.generatedAt === lastObservedAt) return;
-    lastObservedAt = s.generatedAt;
+    if (s.observedAt && s.observedAt === lastObservedAt) return;
+    lastObservedAt = s.observedAt ?? s.generatedAt;
     const work = Number(s.cumulativeWorkUnits) || 0;
     const workDelta = lastWorkUnits > 0 ? Math.max(0, work - lastWorkUnits) : 0;
     lastWorkUnits = work;
