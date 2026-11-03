@@ -266,7 +266,7 @@
     var lastCompleted = Number(p.blockHeight ?? a.blockHeight) || 0;
     var prog = Number(p.blockProgress ?? a.blockProgress) || 0;
     set('live-block', nf.format(p.blockHeight != null && prog > 0 ? lastCompleted + 1 : lastCompleted));
-    set('live-note', 'Next block: ' + pct.toFixed(1) + '%');
+    set('live-note', pct.toFixed(1) + '% complete');
     el('live-bar').style.width = pct.toFixed(1) + '%';
     el('live-dot').className = 'dot ' + (running ? 'on' : 'off');
     lastOk = Date.now();
