@@ -238,10 +238,12 @@ export function alertHamster(
   runMs?: number | null,
 ): string {
   const vi = lang !== 'en';
+  const live = `🔴 <a href="https://x.com/squeekchain">${vi ? 'Xem live trên X' : 'Watch live on X'}</a>`;
   if (isHamsterRunning(s.coreStatus, s.rpmMilli)) {
     return [
       `🐹 <b>${vi ? 'Hamster đang chạy' : 'Hamster is running'}</b>`,
       `${fmtNum(s.rpmMilli / 1000, lang, 2)} rpm · Block ${fmtInt(s.blockHeight, lang)}`,
+      live,
     ].join('\n');
   }
   const pct = fmtNum((s.blockProgress / 1e9) * 100, lang, 1);
@@ -251,6 +253,7 @@ export function alertHamster(
   return [
     `😴 <b>${vi ? 'Hamster đã dừng' : 'Hamster stopped'}</b>${ran}`,
     `Block ${fmtInt(s.blockHeight, lang)} · ${pct}%`,
+    live,
   ].join('\n');
 }
 

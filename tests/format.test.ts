@@ -137,6 +137,8 @@ test('alertHamster: ACTIVE renders as running, IDLE as stopped', async () => {
   assert.doesNotMatch(alertHamster('en', { ...base, coreStatus: 'ACTIVE', rpmMilli: 4200 }), /stopped/i);
   assert.match(alertHamster('vi', { ...base, coreStatus: 'IDLE', rpmMilli: 0 }), /đã dừng/i);
   assert.match(alertHamster('vi', { ...base, coreStatus: 'ACTIVE', rpmMilli: 3000 }), /đang chạy/i);
+  assert.match(alertHamster('vi', { ...base, coreStatus: 'ACTIVE', rpmMilli: 3000 }), /x\.com\/squeekchain/);
+  assert.match(alertHamster('en', { ...base, coreStatus: 'IDLE', rpmMilli: 0 }), /x\.com\/squeekchain/);
 });
 
 
