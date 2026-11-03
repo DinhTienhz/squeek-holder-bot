@@ -15,6 +15,7 @@ const prevAccounts = new Map<string, AccountState>();
 let hamsterTrack: HamsterState = { confirmed: null, pending: null, count: 0 };
 let lastRunningAt = 0;
 let lastWorkUnits = 0;
+let lastObservedAt = '';
 let lastStatusOkAt = 0;
 let statusFailures = 0;
 
@@ -55,6 +56,10 @@ async function pollStatus(): Promise<void> {
     const s = await api.status();
     lastStatusOkAt = Date.now();
     if (statusFailures > 0) { log('status recovered after', statusFailures, 'failure(s)'); statusFailures = 0; }
+    // The sensor publishes every ~10 s; poll faster than that only to catch the
+    // new sample sooner. Ignore duplicate reads of the same sample entirely.
+    if (s.generatedAt === lastObservedAt) return;
+    lastObservedAt = s.generatedAt;
     const work = Number(s.cumulativeWorkUnits) || 0;
     const workDelta = lastWorkUnits > 0 ? Math.max(0, work - lastWorkUnits) : 0;
     lastWorkUnits = work;
@@ -65,8 +70,8 @@ async function pollStatus(): Promise<void> {
       setMeta(db, 'hamster_since', runningNow ? String(Date.now()) : '');
     }
     if (runningNow) lastRunningAt = Date.now();
-    // Report short bursts too: start as soon as rotation is seen, stop after
-    // two quiet samples (~30 s) so a cached duplicate does not fake a stop.
+    // Poll runs at 4 s: start on the first turning sample, stop after two quiet
+    // ones (~8 s) — the sensor itself only publishes every 10 s.
     const step = stepHamster(hamsterTrack, runningNow, runningNow ? 1 : 2);
     hamsterTrack = step.state;
     if (step.transition !== null) {
