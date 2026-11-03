@@ -160,3 +160,12 @@ test('stepHamster: cần 2 mẫu liên tiếp mới đổi trạng thái', async
   assert.equal(r.transition, false);
   assert.equal(st.confirmed, false);
 });
+
+test('stepHamster: ngưỡng 1 mẫu báo ngay, ngưỡng 2 mẫu cần 2 lần', async () => {
+  const { stepHamster } = await import('../src/rules.ts');
+  const base = { confirmed: false as boolean | null, pending: null as boolean | null, count: 0 };
+  const immediate = stepHamster(base, true, 1);
+  assert.equal(immediate.transition, true);
+  const slow = stepHamster(base, true, 2);
+  assert.equal(slow.transition, null);
+});

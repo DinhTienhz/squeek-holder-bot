@@ -65,9 +65,9 @@ async function pollStatus(): Promise<void> {
       setMeta(db, 'hamster_since', runningNow ? String(Date.now()) : '');
     }
     if (runningNow) lastRunningAt = Date.now();
-    // Starting is reported after 2 samples; a stop needs ~60 s of silence so a
-    // 15 s burst that restarts immediately does not produce a false "stopped".
-    const step = stepHamster(hamsterTrack, runningNow, runningNow ? 2 : 4);
+    // Report short bursts too: start as soon as rotation is seen, stop after
+    // two quiet samples (~30 s) so a cached duplicate does not fake a stop.
+    const step = stepHamster(hamsterTrack, runningNow, runningNow ? 1 : 2);
     hamsterTrack = step.state;
     if (step.transition !== null) {
       const running = step.transition;
