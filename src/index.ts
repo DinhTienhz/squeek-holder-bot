@@ -230,7 +230,13 @@ async function healthcheck(): Promise<void> {
   const staleAfter = Math.max(120_000, cfg.pollStatusMs * 3);
   const ok = Date.now() - lastStatusOkAt < staleAfter;
   const target = ok ? url : url.replace(/\/+$/, '') + '/fail';
-  try { await fetch(target, { signal: AbortSignal.timeout(8000) }); } catch { /* ignore */ }
+  try {
+    const res = await fetch(target, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) log('healthcheck rejected', res.status, ok ? 'ok' : 'fail');
+    else if (!ok) log('healthcheck fail (api stale)');
+  } catch (e) {
+    log('healthcheck error', (e as Error).message);
+  }
 }
 
 async function main(): Promise<void> {
