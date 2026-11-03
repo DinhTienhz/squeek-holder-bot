@@ -15,6 +15,7 @@ export const fmtInt = (n: number | bigint, lang: Lang = 'en'): string => group(n
 
 /** 68.94 → "68.94" (en) / "68,94" (vi) */
 import { isHamsterRunning } from './rules.ts';
+import { COMMANDS, type Group } from './commands.ts';
 
 export function fmtNum(n: number, lang: Lang = 'en', digits = 2): string {
   const fixed = n.toFixed(digits);
@@ -88,47 +89,30 @@ export function welcome(lang: Lang): string {
   ].join('\n');
 }
 
-export function help(lang: Lang): string {
-  if (lang === 'en') {
-    return [
-      '📖 <b>COMMANDS</b>',
-      '',
-      '<b>Wallets</b>',
-      '/watch <code>0x…</code> [label] · max 5',
-      '/unwatch <code>0x…</code> | label',
-      '/list',
-      '',
-      '<b>Track</b>',
-      '/status · /claim · /mergecheck · /ladder',
-      '/threshold 0.5 · /hamster on|off · /block on|off',
-      '',
-      '<b>Notifications</b>',
-      '/alerts on|off · /quiet 22:00-07:00',
-      '/digest on|off',
-      '',
-      '<b>Other</b>',
-      '/lang vi|en · /privacy · /delete',
-    ].join('\n');
+const GROUP_TITLE: Record<Group, { en: string; vi: string }> = {
+  wallets: { en: 'Wallets', vi: 'Ví' },
+  track: { en: 'Track', vi: 'Theo dõi' },
+  notifications: { en: 'Notifications', vi: 'Thông báo' },
+  other: { en: 'Other', vi: 'Khác' },
+  admin: { en: 'Admin', vi: 'Quản trị' },
+};
+
+export function help(lang: Lang, isAdmin = false): string {
+  const vi = lang !== 'en';
+  const groups: Group[] = ['wallets', 'track', 'notifications', 'other'];
+  if (isAdmin) groups.push('admin');
+
+  const out: string[] = [`📖 <b>${vi ? 'LỆNH' : 'COMMANDS'}</b>`];
+  for (const g of groups) {
+    const items = COMMANDS.filter((c) => c.group === g && (isAdmin || !c.admin));
+    if (!items.length) continue;
+    out.push('', `<b>${GROUP_TITLE[g][lang]}</b>`);
+    for (const c of items) {
+      const usage = c.usage ? ` <code>${esc(c.usage)}</code>` : '';
+      out.push(`/${c.name}${usage} · ${vi ? c.vi : c.en}`);
+    }
   }
-  return [
-    '📖 <b>LỆNH</b>',
-    '',
-    '<b>Ví</b>',
-    '/watch <code>0x…</code> [tên] · tối đa 5',
-    '/unwatch <code>0x…</code> | tên',
-    '/list',
-    '',
-    '<b>Theo dõi</b>',
-    '/status · /claim · /mergecheck · /ladder',
-    '/threshold 0.5 · /block on|off',
-    '',
-    '<b>Thông báo</b>',
-    '/alerts on|off · /quiet 22:00-07:00',
-    '/digest on|off',
-    '',
-    '<b>Khác</b>',
-    '/lang vi|en · /privacy · /delete',
-  ].join('\n');
+  return out.join('\n');
 }
 
 export function walletList(lang: Lang, wallets: { address: string; label: string | null }[], max: number): string {

@@ -3,6 +3,7 @@ import type { Config } from './config.ts';
 import { ApiClient } from './api.ts';
 import { ladderPowerGain, optimizeClaim, planLadder } from './rules.ts';
 import { claimablePerToken } from './chain.ts';
+import { COMMANDS } from './commands.ts';
 import { parseQuietRange } from './queue.ts';
 import {
   alertBlock, alertCooldown, alertHamster, addrShort, claimMsg, digestMsg, esc, fmtSqk, fullAddr,
@@ -120,7 +121,7 @@ export function createBot(cfg: Config) {
 
   bot.command('help', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    await reply(ctx, help(langOf(u)));
+    await reply(ctx, help(langOf(u), isAdmin(ctx.from!.id)));
   });
 
   bot.command('watch', async (ctx) => {
@@ -370,24 +371,7 @@ export function createBot(cfg: Config) {
 
 /** Menu lệnh trong Telegram (gọn, chỉ các lệnh chính). */
 export async function registerCommands(bot: Bot): Promise<void> {
-  await bot.api.setMyCommands([
-    { command: 'start', description: 'Start' },
-    { command: 'help', description: 'All commands' },
-    { command: 'watch', description: 'Add a wallet' },
-    { command: 'unwatch', description: 'Remove a wallet' },
-    { command: 'list', description: 'Your wallets' },
-    { command: 'status', description: 'Hamster, block, round' },
-    { command: 'claim', description: 'Claimable SQK + best batch' },
-    { command: 'mergecheck', description: 'Squeeks off cooldown' },
-    { command: 'ladder', description: 'Merge plan + power gain' },
-    { command: 'threshold', description: 'Claim alert threshold' },
-    { command: 'alerts', description: 'Wallet alerts on/off' },
-    { command: 'hamster', description: 'Hamster start/stop alerts' },
-    { command: 'block', description: 'Block alerts on/off' },
-    { command: 'digest', description: 'Daily digest on/off' },
-    { command: 'quiet', description: 'Quiet hours' },
-    { command: 'lang', description: 'Language: vi or en' },
-    { command: 'privacy', description: 'What is stored' },
-    { command: 'delete', description: 'Delete your data' },
-  ]);
+  await bot.api.setMyCommands(
+    COMMANDS.filter((c) => !c.admin).map((c) => ({ command: c.name, description: c.en })),
+  );
 }

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { COMMANDS } from '../src/commands.ts';
 import {
   addrShort, alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, claimMsg,
   digestMsg, esc, fmtInt, fullAddr, help, ladderMsg, mergeMsg, statusMsg, walletList, welcome,
@@ -153,4 +154,19 @@ test('alertHamster: tin dừng có thời lượng chạy', async () => {
   assert.match(alertHamster('vi', s, 15_000), /chạy 15 giây/);
   assert.match(alertHamster('en', s, 15_000), /ran 15s/);
   assert.doesNotMatch(alertHamster('vi', s, null), /chạy/);
+});
+
+
+test('help: liệt kê đủ mọi lệnh trong COMMANDS', async () => {
+  const { help } = await import('../src/format.ts');
+  const h = help('en', true);
+  for (const c of COMMANDS) assert.ok(h.includes('/' + c.name), 'missing /' + c.name);
+});
+
+test('help: user thường không thấy lệnh admin, nhưng thấy /hamster', async () => {
+  const { help } = await import('../src/format.ts');
+  const h = help('vi');
+  assert.ok(!h.includes('/ban'));
+  assert.ok(h.includes('/hamster'));
+  assert.ok(h.includes('/unwatch'));
 });
