@@ -2,7 +2,7 @@
  * Client cho API công khai của Squeekchain. Read-only, có ETag + backoff.
  */
 export type Status = {
-  coreStatus: string;          // SPINNING | IDLE | ...
+  coreStatus: string;          // ACTIVE | IDLE | ...
   rpmMilli: number;
   speedMmPerSecond: number;
   cumulativeWorkUnits: string;

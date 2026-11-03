@@ -14,6 +14,8 @@ const group = (digits: string, lang: Lang): string =>
 export const fmtInt = (n: number | bigint, lang: Lang = 'en'): string => group(n.toString(), lang);
 
 /** 68.94 → "68.94" (en) / "68,94" (vi) */
+import { isHamsterRunning } from './rules.ts';
+
 export function fmtNum(n: number, lang: Lang = 'en', digits = 2): string {
   const fixed = n.toFixed(digits);
   const [whole, frac] = fixed.split('.');
@@ -151,7 +153,7 @@ export function walletAdded(lang: Lang, address: string, label: string | null): 
 export function statusMsg(lang: Lang, s: {
   coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number; settledThroughRound: number;
 }, ageSec: number): string {
-  const spinning = s.coreStatus === 'SPINNING';
+  const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
   const state = spinning
     ? `🏃 ${lang === 'en' ? 'running' : 'đang chạy'} · ${fmtNum(s.rpmMilli / 1000, lang, 2)} rpm`
     : (lang === 'en' ? '😴 resting' : '😴 nghỉ');
@@ -237,7 +239,7 @@ export function alertCooldown(lang: Lang, p: { address: string; tokenId: string 
 
 export function alertHamster(lang: Lang, s: { coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number }): string {
   const vi = lang !== 'en';
-  if (s.coreStatus === 'SPINNING') {
+  if (isHamsterRunning(s.coreStatus, s.rpmMilli)) {
     return [
       `🐹 <b>${vi ? 'Hamster đang chạy' : 'Hamster is running'}</b>`,
       `${fmtNum(s.rpmMilli / 1000, lang, 2)} rpm · Block ${fmtInt(s.blockHeight, lang)}`,

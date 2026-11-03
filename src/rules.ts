@@ -41,7 +41,18 @@ export function evaluateAccount(prev: AccountState | null, next: Account, thresh
   return out;
 }
 
-/** Alert khi trạng thái bánh xe đổi (SPINNING ↔ IDLE). */
+/**
+ * Squeekchain reports the running state as ACTIVE (older docs said SPINNING).
+ * Treat any unknown non-idle state as running only when the wheel is turning.
+ */
+export function isHamsterRunning(coreStatus: string, rpmMilli = 0): boolean {
+  const s = String(coreStatus || '').toUpperCase();
+  if (['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].includes(s)) return true;
+  if (['IDLE', 'RESTING', 'STOPPED', 'PAUSED', 'OFFLINE'].includes(s)) return false;
+  return rpmMilli > 0;
+}
+
+/** Alert khi trạng thái bánh xe đổi (ACTIVE ↔ IDLE). */
 export function evaluateHamster(prev: string | null, next: Status, nowMs = Date.now()): Alert | null {
   if (!prev || prev === next.coreStatus) return null;
   const hour = Math.floor(nowMs / 3_600_000);

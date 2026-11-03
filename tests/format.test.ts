@@ -127,3 +127,13 @@ test('claim và alert claim có link mở app bấm được', async () => {
   assert.match(c, /href="https:\/\/sepolia\.squeekchain\.com\/"/);
   assert.match(a, /href="https:\/\/sepolia\.squeekchain\.com\/"/);
 });
+
+
+test('alertHamster: ACTIVE renders as running, IDLE as stopped', async () => {
+  const { alertHamster } = await import('../src/format.ts');
+  const base = { blockHeight: 7520, blockProgress: 2.5e8 };
+  assert.match(alertHamster('en', { ...base, coreStatus: 'ACTIVE', rpmMilli: 4200 }), /running/i);
+  assert.doesNotMatch(alertHamster('en', { ...base, coreStatus: 'ACTIVE', rpmMilli: 4200 }), /stopped/i);
+  assert.match(alertHamster('vi', { ...base, coreStatus: 'IDLE', rpmMilli: 0 }), /đã dừng/i);
+  assert.match(alertHamster('vi', { ...base, coreStatus: 'ACTIVE', rpmMilli: 3000 }), /đang chạy/i);
+});

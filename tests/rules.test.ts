@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateAccount, evaluateHamster, formatSqk, ladderPowerGain, optimizeClaim, planLadder, progressPct, snapshot } from '../src/rules.ts';
+import { evaluateAccount, evaluateHamster, formatSqk, isHamsterRunning, ladderPowerGain, optimizeClaim, planLadder, progressPct, snapshot } from '../src/rules.ts';
 import type { Account, Status } from '../src/api.ts';
 
 const acct = (claimable: bigint, tokens: { id: string; state: string; next?: number }[] = []): Account => ({
@@ -115,4 +115,14 @@ test('ladderPowerGain: 2×L1 (1000) → 1×L2 (2200)', () => {
   const g = ladderPowerGain({ 1: 2 }, [1000, 2200, 4840]);
   assert.equal(g.before, 2000n);
   assert.equal(g.after, 2200n);
+});
+
+
+test('isHamsterRunning: ACTIVE is running, IDLE is not', () => {
+  assert.equal(isHamsterRunning('ACTIVE', 0), true);
+  assert.equal(isHamsterRunning('SPINNING', 0), true);
+  assert.equal(isHamsterRunning('IDLE', 0), false);
+  assert.equal(isHamsterRunning('IDLE', 4200), false);
+  assert.equal(isHamsterRunning('MAINTENANCE', 1200), true);
+  assert.equal(isHamsterRunning('MAINTENANCE', 0), false);
 });
