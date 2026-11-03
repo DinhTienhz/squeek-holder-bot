@@ -2,9 +2,10 @@ import { loadConfig } from './config.ts';
 import { createBot, registerCommands } from './bot.ts';
 import { alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from './format.ts';
 import { ChatQueue, inQuietHours } from './queue.ts';
+import { isTransientTelegramError, retryDelayMs } from './retry.ts';
 import { evaluateAccount, evaluateHamster, snapshot, type AccountState } from './rules.ts';
 import {
-  allWallets, firstTime, getMeta, getUser, markDigest, newActivity, pruneActivity, pruneSent, setMeta,
+  allWallets, firstTime, getMeta, getUser, markDigest, newActivity, pruneActivity, pruneSent, setMeta, stats,
 } from './db.ts';
 
 const cfg = loadConfig();
@@ -13,6 +14,7 @@ const queue = new ChatQueue(1100);
 const prevAccounts = new Map<string, AccountState>();
 let prevHamster: string | null = null;
 let lastStatusOkAt = 0;
+let statusFailures = 0;
 
 const log = (...a: unknown[]) => console.log(new Date().toISOString(), ...a);
 
@@ -23,18 +25,19 @@ async function notify(tgId: string, text: string, force = false): Promise<void> 
   if (!u || u.blocked || !u.alerts) return;
   if (!force && inQuietHours(new Date(), u.quiet_start, u.quiet_end)) return;
   await queue.run(tgId, async () => {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         await bot.api.sendMessage(tgId, text, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
         return;
       } catch (e: any) {
-        const retry = Number(e?.parameters?.retry_after);
-        if (retry > 0 && attempt === 0) {
-          await new Promise((r) => setTimeout(r, retry * 1000));
-          continue;
+        const transient = isTransientTelegramError(e);
+        if (!transient || attempt === 3) {
+          log('send failed', tgId, `attempt ${attempt}`, e?.message ?? String(e));
+          return;
         }
-        log('send failed', tgId, e?.message ?? String(e));
-        return;
+        const wait = retryDelayMs(attempt, Number(e?.parameters?.retry_after));
+        log('send retry', tgId, `attempt ${attempt}`, `${wait}ms`, e?.message ?? String(e));
+        await new Promise((r) => setTimeout(r, wait));
       }
     }
   });
@@ -49,6 +52,7 @@ async function pollStatus(): Promise<void> {
   try {
     const s = await api.status();
     lastStatusOkAt = Date.now();
+    if (statusFailures > 0) { log('status recovered after', statusFailures, 'failure(s)'); statusFailures = 0; }
     const alert = evaluateHamster(prevHamster, s);
     prevHamster = s.coreStatus;
     if (alert) {
@@ -60,7 +64,8 @@ async function pollStatus(): Promise<void> {
     }
     await maybeBlockAlert(s.blockHeight);
   } catch (e) {
-    log('status poll failed', (e as Error).message);
+    statusFailures += 1;
+    log('status poll failed', `#${statusFailures}`, (e as Error).message);
   }
 }
 
@@ -209,6 +214,10 @@ async function main(): Promise<void> {
   const t3 = setInterval(healthcheck, 5 * 60_000);
   const t4 = setInterval(() => { pruneSent(db); pruneActivity(db); }, 24 * 3600_000);
   const t5 = setInterval(maybeDigest, 60_000);
+  const t6 = setInterval(() => {
+    const st = stats(db);
+    log('alive', `users=${st.users}`, `wallets=${st.wallets}`, `blocked=${st.blocked}`, `statusAge=${Math.round((Date.now() - lastStatusOkAt) / 1000)}s`);
+  }, 60 * 60_000);
 
   if (!cfg.dryRun) {
     try { await registerCommands(bot); } catch (e) { log('setMyCommands failed', (e as Error).message); }
@@ -217,7 +226,7 @@ async function main(): Promise<void> {
   else log('DRY_RUN: không kết nối Telegram; giữ poll để kiểm tra dữ liệu');
 
   const shutdown = async () => {
-    for (const t of [t1, t2, t3, t4, t5]) clearInterval(t);
+    for (const t of [t1, t2, t3, t4, t5, t6]) clearInterval(t);
     try { await bot.stop(); } catch { /* ignore */ }
     log('stopped');
     process.exit(0);
