@@ -21,8 +21,9 @@ const fakeFetch = async () => ({
 test('status: dùng blockHeight/progress của projected, giữ settledHeight của anchor', async () => {
   const api = new ApiClient('https://example.test/v1', fakeFetch as any);
   const s = await api.status();
-  assert.equal(s.blockHeight, 7560);
+  assert.equal(s.blockHeight, 7561);   // 7560 completed + open block
   assert.equal(s.blockProgress, 517213889);
+  assert.equal(s.lastCompletedBlock, 7560);
   assert.equal(s.settledHeight, 7520);
 });
 

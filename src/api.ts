@@ -6,8 +6,9 @@ export type Status = {
   rpmMilli: number;
   speedMmPerSecond: number;
   cumulativeWorkUnits: string;
-  blockHeight: number;         // live height (projected while a block is open)
+  blockHeight: number;         // current block number (last completed + 1 while a block is open)
   blockProgress: number;       // 0..1e9
+  lastCompletedBlock?: number; // last fully completed block
   settledHeight?: number;      // last block confirmed on-chain by the reporter
   settledThroughRound: number;
   generatedAt: string;
@@ -105,7 +106,11 @@ export class ApiClient {
       rpmMilli: Number(m.rpmMilli ?? 0),
       speedMmPerSecond: Number(m.speedMmPerSecond ?? 0),
       cumulativeWorkUnits: String(m.cumulativeWorkUnits ?? '0'),
-      blockHeight: Number(p.blockHeight ?? a.blockHeight ?? 0),
+      // The official app numbers the block being mined: lastCompleted + 1.
+      blockHeight: (p.blockHeight != null && Number(p.blockProgress ?? 0) > 0)
+        ? Number(p.blockHeight) + 1
+        : Number(p.blockHeight ?? a.blockHeight ?? 0),
+      lastCompletedBlock: Number(p.blockHeight ?? a.blockHeight ?? 0),
       blockProgress: Number(p.blockProgress ?? a.blockProgress ?? 0),
       settledHeight: Number(a.blockHeight ?? p.blockHeight ?? 0),
       settledThroughRound: Number(a.settledThroughRound ?? 0),
