@@ -137,3 +137,20 @@ test('alertHamster: ACTIVE renders as running, IDLE as stopped', async () => {
   assert.match(alertHamster('vi', { ...base, coreStatus: 'IDLE', rpmMilli: 0 }), /đã dừng/i);
   assert.match(alertHamster('vi', { ...base, coreStatus: 'ACTIVE', rpmMilli: 3000 }), /đang chạy/i);
 });
+
+
+test('formatDuration: giây, phút, giờ', async () => {
+  const { formatDuration } = await import('../src/format.ts');
+  assert.equal(formatDuration('vi', 15_000), '15 giây');
+  assert.equal(formatDuration('en', 15_000), '15s');
+  assert.equal(formatDuration('vi', 90_000), '1 phút');
+  assert.equal(formatDuration('en', 3_900_000), '1h 05m');
+});
+
+test('alertHamster: tin dừng có thời lượng chạy', async () => {
+  const { alertHamster } = await import('../src/format.ts');
+  const s = { coreStatus: 'IDLE', rpmMilli: 0, blockHeight: 7520, blockProgress: 2.5e8 };
+  assert.match(alertHamster('vi', s, 15_000), /chạy 15 giây/);
+  assert.match(alertHamster('en', s, 15_000), /ran 15s/);
+  assert.doesNotMatch(alertHamster('vi', s, null), /chạy/);
+});

@@ -237,7 +237,22 @@ export function alertCooldown(lang: Lang, p: { address: string; tokenId: string 
   ].join('\n');
 }
 
-export function alertHamster(lang: Lang, s: { coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number }): string {
+export function formatDuration(lang: Lang, ms: number): string {
+  const sec = Math.max(0, Math.round(ms / 1000));
+  const vi = lang !== 'en';
+  if (sec < 60) return vi ? `${sec} giây` : `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return vi ? `${min} phút` : `${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return vi ? `${h} giờ ${String(m).padStart(2, '0')} phút` : `${h}h ${String(m).padStart(2, '0')}m`;
+}
+
+export function alertHamster(
+  lang: Lang,
+  s: { coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number },
+  runMs?: number | null,
+): string {
   const vi = lang !== 'en';
   if (isHamsterRunning(s.coreStatus, s.rpmMilli)) {
     return [
@@ -246,8 +261,11 @@ export function alertHamster(lang: Lang, s: { coreStatus: string; rpmMilli: numb
     ].join('\n');
   }
   const pct = fmtNum((s.blockProgress / 1e9) * 100, lang, 1);
+  const ran = runMs && runMs > 0
+    ? (vi ? ` (chạy ${formatDuration(lang, runMs)})` : ` (ran ${formatDuration(lang, runMs)})`)
+    : '';
   return [
-    `😴 <b>${vi ? 'Hamster đã dừng' : 'Hamster stopped'}</b>`,
+    `😴 <b>${vi ? 'Hamster đã dừng' : 'Hamster stopped'}</b>${ran}`,
     `Block ${fmtInt(s.blockHeight, lang)} · ${pct}%`,
   ].join('\n');
 }
