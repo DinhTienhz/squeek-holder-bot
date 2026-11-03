@@ -7,6 +7,8 @@
 Bot Telegram đa người dùng cho holder [Squeekchain](https://squeekchain.com) (Sepolia testnet).
 Ai biết username bot đều có thể `/start` và dùng — không cần mời.
 
+**Bot:** [@SqueekHolder_Bot](https://t.me/SqueekHolder_Bot) · **Landing page:** <https://squeek-holder-bot.chainn.workers.dev/>
+
 ## 8 chức năng
 
 1. **Claimable vượt ngưỡng** — DM khi SQK chưa claim ≥ ngưỡng; sau đó chỉ báo lại khi gấp đôi hoặc sau 6 giờ (chống spam)
