@@ -138,3 +138,23 @@ test('hamsterRunMs: bắt đầu, chạy tiếp, dừng', async () => {
   assert.deepEqual(hamsterRunMs(false, t0, t0 + 15_000), { runMs: 15_000, nextSince: null });
   assert.deepEqual(hamsterRunMs(false, null, t0), { runMs: null, nextSince: null });
 });
+
+test('stepHamster: cần 2 mẫu liên tiếp mới đổi trạng thái', async () => {
+  const { stepHamster } = await import('../src/rules.ts');
+  let st = { confirmed: null as boolean | null, pending: null as boolean | null, count: 0 };
+  let r = stepHamster(st, true); st = r.state;
+  assert.equal(r.transition, null);            // first sample confirms quietly
+  assert.equal(st.confirmed, true);
+
+  r = stepHamster(st, false); st = r.state;    // one stray sample
+  assert.equal(r.transition, null);
+  r = stepHamster(st, true); st = r.state;     // back to running: no event
+  assert.equal(r.transition, null);
+  assert.equal(st.confirmed, true);
+
+  r = stepHamster(st, false); st = r.state;    // two consecutive stops
+  assert.equal(r.transition, null);
+  r = stepHamster(st, false); st = r.state;
+  assert.equal(r.transition, false);
+  assert.equal(st.confirmed, false);
+});

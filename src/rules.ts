@@ -167,3 +167,25 @@ export function hamsterRunMs(
   if (sinceMs && sinceMs > 0) return { runMs: nowMs - sinceMs, nextSince: null };
   return { runMs: null, nextSince: null };
 }
+
+
+export type HamsterState = { confirmed: boolean | null; pending: boolean | null; count: number };
+
+/**
+ * Debounce the wheel state: a transition only counts after `needed` consecutive
+ * samples, so a single stray rpm=0 reading does not produce a fake stop/start.
+ */
+export function stepHamster(
+  state: HamsterState,
+  runningNow: boolean,
+  needed = 2,
+): { state: HamsterState; transition: boolean | null } {
+  if (state.confirmed === null) return { state: { confirmed: runningNow, pending: null, count: 0 }, transition: null };
+  if (runningNow === state.confirmed) return { state: { confirmed: state.confirmed, pending: null, count: 0 }, transition: null };
+  if (state.pending === runningNow) {
+    const count = state.count + 1;
+    if (count >= needed) return { state: { confirmed: runningNow, pending: null, count: 0 }, transition: runningNow };
+    return { state: { confirmed: state.confirmed, pending: runningNow, count }, transition: null };
+  }
+  return { state: { confirmed: state.confirmed, pending: runningNow, count: 1 }, transition: null };
+}

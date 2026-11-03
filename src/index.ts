@@ -3,7 +3,7 @@ import { createBot, registerCommands } from './bot.ts';
 import { alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from './format.ts';
 import { ChatQueue, inQuietHours } from './queue.ts';
 import { isTransientTelegramError, retryDelayMs } from './retry.ts';
-import { claimAlertDue, evaluateAccount, hamsterRunMs, isHamsterRunning, snapshot, type AccountState } from './rules.ts';
+import { claimAlertDue, evaluateAccount, hamsterRunMs, isHamsterRunning, snapshot, stepHamster, type AccountState, type HamsterState } from './rules.ts';
 import {
   allWallets, firstTime, getMeta, getUser, markDigest, newActivity, pruneActivity, pruneSent, setMeta, stats,
 } from './db.ts';
@@ -12,7 +12,8 @@ const cfg = loadConfig();
 const { bot, db, api } = createBot(cfg);
 const queue = new ChatQueue(1100);
 const prevAccounts = new Map<string, AccountState>();
-let prevRunning: boolean | null = null;
+let hamsterTrack: HamsterState = { confirmed: null, pending: null, count: 0 };
+let lastRunningAt = 0;
 let lastStatusOkAt = 0;
 let statusFailures = 0;
 
@@ -54,17 +55,19 @@ async function pollStatus(): Promise<void> {
     lastStatusOkAt = Date.now();
     if (statusFailures > 0) { log('status recovered after', statusFailures, 'failure(s)'); statusFailures = 0; }
     const runningNow = isHamsterRunning(s.coreStatus, s.rpmMilli);
-    // First observation after a restart: no transition to report, but the run
-    // marker must match reality or the next duration would be wrong.
-    if (prevRunning === null) {
+    if (hamsterTrack.confirmed === null) {
+      // First observation after a restart: no transition to report, but the run
+      // marker must match reality or the next duration would be wrong.
       setMeta(db, 'hamster_since', runningNow ? String(Date.now()) : '');
     }
-    const changed = prevRunning !== null && prevRunning !== runningNow;
-    prevRunning = runningNow;
-    if (changed) {
-      const running = runningNow;
+    if (runningNow) lastRunningAt = Date.now();
+    const step = stepHamster(hamsterTrack, runningNow);
+    hamsterTrack = step.state;
+    if (step.transition !== null) {
+      const running = step.transition;
       const sinceStored = Number(getMeta(db, 'hamster_since') ?? '0') || null;
-      const { runMs, nextSince } = hamsterRunMs(running, sinceStored, Date.now());
+      const endMs = running ? Date.now() : (lastRunningAt || Date.now());
+      const { runMs, nextSince } = hamsterRunMs(running, sinceStored, endMs);
       setMeta(db, 'hamster_since', nextSince ? String(nextSince) : '');
       log('hamster', running ? 'running' : 'stopped', runMs ? `${Math.round(runMs / 1000)}s` : '');
       for (const u of usersWith('hamster_alerts')) {
