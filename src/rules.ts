@@ -180,12 +180,15 @@ export function stepHamster(
   runningNow: boolean,
   needed = 2,
 ): { state: HamsterState; transition: boolean | null } {
-  if (state.confirmed === null) return { state: { confirmed: runningNow, pending: null, count: 0 }, transition: null };
-  if (runningNow === state.confirmed) return { state: { confirmed: state.confirmed, pending: null, count: 0 }, transition: null };
-  if (state.pending === runningNow) {
-    const count = state.count + 1;
-    if (count >= needed) return { state: { confirmed: runningNow, pending: null, count: 0 }, transition: runningNow };
-    return { state: { confirmed: state.confirmed, pending: runningNow, count }, transition: null };
+  if (state.confirmed === null) {
+    return { state: { confirmed: runningNow, pending: null, count: 0 }, transition: null };
   }
-  return { state: { confirmed: state.confirmed, pending: runningNow, count: 1 }, transition: null };
+  if (runningNow === state.confirmed) {
+    return { state: { confirmed: state.confirmed, pending: null, count: 0 }, transition: null };
+  }
+  const count = state.pending === runningNow ? state.count + 1 : 1;
+  if (count >= needed) {
+    return { state: { confirmed: runningNow, pending: null, count: 0 }, transition: runningNow };
+  }
+  return { state: { confirmed: state.confirmed, pending: runningNow, count }, transition: null };
 }
