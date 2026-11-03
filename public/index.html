@@ -256,14 +256,14 @@
     });
   }
   function paintStatus(d) {
-    var m = d.measurement || {}, a = (d.builder || {}).anchor || {};
+    var m = d.measurement || {}, b = d.builder || {}, a = b.anchor || {}, p = b.projected || {};
     var cs = String(m.coreStatus || '').toUpperCase();
     var running = ['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].indexOf(cs) >= 0 ||
       (cs !== 'IDLE' && Number(m.rpmMilli) > 0);
-    var pct = Math.max(0, Math.min(100, (Number(a.blockProgress) || 0) / 1e9 * 100));
+    var pct = Math.max(0, Math.min(100, (Number(p.blockProgress ?? a.blockProgress) || 0) / 1e9 * 100));
     set('live-state', running ? 'Running' : 'Resting');
     set('live-rpm', running ? nf.format((Number(m.rpmMilli) || 0) / 1000) + ' rpm' : '—');
-    set('live-block', nf.format(Number(a.blockHeight) || 0));
+    set('live-block', nf.format(Number(p.blockHeight ?? a.blockHeight) || 0));
     set('live-note', 'Next block: ' + pct.toFixed(1) + '%');
     el('live-bar').style.width = pct.toFixed(1) + '%';
     el('live-dot').className = 'dot ' + (running ? 'on' : 'off');

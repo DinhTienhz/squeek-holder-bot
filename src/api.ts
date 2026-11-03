@@ -6,8 +6,9 @@ export type Status = {
   rpmMilli: number;
   speedMmPerSecond: number;
   cumulativeWorkUnits: string;
-  blockHeight: number;
+  blockHeight: number;         // live height (projected while a block is open)
   blockProgress: number;       // 0..1e9
+  settledHeight?: number;      // last block confirmed on-chain by the reporter
   settledThroughRound: number;
   generatedAt: string;
   freshness: string;
@@ -98,13 +99,15 @@ export class ApiClient {
     const d: any = await this.getJson('/status');
     const m = d.measurement ?? {};
     const a = d.builder?.anchor ?? {};
+    const p = d.builder?.projected ?? {};
     return {
       coreStatus: String(m.coreStatus ?? 'UNKNOWN'),
       rpmMilli: Number(m.rpmMilli ?? 0),
       speedMmPerSecond: Number(m.speedMmPerSecond ?? 0),
       cumulativeWorkUnits: String(m.cumulativeWorkUnits ?? '0'),
-      blockHeight: Number(a.blockHeight ?? 0),
-      blockProgress: Number(a.blockProgress ?? 0),
+      blockHeight: Number(p.blockHeight ?? a.blockHeight ?? 0),
+      blockProgress: Number(p.blockProgress ?? a.blockProgress ?? 0),
+      settledHeight: Number(a.blockHeight ?? p.blockHeight ?? 0),
       settledThroughRound: Number(a.settledThroughRound ?? 0),
       generatedAt: String(d.generatedAt ?? ''),
       freshness: String(m.freshness ?? 'unknown'),

@@ -53,6 +53,11 @@ async function pollStatus(): Promise<void> {
     const s = await api.status();
     lastStatusOkAt = Date.now();
     if (statusFailures > 0) { log('status recovered after', statusFailures, 'failure(s)'); statusFailures = 0; }
+    // First observation after a restart: no transition to report, but the run
+    // marker must match reality or the next duration would be wrong.
+    if (prevHamster === null) {
+      setMeta(db, 'hamster_since', isHamsterRunning(s.coreStatus, s.rpmMilli) ? String(Date.now()) : '');
+    }
     const alert = evaluateHamster(prevHamster, s);
     prevHamster = s.coreStatus;
     if (alert) {
@@ -67,7 +72,7 @@ async function pollStatus(): Promise<void> {
         await notify(u.tg_id, alertHamster(langOf(user), s, runMs));
       }
     }
-    await maybeBlockAlert(s.blockHeight);
+    await maybeBlockAlert(s.settledHeight ?? s.blockHeight);
   } catch (e) {
     statusFailures += 1;
     log('status poll failed', `#${statusFailures}`, (e as Error).message);
