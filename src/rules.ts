@@ -18,18 +18,8 @@ export function snapshot(a: Account): AccountState {
  * - claim: vượt ngưỡng lần đầu, hoặc vượt thêm mỗi bội số ngưỡng
  * - cooldown: token chuyển cooldown → ready
  */
-export function evaluateAccount(prev: AccountState | null, next: Account, threshold: bigint): Alert[] {
+export function evaluateAccount(prev: AccountState | null, next: Account, _threshold: bigint): Alert[] {
   const out: Alert[] = [];
-  if (threshold > 0n) {
-    const before = prev?.claimable ?? 0n;
-    if (next.claimable >= threshold) {
-      const bucket = next.claimable / threshold;
-      const prevBucket = before / threshold;
-      if (bucket > prevBucket) {
-        out.push({ kind: 'claim', key: `claim:${next.address.toLowerCase()}:${bucket}`, value: next.claimable });
-      }
-    }
-  }
   if (prev) {
     for (const t of next.tokens) {
       const old = prev.mergeState.get(t.tokenId);
@@ -39,6 +29,28 @@ export function evaluateAccount(prev: AccountState | null, next: Account, thresh
     }
   }
   return out;
+}
+
+export type ClaimMemo = { amount: bigint; at: number } | null;
+
+/**
+ * Claim alerts are rate-limited: the first time the balance crosses the
+ * threshold, then only when it doubles or after `minHours`, and only if it grew
+ * by at least one threshold since the last alert.
+ */
+export function claimAlertDue(
+  amount: bigint,
+  threshold: bigint,
+  memo: ClaimMemo,
+  nowMs: number,
+  minHours = 6,
+): boolean {
+  if (threshold <= 0n || amount < threshold) return false;
+  if (!memo) return true;
+  if (amount - memo.amount < threshold) return false;
+  const hours = (nowMs - memo.at) / 3_600_000;
+  const doubled = memo.amount > 0n && amount >= memo.amount * 2n;
+  return doubled || hours >= minHours;
 }
 
 /**

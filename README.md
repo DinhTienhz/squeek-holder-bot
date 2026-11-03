@@ -9,7 +9,7 @@ Ai biết username bot đều có thể `/start` và dùng — không cần mờ
 
 ## 8 chức năng
 
-1. **Claimable vượt ngưỡng** — DM khi SQK chưa claim ≥ ngưỡng, báo lại ở mỗi bội số
+1. **Claimable vượt ngưỡng** — DM khi SQK chưa claim ≥ ngưỡng; sau đó chỉ báo lại khi gấp đôi hoặc sau 6 giờ (chống spam)
 2. **Claim optimizer** — `/claim`: batch tối đa 32 token, tổng nhận, dust, số tx cần
 3. **Cooldown + /mergecheck** — báo khi `cooldown → ready`, liệt kê token merge được
 4. **Merge ladder** — `/ladder`: kế hoạch merge theo level, cooldown block, power gain

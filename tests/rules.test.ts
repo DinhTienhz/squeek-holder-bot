@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateAccount, evaluateHamster, formatSqk, isHamsterRunning, ladderPowerGain, optimizeClaim, planLadder, progressPct, snapshot } from '../src/rules.ts';
+import { claimAlertDue, evaluateAccount, evaluateHamster, formatSqk, isHamsterRunning, ladderPowerGain, optimizeClaim, planLadder, progressPct, snapshot } from '../src/rules.ts';
 import type { Account, Status } from '../src/api.ts';
 
 const acct = (claimable: bigint, tokens: { id: string; state: string; next?: number }[] = []): Account => ({
@@ -15,25 +15,28 @@ const acct = (claimable: bigint, tokens: { id: string; state: string; next?: num
 
 const T = 10n ** 18n; // 1 SQK
 
-test('claim: vượt ngưỡng lần đầu → 1 alert', () => {
-  const prev = snapshot(acct(0n));
-  const alerts = evaluateAccount(prev, acct(5n * T), 5n * T);
-  assert.equal(alerts.filter((a) => a.kind === 'claim').length, 1);
+test('claimAlertDue: lần đầu vượt ngưỡng → báo', () => {
+  assert.equal(claimAlertDue(6n * T, 5n * T, null, 0), true);
 });
 
-test('claim: dưới ngưỡng → không alert', () => {
-  const alerts = evaluateAccount(snapshot(acct(0n)), acct(4n * T), 5n * T);
-  assert.equal(alerts.length, 0);
+test('claimAlertDue: dưới ngưỡng → không báo', () => {
+  assert.equal(claimAlertDue(4n * T, 5n * T, null, 0), false);
 });
 
-test('claim: cùng bucket không báo lại, vượt bucket mới báo', () => {
-  const threshold = 5n * T;
-  const first = evaluateAccount(snapshot(acct(0n)), acct(6n * T), threshold);
-  const second = evaluateAccount(snapshot(acct(6n * T)), acct(9n * T), threshold);
-  const third = evaluateAccount(snapshot(acct(9n * T)), acct(11n * T), threshold);
-  assert.equal(first.length, 1);
-  assert.equal(second.length, 0);
-  assert.equal(third.length, 1);
+test('claimAlertDue: chưa lớn thêm 1 ngưỡng → không báo', () => {
+  const memo = { amount: 100n * T, at: 0 };
+  assert.equal(claimAlertDue(102n * T, 5n * T, memo, 60 * 60_000), false);
+});
+
+test('claimAlertDue: gấp đôi → báo ngay', () => {
+  const memo = { amount: 100n * T, at: 0 };
+  assert.equal(claimAlertDue(205n * T, 5n * T, memo, 60_000), true);
+});
+
+test('claimAlertDue: sau 6 giờ và tăng ≥ ngưỡng → báo', () => {
+  const memo = { amount: 100n * T, at: 0 };
+  assert.equal(claimAlertDue(110n * T, 5n * T, memo, 7 * 3600_000), true);
+  assert.equal(claimAlertDue(110n * T, 5n * T, memo, 2 * 3600_000), false);
 });
 
 test('cooldown: cooldown → ready → alert', () => {

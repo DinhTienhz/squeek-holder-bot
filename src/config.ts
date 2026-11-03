@@ -16,6 +16,7 @@ export type Config = {
   miningAddress: string;
   collection: number;
   digestHour: number;
+  claimAlertMinHours: number;
 };
 
 export function sqkToBaseUnits(s: string): bigint {
@@ -49,5 +50,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     miningAddress: env.MINING_ADDRESS ?? '0xcd46990f8349057335289ef282c276204b6cdc62',
     collection: Number(env.COLLECTION ?? 0),
     digestHour: Number(env.DIGEST_HOUR ?? 9),
+    claimAlertMinHours: num(env.CLAIM_ALERT_MIN_HOURS, 6),
   };
 }

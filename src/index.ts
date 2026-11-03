@@ -3,7 +3,7 @@ import { createBot, registerCommands } from './bot.ts';
 import { alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from './format.ts';
 import { ChatQueue, inQuietHours } from './queue.ts';
 import { isTransientTelegramError, retryDelayMs } from './retry.ts';
-import { evaluateAccount, evaluateHamster, snapshot, type AccountState } from './rules.ts';
+import { claimAlertDue, evaluateAccount, evaluateHamster, snapshot, type AccountState } from './rules.ts';
 import {
   allWallets, firstTime, getMeta, getUser, markDigest, newActivity, pruneActivity, pruneSent, setMeta, stats,
 } from './db.ts';
@@ -118,13 +118,18 @@ async function pollWallets(): Promise<void> {
     for (const tgId of watchers) {
       const u = getUser(db, tgId);
       if (!u || !u.alerts || u.blocked) continue;
-      for (const a of evaluateAccount(prev, acct, BigInt(u.threshold))) {
+      const threshold = BigInt(u.threshold);
+      const memoKey = `claimalert:${tgId}:${address.toLowerCase()}`;
+      const raw = getMeta(db, memoKey);
+      const memo = raw ? { amount: BigInt(raw.split(':')[0] || '0'), at: Number(raw.split(':')[1] || 0) } : null;
+      if (claimAlertDue(acct.claimable, threshold, memo, Date.now(), cfg.claimAlertMinHours)) {
+        await notify(tgId, alertClaim(langOf(u), { address, amount: acct.claimable, threshold }));
+        setMeta(db, memoKey, `${acct.claimable}:${Date.now()}`);
+      }
+
+      for (const a of evaluateAccount(prev, acct, threshold)) {
         if (!firstTime(db, tgId, a.key)) continue;
-        if (a.kind === 'claim') {
-          await notify(tgId, alertClaim(langOf(u), {
-            address, amount: a.value ?? 0n, threshold: BigInt(u.threshold),
-          }));
-        } else if (a.kind === 'cooldown') {
+        if (a.kind === 'cooldown') {
           await notify(tgId, alertCooldown(langOf(u), { address, tokenId: a.tokenId ?? '?' }));
         }
       }
