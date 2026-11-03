@@ -88,9 +88,14 @@
   .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .6s ease}
   .live-note{color:var(--muted);font-size:12px;margin-top:10px}
   .live-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
+  .live-actions{display:flex;align-items:center;gap:10px}
   .btn-refresh{background:transparent;border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;
     padding:6px 12px;border-radius:8px;cursor:pointer;transition:.15s}
   .btn-refresh:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  a.btn-live{display:inline-flex;align-items:center;gap:7px;border:1px solid #4a2b2b;background:#1a1010;
+    color:#ff9c9c;font-size:12px;padding:6px 12px;border-radius:8px;text-decoration:none}
+  a.btn-live:hover{border-color:#ff6b6b;color:#ffd0d0;text-decoration:none}
+  a.btn-live .dot{background:#ff5f5f;animation:pulse 2s infinite;box-shadow:0 0 0 3px rgba(255,95,95,.12)}
   .btn-refresh:disabled{opacity:.5;cursor:default}
   @media (max-width:520px){
     .live-title{font-size:12px;letter-spacing:.03em}
@@ -147,7 +152,10 @@
       <div class="bar"><i id="live-bar"></i></div>
       <div class="live-foot">
         <div class="live-note" id="live-note">Next block progress</div>
-        <button class="btn-refresh" id="live-refresh" type="button">Refresh now</button>
+        <div class="live-actions">
+          <a class="btn-live" href="https://x.com/squeekchain" target="_blank" rel="noopener"><span class="dot"></span>Watch live</a>
+          <button class="btn-refresh" id="live-refresh" type="button">Refresh now</button>
+        </div>
       </div>
     </div>
 
