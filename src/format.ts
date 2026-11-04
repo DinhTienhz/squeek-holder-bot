@@ -24,11 +24,12 @@ export function fmtNum(n: number, lang: Lang = 'en', digits = 2): string {
 }
 
 /** 7235340000000000000000n → "7,235.34 SQK" (en) / "7.235,34 SQK" (vi) */
-export function fmtSqk(base: bigint, lang: Lang = 'en', decimals = 2): string {
+export function fmtSqk(base: bigint, lang: Lang = 'en', decimals = 2, fixed = false): string {
   const neg = base < 0n;
   const v = neg ? -base : base;
   const whole = group((v / 10n ** 18n).toString(), lang);
-  const frac = (v % 10n ** 18n).toString().padStart(18, '0').slice(0, decimals).replace(/0+$/, '');
+  const raw = (v % 10n ** 18n).toString().padStart(18, '0').slice(0, decimals);
+  const frac = fixed ? raw : raw.replace(/0+$/, '');
   const body = frac ? `${whole}${lang === 'en' ? '.' : ','}${frac}` : whole;
   return `${neg ? '-' : ''}${body} SQK`;
 }
@@ -279,7 +280,7 @@ export function alertBlock(lang: Lang, p: {
   const head = `⛏️ <b>${range}</b>` +
     (p.blocks > 1 ? ` · ${fmtInt(p.blocks, lang)} ${vi ? 'block' : 'blocks'}` : '');
   const second = p.minted != null
-    ? `${fmtSqk(p.minted, lang, 4)} ${vi ? 'đã phát' : 'minted'}`
+    ? `${fmtSqk(p.minted, lang, 4, true)} ${vi ? 'đã phát' : 'minted'}`
     : (vi ? 'SQK mint chưa index xong' : 'SQK mint not indexed yet');
   return [head, second].join('\n');
 }
