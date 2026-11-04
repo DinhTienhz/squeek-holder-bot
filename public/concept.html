@@ -91,7 +91,13 @@ const params = new URLSearchParams(location.search);
 const VIEW = params.get('view') || 'hero';
 
 /* ------------------------------- renderer ------------------------------- */
-const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+} catch(e) {
+  document.getElementById('loading').textContent = 'WEBGL UNAVAILABLE — open on a GPU browser';
+  throw e;
+}
 renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -279,11 +285,11 @@ const earthTex = canvasTex(1024,512,(g,w,h)=>{
     g.beginPath(); g.ellipse(x,y,ww,hh,rnd(-.3,.3),0,7); g.fill();
   }
 });
-const earth = new THREE.Mesh(new THREE.SphereGeometry(16, 64, 40),
-  new THREE.MeshStandardMaterial({ map:earthTex, roughness:.9, metalness:0, emissive:0x0a2a5a, emissiveIntensity:.25 }));
-earth.position.set(74, 62, -190);
+const earth = new THREE.Mesh(new THREE.SphereGeometry(26, 64, 40),
+  new THREE.MeshStandardMaterial({ map:earthTex, roughness:.9, metalness:0, emissive:0x123a72, emissiveIntensity:.45 }));
+earth.position.set(58, 50, -150);
 scene.add(earth);
-const halo = new THREE.Mesh(new THREE.SphereGeometry(16.7, 32, 24),
+const halo = new THREE.Mesh(new THREE.SphereGeometry(27.2, 32, 24),
   new THREE.MeshBasicMaterial({ color:0x86c8ff, transparent:true, opacity:.10, side:THREE.BackSide }));
 halo.position.copy(earth.position); scene.add(halo);
 
@@ -460,18 +466,25 @@ for(const sx of [-1,1]){
   }
 }
 // wheel support fork
-for(const sx of [-.55,.55]){
-  const fork = new THREE.Mesh(new THREE.BoxGeometry(.12,1.45,.12), frameMat);
-  fork.position.set(sx,1.85,.0); fork.castShadow=true; chassis.add(fork);
+for(const sx of [-.62,.62]){
+  const fork = new THREE.Mesh(new THREE.BoxGeometry(.24,1.55,.26), frameMat);
+  fork.position.set(sx,1.82,.0); fork.castShadow=true; chassis.add(fork);
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.5,14), frameMat);
+  axle.rotation.z=Math.PI/2; axle.position.set(sx*.62,2.45,0); chassis.add(axle);
 }
+// cross brace
+const brace = new THREE.Mesh(new THREE.BoxGeometry(1.3,.14,.18), frameMat);
+brace.position.set(0,2.05,0); brace.castShadow=true; chassis.add(brace);
 // vacuum nozzle at the front
 const nozzle = new THREE.Group();
 const tube = new THREE.Mesh(new THREE.CylinderGeometry(.16,.22,1.25,18), new THREE.MeshStandardMaterial({color:0x444a56, metalness:.5, roughness:.4}));
-tube.rotation.x = 1.15; tube.position.set(0,.55,1.9); nozzle.add(tube);
+tube.rotation.x = 1.30; tube.position.set(0,.42,1.85); nozzle.add(tube);
 const mouth = new THREE.Mesh(new THREE.CylinderGeometry(.42,.28,.5,20,1,true), new THREE.MeshStandardMaterial({color:0x2f333c, metalness:.6, roughness:.35, side:THREE.DoubleSide}));
-mouth.rotation.x = 1.15; mouth.position.set(0,.30,2.42); nozzle.add(mouth);
+mouth.rotation.x = 1.20; mouth.position.set(0,.17,2.30); nozzle.add(mouth);
 const mouthGlow = new THREE.Mesh(new THREE.TorusGeometry(.34,.03,8,28), energyMat);
-mouthGlow.rotation.x = 1.15; mouthGlow.position.set(0,.33,2.44); nozzle.add(mouthGlow);
+mouthGlow.rotation.x = 1.20; mouthGlow.position.set(0,.20,2.32); nozzle.add(mouthGlow);
+const brush = new THREE.Mesh(new THREE.TorusGeometry(.40,.05,8,28), new THREE.MeshStandardMaterial({color:0xc9c2b2, roughness:1}));
+brush.rotation.x = Math.PI/2; brush.position.set(0,.06,2.34); nozzle.add(brush);
 chassis.add(nozzle);
 
 // hose from vacuum to wheel
@@ -490,6 +503,9 @@ flag.position.set(-.83,2.05,-1.3); chassis.add(flag);
 
 chassis.position.set(0,0,0);
 scene.add(chassis);
+const contact = new THREE.Mesh(new THREE.CircleGeometry(2.4,48),
+  new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:.34, depthWrite:false }));
+contact.rotation.x=-Math.PI/2; contact.position.set(0,.02,.2); contact.scale.set(1,1.35,1); scene.add(contact);
 
 /* -------------------------------- dust ---------------------------------- */
 const dustTex = canvasTex(64,64,(g,w,h)=>{
