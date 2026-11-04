@@ -419,15 +419,15 @@ nose.position.set(0,2.99,.40); hamster.add(nose);
 // limbs with pivots so they can swing
 function makeLimb(parent, x,y,z, len, mat, thumb){
   const pivot = new THREE.Group(); pivot.position.set(x,y,z);
-  const cap = new THREE.Mesh(new THREE.CapsuleGeometry(thumb? .10:.12, len, 6, 12), mat);
+  const cap = new THREE.Mesh(new THREE.CapsuleGeometry(thumb? .135:.12, len, 6, 12), mat);
   cap.position.y = -len/2; cap.castShadow = true;
   pivot.add(cap); parent.add(pivot);
   return pivot;
 }
 const armL = makeLimb(hamster, -.50, 2.52, .10, .52, suitMat, false);
 const armR = makeLimb(hamster,  .50, 2.50, -.06, .52, suitMat, false);
-const legL = makeLimb(hamster, -.28, 1.96, .18, .62, suitMat, true);
-const legR = makeLimb(hamster,  .30, 1.94, -.12, .62, suitMat, true);
+const legL = makeLimb(hamster, -.28, 1.94, .18, .76, suitMat, true);
+const legR = makeLimb(hamster,  .30, 1.94, -.12, .76, suitMat, true);
 
 // gloves + boots ride the pivots
 for(const [pivot,sx] of [[armL,-1],[armR,1]]){
@@ -435,10 +435,10 @@ for(const [pivot,sx] of [[armL,-1],[armR,1]]){
   gl.position.set(0,-.56,.02); pivot.add(gl);
 }
 for(const [pivot,sx] of [[legL,-1],[legR,1]]){
-  const boot = new THREE.Mesh(new THREE.BoxGeometry(.26,.18,.34), suitMat);
-  boot.position.set(0,-.66,.05); boot.castShadow=true; pivot.add(boot);
-  const sole = new THREE.Mesh(new THREE.BoxGeometry(.27,.05,.36), new THREE.MeshStandardMaterial({color:0xff9b2f, roughness:.6}));
-  sole.position.set(0,-.75,.05); pivot.add(sole);
+  const boot = new THREE.Mesh(new THREE.BoxGeometry(.30,.20,.42), suitMat);
+  boot.position.set(0,-.80,.06); boot.castShadow=true; pivot.add(boot);
+  const sole = new THREE.Mesh(new THREE.BoxGeometry(.31,.05,.44), new THREE.MeshStandardMaterial({color:0xff9b2f, roughness:.6}));
+  sole.position.set(0,-.90,.06); pivot.add(sole);
 }
 
 // tail
@@ -631,14 +631,16 @@ camera.updateProjectionMatrix();
 
 /* -------------------------------- animate ------------------------------- */
 let t0 = performance.now();
-let phase = 0, blinkAt = 2.5;
+const STILL = params.get('still') === '1';
+const POSE = Number(params.get('pose') || 1.15);
+let phase = STILL ? POSE : 0, blinkAt = 2.5;
 const CAD = 7.2;          // stride cadence (rad/s)
 const GEAR = 0.62;        // wheel turns per stride unit
 
 function tick(now){
   const dt = Math.min(0.05, (now - t0)/1000);
   t0 = now;
-  phase += dt * CAD;
+  if (!STILL) phase += dt * CAD;
 
   // rotor follows the stride
   wheel.rotation.z = -phase * GEAR;
