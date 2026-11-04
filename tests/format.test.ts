@@ -42,11 +42,12 @@ test('walletList: đánh số, nhãn được escape, có hint', () => {
 });
 
 test('statusMsg: trạng thái + block + round', () => {
-  const s = statusMsg('en', { coreStatus: 'IDLE', rpmMilli: 0, blockHeight: 5973, blockProgress: 689426642, settledThroughRound: 897 }, 3);
+  const s = statusMsg('en', { coreStatus: 'IDLE', rpmMilli: 0, blockHeight: 5973, blockProgress: 689426642, settledThroughRound: 897, settledHeight: 5900 }, 3);
   assert.match(s, /resting/);
   assert.match(s, /5,973/);
   assert.match(s, /68\.9%/);
   assert.match(s, /897/);
+  assert.match(s, /settled 5,900/);
 });
 
 test('claimMsg: số tiền, batch, dust, link; approx hiển thị rõ', () => {

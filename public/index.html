@@ -150,6 +150,7 @@
         <div class="live-item"><div class="k">SQK minted</div><div class="v" id="live-mint">—</div></div>
       </div>
       <div class="bar"><i id="live-bar"></i></div>
+      <div class="live-note" id="live-settled">settled block —</div>
       <div class="live-foot">
         <div class="live-note" id="live-note">Next block progress</div>
         <div class="live-actions">
@@ -306,10 +307,12 @@
   }
   function paintEconomy(d) {
     var cap = Number((d.supply || {}).capBaseUnits || 0);
-    var minted = Number((d.supply || {}).totalMintedBaseUnits || 0);
+    var minted = Number((d.supply || {}).miningMintedBaseUnits || (d.supply || {}).totalMintedBaseUnits || 0);
     if (cap > 0) {
       set('live-mint', compact(minted / 1e18) + ' / ' + compact(cap / 1e18) + ' (' + (minted / cap * 100).toFixed(2) + '%)');
     }
+    var closed = Number((d.schedule || {}).closedThroughBlock || 0);
+    if (closed > 0) set('live-settled', 'SQK minted at settled block ' + closed.toLocaleString('en-US'));
   }
   if (btn) btn.addEventListener('click', manualRefresh);
   status(); economy();

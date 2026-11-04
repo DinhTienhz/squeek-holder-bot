@@ -135,7 +135,8 @@ export function walletAdded(lang: Lang, address: string, label: string | null): 
 }
 
 export function statusMsg(lang: Lang, s: {
-  coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number; settledThroughRound: number;
+  coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number;
+  settledThroughRound: number; settledHeight?: number;
 }, ageSec: number): string {
   const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
   const state = spinning
@@ -144,7 +145,8 @@ export function statusMsg(lang: Lang, s: {
   const pct = fmtNum((s.blockProgress / 1e9) * 100, lang, 1);
   return [
     `🐹 <b>Hamster</b> · ${state}`,
-    `⛏️ <b>Block</b> ${fmtInt(s.blockHeight, lang)} · ${pct}%`,
+    `⛏️ <b>Block</b> ${fmtInt(s.blockHeight, lang)} · ${pct}%` +
+      (s.settledHeight ? ` · ${lang === 'en' ? 'settled' : 'đã settle'} ${fmtInt(s.settledHeight, lang)}` : ''),
     `🔄 <b>Round</b> ${fmtInt(s.settledThroughRound, lang)} ${lang === 'en' ? 'settled' : 'đã settle'}`,
     `<i>${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`,
   ].join('\n');
