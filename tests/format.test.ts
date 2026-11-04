@@ -173,3 +173,14 @@ test('help: user thường không thấy lệnh admin, nhưng thấy /hamster', 
   assert.ok(h.includes('/hamster'));
   assert.ok(h.includes('/unwatch'));
 });
+
+test('alertBlock: nhiều block settle trong một batch không gán hết SQK cho 1 block', async () => {
+  const { alertBlock } = await import('../src/format.ts');
+  const s = alertBlock('vi', { height: 8332, blocks: 29, minted: 163161520000000000000000n });
+  assert.match(s, /29 block đã settle/);
+  assert.match(s, /163\.161,52 SQK tổng/);
+  assert.match(s, /5\.626,26\/block/);
+
+  const one = alertBlock('vi', { height: 8333, blocks: 1, minted: 5600000000000000000000n });
+  assert.match(one, /5\.600 SQK vừa phát/);
+});

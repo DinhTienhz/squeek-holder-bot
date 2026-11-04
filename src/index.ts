@@ -99,6 +99,7 @@ async function pollStatus(): Promise<void> {
 async function maybeBlockAlert(height: number): Promise<void> {
   const last = Number(getMeta(db, 'last_block') ?? '0');
   if (height <= last) return;
+  const blocks = last > 0 ? height - last : 1;
   setMeta(db, 'last_block', String(height));
   if (last === 0) return; // lần đầu: lấy mốc, không báo
 
@@ -116,6 +117,7 @@ async function maybeBlockAlert(height: number): Promise<void> {
     if (!user) continue;
     const text = alertBlock(langOf(user), {
       height,
+      blocks,
       minted: mintedDelta > 0n ? mintedDelta : null,
     });
     if (firstTime(db, u.tg_id, `block:${height}`)) await notify(u.tg_id, text);

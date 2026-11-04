@@ -259,12 +259,22 @@ export function alertHamster(
   ].join('\n');
 }
 
-export function alertBlock(lang: Lang, p: { height: number; minted: bigint | null }): string {
+export function alertBlock(lang: Lang, p: { height: number; minted: bigint | null; blocks?: number }): string {
   const vi = lang !== 'en';
-  const second = p.minted
-    ? `+${fmtSqk(p.minted, lang)} ${vi ? 'vừa phát' : 'minted'}`
-    : (vi ? 'không phát SQK' : 'no SQK minted');
-  return [`⛏️ <b>Block #${fmtInt(p.height, lang)}</b>`, second].join('\n');
+  const blocks = p.blocks && p.blocks > 1 ? p.blocks : 1;
+  const lines = [
+    `⛏️ <b>Block #${fmtInt(p.height, lang)}</b>` +
+      (blocks > 1 ? ` · ${fmtInt(blocks, lang)} ${vi ? 'block đã settle' : 'blocks settled'}` : ''),
+  ];
+  if (!p.minted) {
+    lines.push(vi ? 'không phát SQK' : 'no SQK minted');
+  } else if (blocks === 1) {
+    lines.push(`+${fmtSqk(p.minted, lang)} ${vi ? 'vừa phát' : 'minted'}`);
+  } else {
+    const per = p.minted / BigInt(blocks);
+    lines.push(`+${fmtSqk(p.minted, lang)} ${vi ? 'tổng' : 'total'} · ~${fmtSqk(per, lang)}/block`);
+  }
+  return lines.join('\n');
 }
 
 const ACTIVITY_KINDS: Record<string, { en: string; vi: string }> = {
