@@ -327,6 +327,10 @@ sun.shadow.bias = -0.0004;
 scene.add(sun);
 scene.add(new THREE.HemisphereLight(0x9dc4ff, 0x5b5850, .55));
 const earthShine = new THREE.DirectionalLight(0x7fb4ff, .55);
+// soft fill so the face is not lost inside the wheel
+const faceFill = new THREE.PointLight(0xffeedd, 14, 9, 2);
+faceFill.position.set(0, 3.3, 4.2);
+scene.add(faceFill);
 earthShine.position.set(70, 40, -120);
 scene.add(earthShine);
 
