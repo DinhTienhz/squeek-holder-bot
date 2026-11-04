@@ -319,7 +319,10 @@
       set('live-mint', compact(minted / 1e18) + ' / ' + compact(cap / 1e18) + ' (' + (minted / cap * 100).toFixed(2) + '%)');
     }
     var closed = Number((d.schedule || {}).closedThroughBlock || 0);
-    if (closed > 0) set('live-settled', 'SQK minted at settled block ' + closed.toLocaleString('en-US'));
+    if (closed > 0) {
+      var exact = Math.floor(minted / 1e18).toLocaleString('en-US');
+      set('live-settled', exact + ' SQK minted at settled block ' + closed.toLocaleString('en-US'));
+    }
   }
   if (btn) btn.addEventListener('click', manualRefresh);
   status(); economy();
