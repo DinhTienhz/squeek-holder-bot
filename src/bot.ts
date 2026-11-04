@@ -158,8 +158,11 @@ export function createBot(cfg: Config) {
     const u = userOf(ctx.from!.id);
     try {
       const s = await api.status();
-      const age = Math.max(0, Math.round((Date.now() - Date.parse(s.generatedAt)) / 1000));
-      await reply(ctx, statusMsg(langOf(u), s, age));
+      // Age must come from the sensor sample, not the HTTP response time.
+      const stamp = Date.parse(s.observedAt || s.generatedAt);
+      const age = Math.max(0, Math.round((Date.now() - stamp) / 1000));
+      const text = statusMsg(langOf(u), s, age);
+      await reply(ctx, age > 30 ? `${text}\n⚠️ <i>dữ liệu cảm biến cũ ${age}s</i>` : text);
     } catch {
       await reply(ctx, tr(langOf(u), 'apiDown'));
     }
