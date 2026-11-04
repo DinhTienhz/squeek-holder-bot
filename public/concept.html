@@ -285,11 +285,11 @@ const earthTex = canvasTex(1024,512,(g,w,h)=>{
     g.beginPath(); g.ellipse(x,y,ww,hh,rnd(-.3,.3),0,7); g.fill();
   }
 });
-const earth = new THREE.Mesh(new THREE.SphereGeometry(26, 64, 40),
+const earth = new THREE.Mesh(new THREE.SphereGeometry(22, 64, 40),
   new THREE.MeshStandardMaterial({ map:earthTex, roughness:.9, metalness:0, emissive:0x123a72, emissiveIntensity:.45 }));
-earth.position.set(58, 50, -150);
+earth.position.set(23, 31, -148);
 scene.add(earth);
-const halo = new THREE.Mesh(new THREE.SphereGeometry(27.2, 32, 24),
+const halo = new THREE.Mesh(new THREE.SphereGeometry(23.1, 32, 24),
   new THREE.MeshBasicMaterial({ color:0x86c8ff, transparent:true, opacity:.10, side:THREE.BackSide }));
 halo.position.copy(earth.position); scene.add(halo);
 
@@ -542,7 +542,7 @@ scene.add(glints);
 
 /* --------------------------------- views -------------------------------- */
 const views = {
-  hero:   { pos:[7.4,4.4,10.6], look:[0,1.75,0], fov:44 },
+  hero:   { pos:[6.5,4.0,13.0], look:[0,2.2,-4], fov:46 },
   close:  { pos:[3.1,2.9,4.4],  look:[0,2.35,0], fov:34 },
   wide:   { pos:[15,8.5,24],    look:[0,2.0,-14], fov:55 },
 };
