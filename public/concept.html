@@ -383,8 +383,8 @@ emblem.position.set(0,2.5,.56); hamster.add(emblem);
 // helmet
 const helmet = new THREE.Mesh(new THREE.SphereGeometry(.48,32,24), visorMat);
 helmet.position.set(0,3.06,.02); hamster.add(helmet);
-const helmetRim = new THREE.Mesh(new THREE.TorusGeometry(.45,.06,10,32), suitMat);
-helmetRim.rotation.x = Math.PI/2 - .25; helmetRim.position.set(0,2.92,.02); hamster.add(helmetRim);
+const helmetRim = new THREE.Mesh(new THREE.TorusGeometry(.50,.055,10,32), suitMat);
+helmetRim.rotation.x = Math.PI/2; helmetRim.position.set(0,2.80,.02); hamster.add(helmetRim);
 
 const glint = new THREE.Mesh(new THREE.SphereGeometry(.10,16,12), new THREE.MeshBasicMaterial({color:0xffffff}));
 glint.scale.set(1.6,.5,.25); glint.position.set(.20,3.32,.30); hamster.add(glint);
@@ -513,7 +513,7 @@ wheel.position.set(0,2.45,0);
 scene.add(wheel);
 // the hamster must NOT inherit the wheel's spin
 hamster.position.set(0,HAM_Y,0);
-hamster.rotation.set(0.10, -0.42, 0);
+hamster.rotation.set(0.08, -0.95, 0);
 scene.add(hamster);
 
 /* ------------------------------- vehicle -------------------------------- */
@@ -620,7 +620,7 @@ scene.add(glints);
 /* --------------------------------- views -------------------------------- */
 const views = {
   hero:   { pos:[6.5,4.0,13.0], look:[0,2.2,-4], fov:46 },
-  close:  { pos:[1.9,2.55,5.7],  look:[0,2.05,0], fov:30 },
+  close:  { pos:[3.4,2.5,5.2],  look:[0,2.0,0], fov:30 },
   wide:   { pos:[15,8.5,24],    look:[0,2.0,-14], fov:55 },
 };
 const v = views[VIEW] || views.hero;
@@ -647,10 +647,10 @@ function tick(now){
 
   // run cycle: diagonal pairs, body bob, arm counter-swing
   const s1 = Math.sin(phase), s2 = Math.sin(phase + Math.PI);
-  legL.rotation.x = s1*0.85 + 0.12;
-  legR.rotation.x = s2*0.85 + 0.12;
-  armL.rotation.x = s2*0.55;
-  armR.rotation.x = s1*0.55;
+  legL.rotation.x = s1*1.05 + 0.10;
+  legR.rotation.x = s2*1.05 + 0.10;
+  armL.rotation.x = s2*0.75;
+  armR.rotation.x = s1*0.75;
   legL.rotation.z = 0.03 + s1*0.03;
   legR.rotation.z = -0.03 + s2*0.03;
 
