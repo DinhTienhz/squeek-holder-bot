@@ -179,7 +179,7 @@ test('alertBlock: nhiều block settle trong một batch không gán hết SQK c
   const s = alertBlock('vi', { height: 8332, blocks: 29, minted: 163161520000000000000000n });
   assert.match(s, /29 block đã settle/);
   assert.match(s, /163\.161,52 SQK tổng/);
-  assert.match(s, /5\.626,26\/block/);
+  assert.match(s, /5\.626,25 SQK\/block/);
 
   const one = alertBlock('vi', { height: 8333, blocks: 1, minted: 5600000000000000000000n });
   assert.match(one, /5\.600 SQK vừa phát/);
