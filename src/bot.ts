@@ -157,11 +157,13 @@ export function createBot(cfg: Config) {
   bot.command('status', async (ctx) => {
     const u = userOf(ctx.from!.id);
     try {
-      const s = await api.status();
+      const [s, eco] = await Promise.all([api.status(), api.economy().catch(() => null)]);
       // Age must come from the sensor sample, not the HTTP response time.
       const stamp = Date.parse(s.observedAt || s.generatedAt);
       const age = Math.max(0, Math.round((Date.now() - stamp) / 1000));
-      const text = statusMsg(langOf(u), s, age);
+      const minted = eco?.supply?.miningMintedBaseUnits ? BigInt(eco.supply.miningMintedBaseUnits) : undefined;
+      const cap = eco?.supply?.capBaseUnits ? BigInt(eco.supply.capBaseUnits) : undefined;
+      const text = statusMsg(langOf(u), { ...s, minted, cap }, age);
       await reply(ctx, age > 30 ? `${text}\n⚠️ <i>dữ liệu cảm biến cũ ${age}s</i>` : text);
     } catch {
       await reply(ctx, tr(langOf(u), 'apiDown'));

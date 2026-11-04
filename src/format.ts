@@ -136,20 +136,25 @@ export function walletAdded(lang: Lang, address: string, label: string | null): 
 
 export function statusMsg(lang: Lang, s: {
   coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number;
-  settledThroughRound: number; settledHeight?: number;
+  settledThroughRound: number; settledHeight?: number; minted?: bigint; cap?: bigint;
 }, ageSec: number): string {
   const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
   const state = spinning
     ? `🏃 ${lang === 'en' ? 'running' : 'đang chạy'} · ${fmtNum(s.rpmMilli / 1000, lang, 2)} rpm`
     : (lang === 'en' ? '😴 resting' : '😴 nghỉ');
   const pct = fmtNum((s.blockProgress / 1e9) * 100, lang, 1);
-  return [
+  const lines = [
     `🐹 <b>Hamster</b> · ${state}`,
     `⛏️ <b>Block</b> ${fmtInt(s.blockHeight, lang)} · ${pct}%` +
       (s.settledHeight ? ` · ${lang === 'en' ? 'settled' : 'đã settle'} ${fmtInt(s.settledHeight, lang)}` : ''),
     `🔄 <b>Round</b> ${fmtInt(s.settledThroughRound, lang)} ${lang === 'en' ? 'settled' : 'đã settle'}`,
-    `<i>${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`,
-  ].join('\n');
+  ];
+  if (s.minted != null && s.cap != null && s.cap > 0n) {
+    const share = (Number(s.minted) / Number(s.cap)) * 100;
+    lines.push(`💰 <b>SQK minted</b> ${fmtInt(s.minted / 10n ** 18n, lang)} · ${fmtNum(share, lang, 2)}%`);
+  }
+  lines.push(`<i>${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
+  return lines.join('\n');
 }
 
 export function claimMsg(lang: Lang, p: {
