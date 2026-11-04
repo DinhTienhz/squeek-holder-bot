@@ -126,7 +126,13 @@ export class ApiClient {
     };
   }
 
-  async account(address: string): Promise<Account> {
+  /** Cache 15 s: poll 45 s, /list, /claim và /ladder thường đọc cùng ví. */
+  private accountCache = new Map<string, { at: number; v: Account }>();
+
+  async account(address: string, maxAgeMs = 15_000): Promise<Account> {
+    const key = address.toLowerCase();
+    const hit = this.accountCache.get(key);
+    if (hit && Date.now() - hit.at < maxAgeMs) return hit.v;
     const d: any = await this.getJson(`/accounts/${address}`);
     const tokens: Holding[] = (d.tokens ?? []).map((t: any) => ({
       tokenId: String(t.tokenId),
@@ -136,12 +142,14 @@ export class ApiClient {
       mergeState: String(t.mergeState ?? 'unknown'),
       custody: String(t.custody ?? 'wallet'),
     }));
-    return {
+    const acc: Account = {
       address: String(d.account ?? address),
       claimable: BigInt(d.rewards?.claimableBaseUnits ?? '0'),
       tokens,
       tokenCount: tokens.length,
     };
+    this.accountCache.set(key, { at: Date.now(), v: acc });
+    return acc;
   }
 
   /** Mốc settle on-chain: mỗi entry là một batch block + SQK mint chính xác. */

@@ -210,3 +210,18 @@ test('activity: rewards_claimed có nhãn riêng, khác claim thường', async 
   assert.match(s, /etherscan\.io\/tx\/0xabc/);
   assert.match(s, /Merge Squeek/);
 });
+
+test('activityBatch: gộp nhiều sự kiện thành một tin', async () => {
+  const { activityBatch } = await import('../src/format.ts');
+  const s = activityBatch('vi', {
+    address: '0x4e6fc32b6a0adc1cd1e13949666fe66ec40e01f2',
+    items: [
+      { kind: 'nft_deposited', amount: 0n, tx: '0xaaa' },
+      { kind: 'rewards_claimed', amount: 12n * 10n ** 18n, tx: '0xbbb' },
+      { kind: 'nft_merged', amount: 0n, tx: '0xccc' },
+    ],
+  });
+  assert.match(s, /3 biến động ví/);
+  assert.match(s, /Đã claim phần thưởng · 12 SQK/);
+  assert.match(s, /etherscan\.io\/tx\/0xaaa/);
+});

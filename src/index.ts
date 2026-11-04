@@ -1,6 +1,6 @@
 import { loadConfig } from './config.ts';
 import { createBot, registerCommands } from './bot.ts';
-import { alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from './format.ts';
+import { activityBatch, alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from './format.ts';
 import { ChatQueue, inQuietHours } from './queue.ts';
 import { isTransientTelegramError, retryDelayMs } from './retry.ts';
 import { claimAlertDue, evaluateAccount, hamsterRunMs, isHamsterRunning, snapshot, stepHamster, type AccountState, type HamsterState } from './rules.ts';
@@ -134,61 +134,74 @@ async function pollWallets(): Promise<void> {
     byAddress.get(k)!.push(w.tg_id);
   }
 
-  for (const [address, watchers] of byAddress) {
-    let acct;
-    try {
-      acct = await api.account(address);
-    } catch (e) {
-      log('account failed', address, (e as Error).message);
-      continue;
+  // Tối đa 3 địa chỉ cùng lúc: đủ nhanh, không dồn API.
+  const entries = [...byAddress.entries()];
+  for (let i = 0; i < entries.length; i += 3) {
+    await Promise.all(entries.slice(i, i + 3).map(([address, watchers]) => pollWallet(address, watchers)));
+  }
+}
+
+async function pollWallet(address: string, watchers: string[]): Promise<void> {
+  let acct;
+  try {
+    acct = await api.account(address);
+  } catch (e) {
+    log('account failed', address, (e as Error).message);
+    return;
+  }
+
+  const prev = prevAccounts.get(address) ?? null;
+  for (const tgId of watchers) {
+    const u = getUser(db, tgId);
+    if (!u || !u.alerts || u.blocked) continue;
+    const threshold = BigInt(u.threshold);
+    const memoKey = `claimalert:${tgId}:${address.toLowerCase()}`;
+    const raw = getMeta(db, memoKey);
+    const memo = raw ? { amount: BigInt(raw.split(':')[0] || '0'), at: Number(raw.split(':')[1] || 0) } : null;
+    if (claimAlertDue(acct.claimable, threshold, memo, Date.now(), cfg.claimAlertMinHours)) {
+      await notify(tgId, alertClaim(langOf(u), { address, amount: acct.claimable, threshold }));
+      setMeta(db, memoKey, `${acct.claimable}:${Date.now()}`);
+      log('claim alert', tgId, address, String(acct.claimable));
     }
 
-    const prev = prevAccounts.get(address) ?? null;
+    for (const a of evaluateAccount(prev, acct, threshold)) {
+      if (!firstTime(db, tgId, a.key)) continue;
+      if (a.kind === 'cooldown') {
+        await notify(tgId, alertCooldown(langOf(u), { address, tokenId: a.tokenId ?? '?' }));
+      }
+    }
+  }
+  prevAccounts.set(address, snapshot(acct));
+
+  try {
+    const items = await api.activity(address);
+    // Lần đầu thấy địa chỉ: đánh dấu toàn bộ activity cũ là đã biết (không bắn loạt tin cũ).
+    if (prev === null) {
+      for (const it of items) newActivity(db, address, it.id);
+      return;
+    }
+
+    const fresh = items.filter((it) => newActivity(db, address, it.id));
+    if (!fresh.length) return;
+
     for (const tgId of watchers) {
-      const u = getUser(db, tgId);
-      if (!u || !u.alerts || u.blocked) continue;
-      const threshold = BigInt(u.threshold);
-      const memoKey = `claimalert:${tgId}:${address.toLowerCase()}`;
-      const raw = getMeta(db, memoKey);
-      const memo = raw ? { amount: BigInt(raw.split(':')[0] || '0'), at: Number(raw.split(':')[1] || 0) } : null;
-      if (claimAlertDue(acct.claimable, threshold, memo, Date.now(), cfg.claimAlertMinHours)) {
-        await notify(tgId, alertClaim(langOf(u), { address, amount: acct.claimable, threshold }));
-        setMeta(db, memoKey, `${acct.claimable}:${Date.now()}`);
-        log('claim alert', tgId, address, String(acct.claimable));
-      }
-
-      for (const a of evaluateAccount(prev, acct, threshold)) {
-        if (!firstTime(db, tgId, a.key)) continue;
-        if (a.kind === 'cooldown') {
-          await notify(tgId, alertCooldown(langOf(u), { address, tokenId: a.tokenId ?? '?' }));
-        }
+      const user = getUser(db, tgId);
+      // Tôn trọng /alerts off, /activity off và lệnh ban.
+      if (!user || !user.alerts || user.blocked || !user.activity_alerts) continue;
+      if (fresh.length === 1) {
+        const it = fresh[0];
+        await notify(tgId, alertActivity(langOf(user), {
+          address, kind: it.kind, amount: it.amount > 0n ? it.amount : null, tx: it.txHash || undefined,
+        }));
+      } else {
+        await notify(tgId, activityBatch(langOf(user), {
+          address,
+          items: fresh.map((it) => ({ kind: it.kind, amount: it.amount, tx: it.txHash || undefined })),
+        }));
       }
     }
-    prevAccounts.set(address, snapshot(acct));
-
-    try {
-      const items = await api.activity(address);
-      // Lần đầu thấy địa chỉ: đánh dấu toàn bộ activity cũ là đã biết (không bắn loạt tin cũ).
-      if (prev === null) {
-        for (const it of items) newActivity(db, address, it.id);
-        continue;
-      }
-      for (const it of items) {
-        if (!newActivity(db, address, it.id)) continue;
-        for (const tgId of watchers) {
-          const user = getUser(db, tgId);
-          // Tôn trọng /alerts off, /activity off và lệnh ban.
-          if (!user || !user.alerts || user.blocked || !user.activity_alerts) continue;
-          await notify(tgId, alertActivity(langOf(user), {
-            address, kind: it.kind,
-            amount: it.amount > 0n ? it.amount : null,
-            tx: it.txHash || undefined,
-          }));
-        }
-      }
-    } catch (e) {
-      log('activity failed', address, (e as Error).message);
-    }
+  } catch (e) {
+    log('activity failed', address, (e as Error).message);
   }
 }
 

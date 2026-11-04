@@ -318,6 +318,24 @@ export function activityList(lang: Lang, p: {
   return [head, '', ...rows].join('\n');
 }
 
+export function activityBatch(lang: Lang, p: {
+  address: string; items: { kind: string; amount: bigint | null; tx?: string }[];
+}): string {
+  const vi = lang !== 'en';
+  const lines = [
+    `🔔 <b>${vi ? `${p.items.length} biến động ví` : `${p.items.length} wallet events`}</b> · ${addrShort(p.address)}`,
+    '',
+  ];
+  for (const i of p.items.slice(0, 10)) {
+    const amt = i.amount && i.amount > 0n ? ` · ${fmtSqk(i.amount, lang)}` : '';
+    lines.push(`• ${esc(activityLabel(lang, i.kind))}${amt}`);
+  }
+  if (p.items.length > 10) lines.push('…');
+  const tx = p.items.find((i) => i.tx)?.tx;
+  if (tx) lines.push('', `🔗 <a href="https://sepolia.etherscan.io/tx/${esc(tx)}">Etherscan</a>`);
+  return lines.join('\n');
+}
+
 export function alertActivity(lang: Lang, p: { address: string; kind: string; amount: bigint | null; tx?: string }): string {
   const vi = lang !== 'en';
   const label = esc(activityLabel(lang, p.kind));
