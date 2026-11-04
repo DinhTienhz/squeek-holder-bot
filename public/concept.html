@@ -365,7 +365,7 @@ const visorMat = new THREE.MeshPhysicalMaterial({
 });
 
 const hamster = new THREE.Group();
-const HAM_Y = -0.95;
+const HAM_Y = -0.78;
 
 // torso: chubby capsule
 const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.55,.55,10,20), suitMat);
@@ -513,7 +513,7 @@ wheel.position.set(0,2.45,0);
 scene.add(wheel);
 // the hamster must NOT inherit the wheel's spin
 hamster.position.set(0,HAM_Y,0);
-hamster.rotation.set(0.08, -0.95, 0);
+hamster.rotation.set(0.05, 1.35, 0);
 scene.add(hamster);
 
 /* ------------------------------- vehicle -------------------------------- */
@@ -649,12 +649,12 @@ function tick(now){
 
   // run cycle: diagonal pairs, body bob, arm counter-swing
   const s1 = Math.sin(phase), s2 = Math.sin(phase + Math.PI);
-  legL.rotation.x = s1*1.05 + 0.10;
-  legR.rotation.x = s2*1.05 + 0.10;
-  armL.rotation.x = s2*0.75;
-  armR.rotation.x = s1*0.75;
-  legL.rotation.z = 0.03 + s1*0.03;
-  legR.rotation.z = -0.03 + s2*0.03;
+  legL.rotation.z = 0.10 + s1*0.95;
+  legR.rotation.z = -0.10 + s2*0.95;
+  armL.rotation.z = 0.16 + s2*0.65;
+  armR.rotation.z = -0.16 + s1*0.65;
+  legL.rotation.x = 0; legR.rotation.x = 0;
+  armL.rotation.x = 0; armR.rotation.x = 0;
 
   hamster.position.y = HAM_Y + Math.abs(Math.sin(phase))*0.055;
   hamster.rotation.x = 0.10 + Math.sin(phase*2)*0.025;
