@@ -150,7 +150,7 @@ const moonTex = canvasTex(1024,1024,(g,w,h)=>{
   }
 },[26,26]);
 
-const groundMat = new THREE.MeshStandardMaterial({ map:moonTex, color:0xb9b6ae, roughness:.98, metalness:0 });
+const groundMat = new THREE.MeshStandardMaterial({ map:moonTex, color:0xb9b6ae, roughness:.98, metalness:0, bumpMap:moonTex, bumpScale:.35 });
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(520,520,1,1), groundMat);
 ground.rotation.x = -Math.PI/2;
 ground.receiveShadow = true;
@@ -209,7 +209,14 @@ for(let i=0;i<70;i++){
   const x=Math.cos(a)*d, z=Math.sin(a)*d-30;
   if(Math.abs(x)<7 && z>-70) continue;
   const s=rnd(.25,1.6);
-  const m=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0), rockMat);
+  const geo=new THREE.IcosahedronGeometry(s,1);
+  const vp=geo.attributes.position;
+  for(let k=0;k<vp.count;k++){
+    const f=0.72+Math.random()*0.55;
+    vp.setXYZ(k, vp.getX(k)*f, vp.getY(k)*f*0.9, vp.getZ(k)*f);
+  }
+  geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo, rockMat);
   m.position.set(x, s*0.35, z);
   m.rotation.set(rnd(0,3),rnd(0,3),rnd(0,3));
   m.castShadow = true; m.receiveShadow = true;
@@ -324,16 +331,41 @@ earthShine.position.set(70, 40, -120);
 scene.add(earthShine);
 
 /* ------------------------------- hamster -------------------------------- */
-const suitMat = new THREE.MeshStandardMaterial({ color:0xf7f8fa, roughness:.35, metalness:.05 });
-const accentMat = new THREE.MeshStandardMaterial({ color:0xff9b2f, emissive:0xff7a00, emissiveIntensity:.12, roughness:.4 });
-const furMat = new THREE.MeshStandardMaterial({ color:0xe8b06a, roughness:.85 });
-const gloveMat = new THREE.MeshStandardMaterial({ color:0xffd9a8, roughness:.7 });
+// fabric + metal wear maps so the suit and frame are not plastic-clean
+const fabricRough = canvasTex(256,256,(g,w,h)=>{
+  g.fillStyle='#9a9a9a'; g.fillRect(0,0,w,h);
+  for(let i=0;i<9000;i++){
+    const v=120+Math.random()*70;
+    g.fillStyle=`rgba(${v},${v},${v},.35)`;
+    g.fillRect(Math.random()*w, Math.random()*h, 1, Math.random()<.2?2:1);
+  }
+},[3,3]);
+const metalRough = canvasTex(512,512,(g,w,h)=>{
+  g.fillStyle='#6f6f6f'; g.fillRect(0,0,w,h);
+  for(let i=0;i<260;i++){ // scratches
+    g.strokeStyle=`rgba(${180+Math.random()*60},${180+Math.random()*60},${190+Math.random()*60},${.15+Math.random()*.35})`;
+    g.lineWidth=Math.random()<.8?1:2;
+    const x=Math.random()*w, y=Math.random()*h, a=Math.random()*Math.PI;
+    g.beginPath(); g.moveTo(x,y); g.lineTo(x+Math.cos(a)*(10+Math.random()*90), y+Math.sin(a)*(4+Math.random()*30)); g.stroke();
+  }
+  for(let i=0;i<70;i++){ // grime blotches
+    g.fillStyle=`rgba(40,40,45,${.05+Math.random()*.12})`;
+    g.beginPath(); g.arc(Math.random()*w, Math.random()*h, 3+Math.random()*22, 0, 7); g.fill();
+  }
+},[2,2]);
+
+const suitMat = new THREE.MeshPhysicalMaterial({ color:0xf7f8fa, roughness:.62, metalness:.02,
+  roughnessMap:fabricRough, sheen:.6, sheenRoughness:.7, sheenColor:0xdfe8ff });
+const accentMat = new THREE.MeshStandardMaterial({ color:0xff9b2f, emissive:0xff7a00, emissiveIntensity:.12, roughness:.45 });
+const furMat = new THREE.MeshStandardMaterial({ color:0xe8b06a, roughness:.88 });
+const gloveMat = new THREE.MeshStandardMaterial({ color:0xffd9a8, roughness:.75 });
 const visorMat = new THREE.MeshPhysicalMaterial({
   color:0xcdeeff, transparent:true, opacity:.38, roughness:.03, metalness:.05,
   transmission:.55, thickness:.25, ior:1.38, clearcoat:1, clearcoatRoughness:.04
 });
 
 const hamster = new THREE.Group();
+const HAM_Y = -0.95;
 
 // torso: chubby capsule
 const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.55,.55,10,20), suitMat);
@@ -345,7 +377,6 @@ for(const dx of [-.32,.32]){
   const band = new THREE.Mesh(new THREE.TorusGeometry(.56,.07,10,28), accentMat);
   band.rotation.y = Math.PI/2; band.position.set(dx,2.25,0); hamster.add(band);
 }
-// chest emblem
 const emblem = new THREE.Mesh(new THREE.CircleGeometry(.13,20), new THREE.MeshStandardMaterial({color:0x2ad8ff, emissive:0x22c8ff, emissiveIntensity:1.2}));
 emblem.position.set(0,2.5,.56); hamster.add(emblem);
 
@@ -360,41 +391,62 @@ glint.scale.set(1.6,.5,.25); glint.position.set(.20,3.32,.30); hamster.add(glint
 const glint2 = new THREE.Mesh(new THREE.SphereGeometry(.045,12,8), new THREE.MeshBasicMaterial({color:0xffffff}));
 glint2.scale.set(1,.7,.3); glint2.position.set(-.22,3.18,.36); hamster.add(glint2);
 
-// ears poking out of helmet
+// ears poking out (animated)
+const ears = [];
 for(const sx of [-1,1]){
+  const earPivot = new THREE.Group(); earPivot.position.set(sx*.36,3.36,.02);
   const ear = new THREE.Mesh(new THREE.SphereGeometry(.12,16,12), furMat);
-  ear.position.set(sx*.36,3.4,.02); hamster.add(ear);
+  ear.position.set(0,.03,0); earPivot.add(ear);
   const earIn = new THREE.Mesh(new THREE.SphereGeometry(.06,12,8), new THREE.MeshStandardMaterial({color:0xd98a8a, roughness:1}));
-  earIn.position.set(sx*.36,3.41,.10); hamster.add(earIn);
+  earIn.position.set(0,.04,.08); earPivot.add(earIn);
+  hamster.add(earPivot); ears.push(earPivot);
 }
 
-// face inside helmet
+// face
 const head = new THREE.Mesh(new THREE.SphereGeometry(.34,24,18), furMat);
 head.position.set(0,3.04,.10); hamster.add(head);
+const eyes = [];
 for(const sx of [-1,1]){
   const eye = new THREE.Mesh(new THREE.SphereGeometry(.055,12,10), new THREE.MeshStandardMaterial({color:0x101018, roughness:.2}));
   eye.position.set(sx*.14,3.10,.38); hamster.add(eye);
   const shine = new THREE.Mesh(new THREE.SphereGeometry(.017,8,6), new THREE.MeshBasicMaterial({color:0xffffff}));
   shine.position.set(sx*.14+.02,3.13,.42); hamster.add(shine);
+  eyes.push(eye);
 }
 const nose = new THREE.Mesh(new THREE.SphereGeometry(.05,10,8), new THREE.MeshStandardMaterial({color:0xd98a8a}));
 nose.position.set(0,2.99,.40); hamster.add(nose);
 
-// arms & legs in a running pose
-function limb(x,y,z,rx,rz,mat,len){
-  const l = new THREE.Mesh(new THREE.CapsuleGeometry(.12,len,6,12), mat);
-  l.position.set(x,y,z); l.rotation.set(rx,0,rz); return l;
+// limbs with pivots so they can swing
+function makeLimb(parent, x,y,z, len, mat, thumb){
+  const pivot = new THREE.Group(); pivot.position.set(x,y,z);
+  const cap = new THREE.Mesh(new THREE.CapsuleGeometry(thumb? .10:.12, len, 6, 12), mat);
+  cap.position.y = -len/2; cap.castShadow = true;
+  pivot.add(cap); parent.add(pivot);
+  return pivot;
 }
-hamster.add(limb(-.46,2.02,.28,  1.15, .35, suitMat,.34));
-hamster.add(limb( .46,1.98,-.24, -1.05,-.35, suitMat,.34));
-hamster.add(limb(-.26,1.62,.16,  1.35, .12, suitMat,.30));
-hamster.add(limb( .30,1.55,-.18, -1.25,-.12, suitMat,.30));
-// gloves
-for(const [x,y,z] of [[-.52,1.86,.55],[.52,1.80,-.48]]){
-  const gl=new THREE.Mesh(new THREE.SphereGeometry(.14,12,10), gloveMat); gl.position.set(x,y,z); hamster.add(gl);
+const armL = makeLimb(hamster, -.50, 2.52, .10, .52, suitMat, false);
+const armR = makeLimb(hamster,  .50, 2.50, -.06, .52, suitMat, false);
+const legL = makeLimb(hamster, -.28, 1.96, .18, .62, suitMat, true);
+const legR = makeLimb(hamster,  .30, 1.94, -.12, .62, suitMat, true);
+
+// gloves + boots ride the pivots
+for(const [pivot,sx] of [[armL,-1],[armR,1]]){
+  const gl = new THREE.Mesh(new THREE.SphereGeometry(.14,12,10), gloveMat);
+  gl.position.set(0,-.56,.02); pivot.add(gl);
 }
+for(const [pivot,sx] of [[legL,-1],[legR,1]]){
+  const boot = new THREE.Mesh(new THREE.BoxGeometry(.26,.18,.34), suitMat);
+  boot.position.set(0,-.66,.05); boot.castShadow=true; pivot.add(boot);
+  const sole = new THREE.Mesh(new THREE.BoxGeometry(.27,.05,.36), new THREE.MeshStandardMaterial({color:0xff9b2f, roughness:.6}));
+  sole.position.set(0,-.75,.05); pivot.add(sole);
+}
+
+// tail
+const tail = new THREE.Mesh(new THREE.SphereGeometry(.10,10,8), furMat);
+tail.position.set(0,2.05,-.52); tail.scale.set(.8,.8,1.3); hamster.add(tail);
+
 // backpack
-const pack = new THREE.Mesh(new THREE.BoxGeometry(.5,.75,.28), new THREE.MeshStandardMaterial({color:0xdfe3e8, roughness:.55}));
+const pack = new THREE.Mesh(new THREE.BoxGeometry(.5,.75,.28), new THREE.MeshStandardMaterial({color:0xdfe3e8, roughness:.6, roughnessMap:fabricRough}));
 pack.position.set(0,2.3,-.52); pack.castShadow=true; hamster.add(pack);
 const packGlow = new THREE.Mesh(new THREE.BoxGeometry(.32,.10,.03), glass);
 packGlow.position.set(0,2.45,-.67); hamster.add(packGlow);
@@ -402,7 +454,7 @@ packGlow.position.set(0,2.45,-.67); hamster.add(packGlow);
 /* --------------------------------- wheel -------------------------------- */
 const wheel = new THREE.Group();
 const R = 2.05;
-const frameMat = new THREE.MeshStandardMaterial({ color:0xd9dee6, metalness:.85, roughness:.30 });
+const frameMat = new THREE.MeshStandardMaterial({ color:0xd9dee6, metalness:.88, roughness:.34, roughnessMap:metalRough });
 const glassMat = new THREE.MeshPhysicalMaterial({
   color:0xdff6ff, transparent:true, opacity:.20, roughness:.03, metalness:0,
   transmission:.95, thickness:.6, ior:1.45, side:THREE.DoubleSide
@@ -432,6 +484,17 @@ for(let i=0;i<40;i++){
   dot.position.set(Math.cos(a)*(R+.03), Math.sin(a)*(R+.03), .30);
   wheel.add(dot);
 }
+// rim bolts
+for(let i=0;i<24;i++){
+  const a=i/24*Math.PI*2;
+  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.10,8), frameMat);
+  bolt.rotation.x=Math.PI/2;
+  bolt.position.set(Math.cos(a)*(R-.045), Math.sin(a)*(R-.045), .30);
+  wheel.add(bolt);
+}
+// inner tread ring
+const treadRing = new THREE.Mesh(new THREE.TorusGeometry(R-.20,.035,8,96), new THREE.MeshStandardMaterial({color:0x8b93a3, metalness:.6, roughness:.7}));
+wheel.add(treadRing);
 // semi-transparent motion disc to imply spin
 const blurTex = canvasTex(512,512,(g,w,h)=>{
   g.translate(w/2,h/2);
@@ -449,8 +512,8 @@ blur.position.z=.06; wheel.add(blur);
 wheel.position.set(0,2.45,0);
 scene.add(wheel);
 // the hamster must NOT inherit the wheel's spin
-hamster.position.set(0,-1.15,0);
-hamster.rotation.x = 0.12;
+hamster.position.set(0,HAM_Y,0);
+hamster.rotation.set(0.10, -0.42, 0);
 scene.add(hamster);
 
 /* ------------------------------- vehicle -------------------------------- */
@@ -557,7 +620,7 @@ scene.add(glints);
 /* --------------------------------- views -------------------------------- */
 const views = {
   hero:   { pos:[6.5,4.0,13.0], look:[0,2.2,-4], fov:46 },
-  close:  { pos:[2.0,3.15,6.0],  look:[0,2.55,0], fov:30 },
+  close:  { pos:[1.9,2.55,5.7],  look:[0,2.05,0], fov:30 },
   wide:   { pos:[15,8.5,24],    look:[0,2.0,-14], fov:55 },
 };
 const v = views[VIEW] || views.hero;
@@ -568,20 +631,51 @@ camera.updateProjectionMatrix();
 
 /* -------------------------------- animate ------------------------------- */
 let t0 = performance.now();
+let phase = 0, blinkAt = 2.5;
+const CAD = 7.2;          // stride cadence (rad/s)
+const GEAR = 0.62;        // wheel turns per stride unit
+
 function tick(now){
-  const t = (now - t0)/1000;
-  wheel.rotation.z = -t*2.1;
-  blur.rotation.z = -t*0.6;
-  // subtle dust drift into the nozzle
+  const dt = Math.min(0.05, (now - t0)/1000);
+  t0 = now;
+  phase += dt * CAD;
+
+  // rotor follows the stride
+  wheel.rotation.z = -phase * GEAR;
+  blur.rotation.z = -phase * GEAR * 0.55;
+  blur.material.opacity = 0.35 + 0.25*Math.abs(Math.sin(phase*0.5));
+
+  // run cycle: diagonal pairs, body bob, arm counter-swing
+  const s1 = Math.sin(phase), s2 = Math.sin(phase + Math.PI);
+  legL.rotation.x = s1*0.85 + 0.12;
+  legR.rotation.x = s2*0.85 + 0.12;
+  armL.rotation.x = s2*0.55;
+  armR.rotation.x = s1*0.55;
+  legL.rotation.z = 0.03 + s1*0.03;
+  legR.rotation.z = -0.03 + s2*0.03;
+
+  hamster.position.y = HAM_Y + Math.abs(Math.sin(phase))*0.055;
+  hamster.rotation.x = 0.10 + Math.sin(phase*2)*0.025;
+  hamster.rotation.z = Math.sin(phase)*0.02;
+  ears[0].rotation.z = 0.10 + s1*0.10;
+  ears[1].rotation.z = -0.10 - s2*0.10;
+  tail.rotation.x = Math.sin(phase)*0.25;
+
+  // blink every ~3 s
+  if (now/1000 > blinkAt){ blinkAt = now/1000 + 2.6 + Math.random()*2.4; }
+  const blinking = (blinkAt - now/1000) > 2.45;
+  for(const e of eyes) e.scale.y = blinking ? 0.18 : 1;
+
+  // dust drift into the nozzle
   const arr = dGeo.attributes.position.array;
   for(let i=0;i<DN;i++){
     const s = dSeed[i];
-    arr[i*3+1] += Math.sin(t*1.4+s)*0.0012;
+    arr[i*3+1] += Math.sin(now*0.0014+s)*0.0012;
     arr[i*3+2] -= 0.004 + (s%3)*0.001;
     if(arr[i*3+2] < 1.2){ arr[i*3+2] = 6.5; arr[i*3] = rnd(-3.4,3.4); arr[i*3+1] = rnd(.1,2.8); }
   }
   dGeo.attributes.position.needsUpdate = true;
-  stars.rotation.y = t*0.004;
+  stars.rotation.y += dt*0.004;
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
