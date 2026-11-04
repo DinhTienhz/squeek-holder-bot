@@ -12,7 +12,14 @@ const cfg = loadConfig();
 const { bot, db, api } = createBot(cfg);
 const queue = new ChatQueue(1100);
 const prevAccounts = new Map<string, AccountState>();
-let hamsterTrack: HamsterState = { confirmed: null, pending: null, count: 0 };
+// Khôi phục trạng thái sau restart: tránh mất tin "bắt đầu chạy" khi bot
+// khởi động lại đúng lúc bánh xe đang quay.
+const hamsterSaved = getMeta(db, 'hamster_state');
+let hamsterTrack: HamsterState = {
+  confirmed: hamsterSaved === 'running' ? true : hamsterSaved === 'stopped' ? false : null,
+  pending: null,
+  count: 0,
+};
 let lastRunningAt = 0;
 let lastWorkUnits = 0;
 let lastObservedAt = '';
@@ -65,9 +72,9 @@ async function pollStatus(): Promise<void> {
     lastWorkUnits = work;
     const runningNow = isHamsterRunning(s.coreStatus, s.rpmMilli, workDelta);
     if (hamsterTrack.confirmed === null) {
-      // First observation after a restart: no transition to report, but the run
-      // marker must match reality or the next duration would be wrong.
+      // Lần đầu sau khi cài mới: không báo, nhưng ghi mốc để lần sau còn biết.
       setMeta(db, 'hamster_since', runningNow ? String(Date.now()) : '');
+      setMeta(db, 'hamster_state', runningNow ? 'running' : 'stopped');
     }
     if (runningNow) lastRunningAt = Date.now();
     // The sensor publishes every ~10 s and occasionally emits a single bogus
@@ -81,6 +88,7 @@ async function pollStatus(): Promise<void> {
       const endMs = running ? Date.now() : (lastRunningAt || Date.now());
       const { runMs, nextSince } = hamsterRunMs(running, sinceStored, endMs);
       setMeta(db, 'hamster_since', nextSince ? String(nextSince) : '');
+      setMeta(db, 'hamster_state', running ? 'running' : 'stopped');
       log('hamster', running ? 'running' : 'stopped', runMs ? `${Math.round(runMs / 1000)}s` : '');
       for (const u of usersWith('hamster_alerts')) {
         const user = getUser(db, u.tg_id);
