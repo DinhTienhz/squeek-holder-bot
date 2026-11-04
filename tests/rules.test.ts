@@ -169,3 +169,30 @@ test('stepHamster: ngưỡng 1 mẫu báo ngay, ngưỡng 2 mẫu cần 2 lần'
   const slow = stepHamster(base, true, 2);
   assert.equal(slow.transition, null);
 });
+
+test('stepHamster: một mẫu rpm dương lẻ không tạo alert chạy', async () => {
+  const { stepHamster } = await import('../src/rules.ts');
+  let st = { confirmed: false as boolean | null, pending: null as boolean | null, count: 0 };
+  let r = stepHamster(st, true, 2);   // blip thứ nhất
+  st = r.state;
+  assert.equal(r.transition, null);
+  r = stepHamster(st, false, 2);      // quay lại yên tĩnh
+  st = r.state;
+  assert.equal(r.transition, null);
+  assert.equal(st.confirmed, false);
+
+  r = stepHamster(st, true, 2); st = r.state;   // 2 mẫu liên tiếp
+  r = stepHamster(st, true, 2); st = r.state;
+  assert.equal(r.transition, true);
+});
+
+test('stepHamster: cần 3 mẫu yên tĩnh mới báo dừng', async () => {
+  const { stepHamster } = await import('../src/rules.ts');
+  let st = { confirmed: true as boolean | null, pending: null as boolean | null, count: 0 };
+  let r = stepHamster(st, false, 3); st = r.state;
+  assert.equal(r.transition, null);
+  r = stepHamster(st, false, 3); st = r.state;
+  assert.equal(r.transition, null);
+  r = stepHamster(st, false, 3); st = r.state;
+  assert.equal(r.transition, false);
+});
