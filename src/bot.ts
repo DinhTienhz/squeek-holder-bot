@@ -186,76 +186,118 @@ export function createBot(cfg: Config) {
     return scored[0].addr;
   };
 
+  const failLine = (lang: Lang, addr: string) =>
+    `⚠️ <b>${addrShort(addr)}</b>\n<i>${lang === 'en' ? 'API unreachable for this wallet' : 'API không phản hồi cho ví này'}</i>`;
+
   bot.command('claim', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const addr = await targetWallet(u, ctx.match);
-    if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
     const lang = langOf(u);
-    try {
-      const a = await api.account(addr);
-      if (!a.tokenCount) {
-        return void (await reply(ctx, claimMsg(lang, {
-          address: addr, total: 0n, dust: 0n, tokens: 0, skipped: 0, batches: 0, approx: null,
-        })));
-      }
+    const raw = (ctx.match ?? '').trim();
+    const addrs = raw
+      ? [await targetWallet(u, ctx.match)].filter((x): x is string => !!x)
+      : listWallets(db, u.tg_id).map((w) => w.address);
+    if (!addrs.length) return void (await reply(ctx, tr(lang, 'noWallet')));
 
-      let approx: 'rpc' | 'noRpc' | null = null;
-      let per: { tokenId: string; amount: bigint }[];
-      if (cfg.rpcUrl) {
-        try {
-          const amounts = await claimablePerToken(cfg.rpcUrl, cfg.miningAddress, a.tokens.map((x) => x.tokenId), cfg.collection);
-          per = a.tokens.map((x, i) => ({ tokenId: x.tokenId, amount: amounts[i] }));
-        } catch {
-          per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
-          approx = 'rpc';
+    const parts: string[] = [];
+    let sum = 0n;
+    for (const addr of addrs) {
+      try {
+        const a = await api.account(addr);
+        if (!a.tokenCount) {
+          parts.push(`💰 <b>${addrShort(addr)}</b> · 0 SQK`);
+          continue;
         }
-      } else {
-        per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
-        approx = 'noRpc';
-      }
 
-      const plan = optimizeClaim(per);
-      await reply(ctx, claimMsg(lang, {
-        address: addr, total: plan.total, dust: plan.dust,
-        tokens: plan.tokens.length, skipped: plan.skipped, batches: plan.batches, approx,
-      }));
-    } catch {
-      await reply(ctx, tr(lang, 'apiDown'));
+        let approx: 'rpc' | 'noRpc' | null = null;
+        let per: { tokenId: string; amount: bigint }[];
+        if (cfg.rpcUrl) {
+          try {
+            const amounts = await claimablePerToken(cfg.rpcUrl, cfg.miningAddress, a.tokens.map((x) => x.tokenId), cfg.collection);
+            per = a.tokens.map((x, i) => ({ tokenId: x.tokenId, amount: amounts[i] }));
+          } catch {
+            per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
+            approx = 'rpc';
+          }
+        } else {
+          per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
+          approx = 'noRpc';
+        }
+
+        const plan = optimizeClaim(per);
+        sum += plan.total;
+        parts.push(claimMsg(lang, {
+          address: addr, total: plan.total, dust: plan.dust,
+          tokens: plan.tokens.length, skipped: plan.skipped, batches: plan.batches, approx,
+        }));
+      } catch {
+        parts.push(failLine(lang, addr));
+      }
     }
+    if (addrs.length > 1 && sum > 0n) {
+      parts.push(`<i>${lang === 'en' ? 'Total' : 'Tổng'}: ${fmtSqk(sum, lang)} · ${addrs.length} ${lang === 'en' ? 'wallets' : 'ví'}</i>`);
+    }
+    await reply(ctx, parts.join('\n\n'));
   });
 
   bot.command('ladder', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const addr = await targetWallet(u, ctx.match);
-    if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
-    try {
-      const [a, eco] = await Promise.all([api.account(addr), api.economy()]);
-      const counts: Record<number, number> = {};
-      for (const tok of a.tokens) counts[tok.level] = (counts[tok.level] ?? 0) + 1;
-      const basePower: number[] = (eco?.nft?.basePower ?? []).map(Number);
-      const cooldowns: number[] = (eco?.nft?.cooldownBlocks ?? []).map(Number);
-      const steps = planLadder(counts, cooldowns, basePower.length || 10);
-      if (!steps.length) return void (await reply(ctx, m(u, 'ladderNone')));
-      const gain = ladderPowerGain(counts, basePower);
-      await reply(ctx, ladderMsg(langOf(u), { address: addr, steps, before: gain.before, after: gain.after }));
-    } catch {
-      await reply(ctx, tr(langOf(u), 'apiDown'));
+    const lang = langOf(u);
+    const raw = (ctx.match ?? '').trim();
+    const addrs = raw
+      ? [await targetWallet(u, ctx.match)].filter((x): x is string => !!x)
+      : listWallets(db, u.tg_id).map((w) => w.address);
+    if (!addrs.length) return void (await reply(ctx, tr(lang, 'noWallet')));
+
+    let eco: any;
+    try { eco = await api.economy(); } catch { return void (await reply(ctx, tr(lang, 'apiDown'))); }
+    const basePower: number[] = (eco?.nft?.basePower ?? []).map(Number);
+    const cooldowns: number[] = (eco?.nft?.cooldownBlocks ?? []).map(Number);
+
+    const parts: string[] = [];
+    for (const addr of addrs) {
+      try {
+        const a = await api.account(addr);
+        const counts: Record<number, number> = {};
+        for (const tok of a.tokens) counts[tok.level] = (counts[tok.level] ?? 0) + 1;
+        const steps = planLadder(counts, cooldowns, basePower.length || 10);
+        if (!steps.length) {
+          parts.push(`🪜 <b>${addrShort(addr)}</b>\n<i>${lang === 'en' ? 'not enough same-level pairs' : 'không đủ cặp cùng level'}</i>`);
+          continue;
+        }
+        const gain = ladderPowerGain(counts, basePower);
+        parts.push(ladderMsg(lang, { address: addr, steps, before: gain.before, after: gain.after }));
+      } catch {
+        parts.push(failLine(lang, addr));
+      }
     }
+    await reply(ctx, parts.join('\n\n'));
   });
 
   bot.command('mergecheck', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const addr = await targetWallet(u, ctx.match);
-    if (!addr) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
-    try {
-      const a = await api.account(addr);
-      const ready = a.tokens.filter((x) => x.mergeState === 'ready').map((x) => ({ tokenId: x.tokenId, level: x.level }));
-      const cooling = a.tokens.filter((x) => x.mergeState === 'cooldown').length;
-      if (!ready.length) return void (await reply(ctx, m(u, 'mergeNone')));
-      await reply(ctx, mergeMsg(langOf(u), { address: addr, ready, cooling }));
-    } catch {
-      await reply(ctx, tr(langOf(u), 'apiDown'));
+    const lang = langOf(u);
+    const raw = (ctx.match ?? '').trim();
+    const addrs = raw
+      ? [await targetWallet(u, ctx.match)].filter((x): x is string => !!x)
+      : listWallets(db, u.tg_id).map((w) => w.address);
+    if (!addrs.length) return void (await reply(ctx, tr(lang, 'noWallet')));
+
+    const parts: string[] = [];
+    for (const addr of addrs) {
+      try {
+        const a = await api.account(addr);
+        const ready = a.tokens.filter((x) => x.mergeState === 'ready').map((x) => ({ tokenId: x.tokenId, level: x.level }));
+        const cooling = a.tokens.filter((x) => x.mergeState === 'cooldown').length;
+        if (!ready.length) {
+          parts.push(`🔁 <b>${addrShort(addr)}</b>\n<i>${lang === 'en' ? `nothing mergeable · ${cooling} cooling` : `không có gì merge được · ${cooling} đang cooldown`}</i>`);
+          continue;
+        }
+        parts.push(mergeMsg(lang, { address: addr, ready, cooling }));
+      } catch {
+        parts.push(failLine(lang, addr));
+      }
     }
+    await reply(ctx, parts.join('\n\n'));
   });
 
   bot.command('threshold', async (ctx) => {
