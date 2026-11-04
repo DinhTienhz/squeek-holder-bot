@@ -266,10 +266,15 @@ export function alertBlock(lang: Lang, p: { height: number; minted: bigint | nul
     `⛏️ <b>Block #${fmtInt(p.height, lang)}</b>` +
       (blocks > 1 ? ` · ${fmtInt(blocks, lang)} ${vi ? 'block đã settle' : 'blocks settled'}` : ''),
   ];
+  // Một block Sepolia phát ~5.600 SQK. Số lớn hơn nhiều nghĩa là delta
+  // trải qua một batch settle, không phải phần thưởng của riêng block này.
+  const batchLike = blocks === 1 && p.minted > 16_800n * 10n ** 18n;
   if (!p.minted) {
     lines.push(vi ? 'không phát SQK' : 'no SQK minted');
-  } else if (blocks === 1) {
+  } else if (blocks === 1 && !batchLike) {
     lines.push(`+${fmtSqk(p.minted, lang)} ${vi ? 'vừa phát' : 'minted'}`);
+  } else if (blocks === 1) {
+    lines.push(`+${fmtSqk(p.minted, lang)} ${vi ? 'tổng (nhiều block)' : 'total (multiple blocks)'}`);
   } else {
     const per = p.minted / BigInt(blocks);
     lines.push(`+${fmtSqk(p.minted, lang)} ${vi ? 'tổng' : 'total'} · ~${fmtSqk(per, lang)}/block`);

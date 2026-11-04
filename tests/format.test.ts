@@ -184,3 +184,10 @@ test('alertBlock: nhiều block settle trong một batch không gán hết SQK c
   const one = alertBlock('vi', { height: 8333, blocks: 1, minted: 5600000000000000000000n });
   assert.match(one, /5\.600 SQK vừa phát/);
 });
+
+test('alertBlock: một block nhưng số tiền lớn thì ghi là batch', async () => {
+  const { alertBlock } = await import('../src/format.ts');
+  const s = alertBlock('en', { height: 8332, blocks: 1, minted: 163161520000000000000000n });
+  assert.match(s, /163,161\.52 SQK total \(multiple blocks\)/);
+  assert.doesNotMatch(s, /minted$/m);
+});
