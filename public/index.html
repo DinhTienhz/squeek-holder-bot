@@ -89,7 +89,7 @@
   .live-note{color:var(--muted);font-size:12px;margin-top:10px}
   .bar-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:18px 0 7px}
   .bar-row .live-note{margin:0}
-  .bar-row #live-progress-pct{color:var(--text);font-weight:600;font-size:13px}
+  .bar-row .live-note b{color:var(--text);font-weight:600}
   .live-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
   .live-actions{display:flex;align-items:center;gap:10px}
   .btn-refresh{background:transparent;border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;
@@ -154,7 +154,6 @@
       </div>
       <div class="bar-row">
         <span class="live-note" id="live-progress-label">Block progress</span>
-        <span class="live-note" id="live-progress-pct">—</span>
       </div>
       <div class="bar"><i id="live-bar"></i></div>
       <div class="live-note" id="live-settled">settled block —</div>
@@ -283,8 +282,7 @@
     var prog = Number(p.blockProgress ?? a.blockProgress) || 0;
     var liveBlock = p.blockHeight != null && prog > 0 ? lastCompleted + 1 : lastCompleted;
     set('live-block', nf.format(liveBlock));
-    set('live-progress-label', 'Block ' + nf.format(liveBlock) + ' progress');
-    set('live-progress-pct', pct.toFixed(1) + '%');
+    set('live-progress-label', 'Block ' + nf.format(liveBlock) + ' · ' + pct.toFixed(1) + '% mined');
     el('live-bar').style.width = pct.toFixed(1) + '%';
     el('live-dot').className = 'dot ' + (running ? 'on' : 'off');
     lastOk = Date.now();
