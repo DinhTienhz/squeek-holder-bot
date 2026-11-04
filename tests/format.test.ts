@@ -87,8 +87,8 @@ test('alert messages: gọn, đúng dữ liệu', () => {
   assert.match(alertCooldown('en', { address: '0x32cd5f4a2a93bdb558dd04b40520c3b6886acc41', tokenId: '42' }), /Squeek #42 is off cooldown/);
   assert.match(alertHamster('en', { coreStatus: 'SPINNING', rpmMilli: 3420, blockHeight: 5973, blockProgress: 0 }), /running[\s\S]*3\.42 rpm/);
   assert.match(alertHamster('en', { coreStatus: 'IDLE', rpmMilli: 0, blockHeight: 5973, blockProgress: 5e8 }), /stopped/);
-  assert.match(alertBlock('en', { height: 5974, minted: 6900n * 10n ** 18n }), /Block #5,974[\s\S]*\+6,900 SQK minted/);
-  assert.match(alertBlock('en', { height: 5974, minted: null }), /no SQK minted/);
+  assert.match(alertBlock('en', { first: 5974, last: 5974, blocks: 1, minted: 6900n * 10n ** 18n }), /Block #5,974[\s\S]*6,900 SQK minted/);
+  assert.match(alertBlock('en', { first: 5974, last: 5974, blocks: 1, minted: null }), /no SQK minted/);
   const act = alertActivity('en', { address: '0x32cd5f4a2a93bdb558dd04b40520c3b6886acc41', kind: 'nft_transfer', amount: 12n * 10n ** 18n, tx: '0xabc' });
   assert.match(act, /Wallet activity/);
   assert.match(act, /etherscan\.io\/tx\/0xabc/);
@@ -174,20 +174,14 @@ test('help: user thường không thấy lệnh admin, nhưng thấy /hamster', 
   assert.ok(h.includes('/unwatch'));
 });
 
-test('alertBlock: nhiều block settle trong một batch không gán hết SQK cho 1 block', async () => {
+test('alertBlock: batch settle hiển thị đúng range + số SQK 4 chữ số như app', async () => {
   const { alertBlock } = await import('../src/format.ts');
-  const s = alertBlock('vi', { height: 8332, blocks: 29, minted: 163161520000000000000000n });
-  assert.match(s, /29 block đã settle/);
-  assert.match(s, /163\.161,52 SQK tổng/);
-  assert.match(s, /5\.626,25 SQK\/block/);
+  const s = alertBlock('en', { first: 8288, last: 8332, blocks: 45, minted: 179079726535695224540562n });
+  assert.match(s, /Blocks 8,288–8,332/);
+  assert.match(s, /45 blocks/);
+  assert.match(s, /179,079\.7265 SQK minted/);
 
-  const one = alertBlock('vi', { height: 8333, blocks: 1, minted: 5600000000000000000000n });
-  assert.match(one, /5\.600 SQK vừa phát/);
-});
-
-test('alertBlock: một block nhưng số tiền lớn thì ghi là batch', async () => {
-  const { alertBlock } = await import('../src/format.ts');
-  const s = alertBlock('en', { height: 8332, blocks: 1, minted: 163161520000000000000000n });
-  assert.match(s, /163,161\.52 SQK total \(multiple blocks\)/);
-  assert.doesNotMatch(s, /minted$/m);
+  const vi = alertBlock('vi', { first: 8288, last: 8332, blocks: 45, minted: 179079726535695224540562n });
+  assert.match(vi, /Blocks 8\.288–8\.332/);
+  assert.match(vi, /179\.079,7265 SQK đã phát/);
 });

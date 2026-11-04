@@ -88,39 +88,40 @@ async function pollStatus(): Promise<void> {
         await notify(u.tg_id, alertHamster(langOf(user), s, runMs));
       }
     }
-    await maybeBlockAlert(s.settledHeight ?? s.blockHeight);
+    if (++settlementTick % 8 === 0) await pollSettlements();
   } catch (e) {
     statusFailures += 1;
     log('status poll failed', `#${statusFailures}`, (e as Error).message);
   }
 }
 
-/** #6: block hoàn thành + SQK phát ra. */
-async function maybeBlockAlert(height: number): Promise<void> {
-  const last = Number(getMeta(db, 'last_block') ?? '0');
-  if (height <= last) return;
-  const blocks = last > 0 ? height - last : 1;
-  setMeta(db, 'last_block', String(height));
-  if (last === 0) return; // lần đầu: lấy mốc, không báo
-
-  let mintedDelta = 0n;
+/** #6: mỗi batch settle on-chain — đúng block range + SQK mint như app chính thức. */
+let settlementTick = 0;
+async function pollSettlements(): Promise<void> {
+  let list;
   try {
-    const eco: any = await api.economy();
-    const minted = BigInt(eco?.supply?.miningMintedBaseUnits ?? '0');
-    const prev = BigInt(getMeta(db, 'last_minted') ?? '0');
-    if (prev > 0n && minted > prev) mintedDelta = minted - prev;
-    setMeta(db, 'last_minted', minted.toString());
-  } catch { /* vẫn báo block */ }
+    list = await api.settlements();
+  } catch (e) {
+    log('settlements poll failed', (e as Error).message);
+    return;
+  }
+  if (!list.length) return;
+  const lastHash = getMeta(db, 'last_settlement') ?? '';
+  if (!lastHash) { setMeta(db, 'last_settlement', list[0].hash); return; }
+  const idx = list.findIndex((x) => x.hash === lastHash);
+  if (idx === -1) { setMeta(db, 'last_settlement', list[0].hash); return; }
 
-  for (const u of usersWith('block_alerts')) {
-    const user = getUser(db, u.tg_id);
-    if (!user) continue;
-    const text = alertBlock(langOf(user), {
-      height,
-      blocks,
-      minted: mintedDelta > 0n ? mintedDelta : null,
-    });
-    if (firstTime(db, u.tg_id, `block:${height}`)) await notify(u.tg_id, text);
+  for (const st of list.slice(0, idx).reverse()) {
+    for (const u of usersWith('block_alerts')) {
+      const user = getUser(db, u.tg_id);
+      if (!user) continue;
+      if (firstTime(db, u.tg_id, `block:${st.last}`)) {
+        await notify(u.tg_id, alertBlock(langOf(user), {
+          first: st.first, last: st.last, blocks: st.blocks, minted: st.minted,
+        }));
+      }
+    }
+    setMeta(db, 'last_settlement', st.hash);
   }
 }
 

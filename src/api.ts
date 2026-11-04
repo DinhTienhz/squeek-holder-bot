@@ -43,6 +43,11 @@ export type Account = {
 
 type FetchLike = (url: string, init?: any) => Promise<any>;
 
+export interface Settlement {
+  hash: string; first: number; last: number; blocks: number;
+  minted: bigint; status: string; at: string;
+}
+
 export class ApiClient {
   private etags = new Map<string, string>();
   private lastBody = new Map<string, unknown>();
@@ -137,6 +142,20 @@ export class ApiClient {
       tokens,
       tokenCount: tokens.length,
     };
+  }
+
+  /** Mốc settle on-chain: mỗi entry là một batch block + SQK mint chính xác. */
+  async settlements(): Promise<Settlement[]> {
+    const d: any = await this.getJson('/settlements');
+    return (d?.recentSettlements ?? []).map((x: any) => ({
+      hash: String(x.transactionHash ?? ''),
+      first: Number(x.firstCompletedBlock ?? 0),
+      last: Number(x.lastCompletedBlock ?? 0),
+      blocks: Number(x.completedBlockCount ?? 0),
+      minted: BigInt(x.sqkMintedBaseUnits ?? '0'),
+      status: String(x.confirmationStatus ?? ''),
+      at: String(x.blockTimestamp ?? ''),
+    }));
   }
 
   async economy(): Promise<any> {
