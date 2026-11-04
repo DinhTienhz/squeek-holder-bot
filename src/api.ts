@@ -45,7 +45,7 @@ type FetchLike = (url: string, init?: any) => Promise<any>;
 
 export interface Settlement {
   hash: string; first: number; last: number; blocks: number;
-  minted: bigint; status: string; at: string;
+  minted: bigint | null; status: string; at: string;
 }
 
 export class ApiClient {
@@ -160,7 +160,7 @@ export class ApiClient {
       first: Number(x.firstCompletedBlock ?? 0),
       last: Number(x.lastCompletedBlock ?? 0),
       blocks: Number(x.completedBlockCount ?? 0),
-      minted: BigInt(x.sqkMintedBaseUnits ?? '0'),
+      minted: x.sqkMintedBaseUnits != null ? BigInt(x.sqkMintedBaseUnits) : null,
       status: String(x.confirmationStatus ?? ''),
       at: String(x.blockTimestamp ?? ''),
     }));

@@ -94,7 +94,7 @@ test('alert messages: gọn, đúng dữ liệu', () => {
   assert.match(alertHamster('en', { coreStatus: 'SPINNING', rpmMilli: 3420, blockHeight: 5973, blockProgress: 0 }), /running[\s\S]*3\.42 rpm/);
   assert.match(alertHamster('en', { coreStatus: 'IDLE', rpmMilli: 0, blockHeight: 5973, blockProgress: 5e8 }), /stopped/);
   assert.match(alertBlock('en', { first: 5974, last: 5974, blocks: 1, minted: 6900n * 10n ** 18n }), /Block #5,974[\s\S]*6,900 SQK minted/);
-  assert.match(alertBlock('en', { first: 5974, last: 5974, blocks: 1, minted: null }), /no SQK minted/);
+  assert.match(alertBlock('en', { first: 5974, last: 5974, blocks: 1, minted: null }), /not indexed yet/);
   const act = alertActivity('en', { address: '0x32cd5f4a2a93bdb558dd04b40520c3b6886acc41', kind: 'nft_transfer', amount: 12n * 10n ** 18n, tx: '0xabc' });
   assert.match(act, /Wallet activity/);
   assert.match(act, /etherscan\.io\/tx\/0xabc/);

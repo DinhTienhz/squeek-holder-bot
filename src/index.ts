@@ -120,6 +120,9 @@ async function pollSettlements(): Promise<void> {
   if (idx === -1) { setMeta(db, 'last_settlement', list[0].hash); return; }
 
   for (const st of list.slice(0, idx).reverse()) {
+    // Settlement log có thể đi trước phần supply: sqkMinted còn null nghĩa là
+    // API chưa index xong. Chờ vòng sau thay vì báo "không phát SQK".
+    if (st.minted === null) break;
     for (const u of usersWith('block_alerts')) {
       const user = getUser(db, u.tg_id);
       if (!user) continue;

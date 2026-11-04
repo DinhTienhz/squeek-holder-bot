@@ -278,9 +278,9 @@ export function alertBlock(lang: Lang, p: {
     : `Blocks ${fmtInt(p.first, lang)}–${fmtInt(p.last, lang)}`;
   const head = `⛏️ <b>${range}</b>` +
     (p.blocks > 1 ? ` · ${fmtInt(p.blocks, lang)} ${vi ? 'block' : 'blocks'}` : '');
-  const second = p.minted
+  const second = p.minted != null
     ? `${fmtSqk(p.minted, lang, 4)} ${vi ? 'đã phát' : 'minted'}`
-    : (vi ? 'không phát SQK' : 'no SQK minted');
+    : (vi ? 'SQK mint chưa index xong' : 'SQK mint not indexed yet');
   return [head, second].join('\n');
 }
 
