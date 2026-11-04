@@ -103,7 +103,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.06;
+renderer.toneMappingExposure = 0.98;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.getElementById('stage').appendChild(renderer.domElement);
 
@@ -308,7 +308,7 @@ const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size:.75, ver
 scene.add(stars);
 
 /* -------------------------------- lights -------------------------------- */
-const sun = new THREE.DirectionalLight(0xfff4e2, 3.4);
+const sun = new THREE.DirectionalLight(0xfff4e2, 2.9);
 sun.position.set(46, 26, 30);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048,2048);
@@ -327,7 +327,10 @@ const suitMat = new THREE.MeshStandardMaterial({ color:0xf7f8fa, roughness:.35, 
 const accentMat = new THREE.MeshStandardMaterial({ color:0xff9b2f, emissive:0xff7a00, emissiveIntensity:.12, roughness:.4 });
 const furMat = new THREE.MeshStandardMaterial({ color:0xe8b06a, roughness:.85 });
 const gloveMat = new THREE.MeshStandardMaterial({ color:0xffd9a8, roughness:.7 });
-const visorMat = new THREE.MeshPhysicalMaterial({ color:0xcdeeff, transparent:true, opacity:.32, roughness:.05, metalness:0, transmission:.9, thickness:.35, ior:1.4 });
+const visorMat = new THREE.MeshPhysicalMaterial({
+  color:0xcdeeff, transparent:true, opacity:.38, roughness:.03, metalness:.05,
+  transmission:.55, thickness:.25, ior:1.38, clearcoat:1, clearcoatRoughness:.04
+});
 
 const hamster = new THREE.Group();
 
@@ -350,6 +353,11 @@ const helmet = new THREE.Mesh(new THREE.SphereGeometry(.48,32,24), visorMat);
 helmet.position.set(0,3.06,.02); hamster.add(helmet);
 const helmetRim = new THREE.Mesh(new THREE.TorusGeometry(.45,.06,10,32), suitMat);
 helmetRim.rotation.x = Math.PI/2 - .25; helmetRim.position.set(0,2.92,.02); hamster.add(helmetRim);
+
+const glint = new THREE.Mesh(new THREE.SphereGeometry(.10,16,12), new THREE.MeshBasicMaterial({color:0xffffff}));
+glint.scale.set(1.6,.5,.25); glint.position.set(.20,3.32,.30); hamster.add(glint);
+const glint2 = new THREE.Mesh(new THREE.SphereGeometry(.045,12,8), new THREE.MeshBasicMaterial({color:0xffffff}));
+glint2.scale.set(1,.7,.3); glint2.position.set(-.22,3.18,.36); hamster.add(glint2);
 
 // ears poking out of helmet
 for(const sx of [-1,1]){
@@ -440,7 +448,7 @@ blur.position.z=.06; wheel.add(blur);
 wheel.position.set(0,2.45,0);
 scene.add(wheel);
 // the hamster must NOT inherit the wheel's spin
-hamster.position.set(0,0.18,0);
+hamster.position.set(0,-1.02,0);
 scene.add(hamster);
 
 /* ------------------------------- vehicle -------------------------------- */
@@ -492,7 +500,7 @@ const curve = new THREE.CatmullRomCurve3([
   new THREE.Vector3(.2,.85,1.75), new THREE.Vector3(.75,1.35,1.1),
   new THREE.Vector3(.62,1.9,.45), new THREE.Vector3(.3,2.2,.1)
 ]);
-const hose = new THREE.Mesh(new THREE.TubeGeometry(curve,40,.09,10,false), new THREE.MeshStandardMaterial({color:0x333842, roughness:.6, metalness:.35}));
+const hose = new THREE.Mesh(new THREE.TubeGeometry(curve,40,.07,10,false), new THREE.MeshStandardMaterial({color:0x333842, roughness:.6, metalness:.35}));
 hose.castShadow=true; chassis.add(hose);
 
 // antenna + flag
