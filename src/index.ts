@@ -70,9 +70,10 @@ async function pollStatus(): Promise<void> {
       setMeta(db, 'hamster_since', runningNow ? String(Date.now()) : '');
     }
     if (runningNow) lastRunningAt = Date.now();
-    // Poll runs at 4 s: start on the first turning sample, stop after two quiet
-    // ones (~8 s) — the sensor itself only publishes every 10 s.
-    const step = stepHamster(hamsterTrack, runningNow, runningNow ? 1 : 2);
+    // The sensor publishes every ~10 s and occasionally emits a single bogus
+    // rpm>0 sample. Require two turning samples to start and three quiet ones
+    // to stop, so one-off blips cannot produce a false pair.
+    const step = stepHamster(hamsterTrack, runningNow, runningNow ? 2 : 3);
     hamsterTrack = step.state;
     if (step.transition !== null) {
       const running = step.transition;
