@@ -124,9 +124,14 @@ export function createBot(cfg: Config) {
     ctx.reply(text, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
 
   bot.command('start', async (ctx) => {
-    const u = userOf(ctx.from!.id);
+    const id = String(ctx.from!.id);
+    const isNew = !getUser(db, id);
+    const u = userOf(id);
     if (u.blocked) return;
-    await reply(ctx, welcome(langOf(u)));
+    const hint = langOf(u) === 'vi'
+      ? '👉 <i>Mới dùng? Gõ /help để xem mọi lệnh, /status để xem chain trực tiếp.</i>'
+      : '👉 <i>New here? Type /help for every command, /status to see the chain live.</i>';
+    await reply(ctx, isNew ? `${welcome(langOf(u))}\n\n${hint}` : welcome(langOf(u)));
   });
 
   bot.command('help', async (ctx) => {
@@ -157,7 +162,22 @@ export function createBot(cfg: Config) {
     const u = userOf(ctx.from!.id);
     const ws = listWallets(db, u.tg_id);
     if (!ws.length) return void (await reply(ctx, tr(langOf(u), 'noWallet')));
-    await reply(ctx, walletList(langOf(u), ws, cfg.maxWallets));
+
+    const entries = await Promise.all(ws.map(async (w) => {
+      try {
+        const a = await api.account(w.address);
+        return [w.address.toLowerCase(), {
+          claimable: a.claimable,
+          tokens: a.tokens.length,
+          ready: a.tokens.filter((t) => t.mergeState === 'ready').length,
+        }] as const;
+      } catch {
+        return null;
+      }
+    }));
+    const stats: Record<string, { claimable: bigint; tokens: number; ready: number }> = {};
+    for (const e of entries) if (e) stats[e[0]] = e[1];
+    await reply(ctx, walletList(langOf(u), ws, cfg.maxWallets, stats));
   });
 
   bot.command('status', async (ctx) => {
@@ -346,7 +366,7 @@ export function createBot(cfg: Config) {
 
     // /activity 0x… — 10 sự kiện gần nhất của ví đó.
     if (arg && !/^(on|off)$/i.test(arg)) {
-      if (!ADDRESS.test(arg)) return void (await reply(ctx, m(u, 'badAddr')));
+      if (!ADDRESS.test(arg)) return void (await reply(ctx, tr(lang, 'badAddr')));
       if (!listWallets(db, u.tg_id).length) return void (await reply(ctx, tr(lang, 'noWallet')));
       const addr = arg.toLowerCase();
       try {

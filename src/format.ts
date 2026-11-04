@@ -115,13 +115,18 @@ export function help(lang: Lang, isAdmin = false): string {
   return out.join('\n');
 }
 
-export function walletList(lang: Lang, wallets: { address: string; label: string | null }[], max: number): string {
+export function walletList(lang: Lang, wallets: { address: string; label: string | null }[], max: number,
+  stats?: Record<string, { claimable: bigint; tokens: number; ready: number }>): string {
   const head = lang === 'en'
     ? `👛 <b>Wallets</b> · ${wallets.length}/${max}`
     : `👛 <b>Ví đang theo dõi</b> · ${wallets.length}/${max}`;
-  const rows = wallets.map((w, i) => {
+  const rows = wallets.flatMap((w, i) => {
     const label = w.label ? ` — ${esc(w.label)}` : '';
-    return `${i + 1}. ${fullAddr(w.address)}${label}`;
+    const head = `${i + 1}. ${fullAddr(w.address)}${label}`;
+    const st = stats?.[w.address.toLowerCase()];
+    if (!st) return [head];
+    const vi = lang !== 'en';
+    return [head, `    💰 ${fmtSqk(st.claimable, lang)} · ${st.tokens} ${vi ? 'Squeek' : 'Squeek'} · ${st.ready} ${vi ? 'merge được' : 'ready'}`];
   });
   const hint = lang === 'en' ? '<i>Add: /watch 0x… label</i>' : '<i>Thêm: /watch 0x… tên</i>';
   return [head, '', ...rows, '', hint].join('\n');
@@ -325,16 +330,26 @@ export function alertActivity(lang: Lang, p: { address: string; kind: string; am
   return out.join('\n');
 }
 
-export function digestMsg(lang: Lang, p: { day: string; wallets: number; claimable: bigint; ready: number; height: number }): string {
+export function digestMsg(lang: Lang, p: {
+  day: string; wallets: number; claimable: bigint; ready: number; height: number;
+  per?: { address: string; claimable: bigint; ready: number }[];
+}): string {
   const vi = lang !== 'en';
-  return [
+  const lines = [
     `📊 <b>Digest ${esc(p.day)}</b>`,
     '',
     `👛 ${vi ? 'Ví' : 'Wallets'} · ${p.wallets}`,
     `💰 Claimable · ${fmtSqk(p.claimable, lang)}`,
     `🔁 ${vi ? 'Merge được' : 'Mergeable'} · ${p.ready}`,
     `⛏️ Block · ${fmtInt(p.height, lang)}`,
-  ].join('\n');
+  ];
+  if (p.per && p.per.length > 1) {
+    lines.push('');
+    for (const w of p.per) {
+      lines.push(`${addrShort(w.address)} · ${fmtSqk(w.claimable, lang)} · ${w.ready} ${vi ? 'merge được' : 'ready'}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 export function privacy(lang: Lang): string {

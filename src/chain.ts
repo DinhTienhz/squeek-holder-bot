@@ -26,7 +26,7 @@ export async function claimablePerToken(
       functionName: 'claimable' as const,
       args: [collection, [BigInt(id)]] as const,
     }));
-    const res = await client.multicall({ contracts: calls, allowFailure: true });
+    const res = await client.multicall({ contracts: calls, allowFailure: true } as any);
     const ok = res.filter((r) => r.status === 'success').length;
     // Toàn bộ revert (ABI/deployment khác) → báo lỗi để caller fallback và ghi rõ "ước lượng".
     if (ok === 0 && calls.length > 0) throw new Error('claimable() reverts on this deployment');

@@ -194,3 +194,4 @@ export function newActivity(db: DatabaseSync, address: string, activityId: strin
 export function pruneActivity(db: DatabaseSync, days = 30): void {
   db.prepare("DELETE FROM seen_activity WHERE at < datetime('now', ?)").run(`-${days} days`);
 }
+

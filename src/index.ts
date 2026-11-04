@@ -206,18 +206,21 @@ async function maybeDigest(): Promise<void> {
 
     let claimable = 0n;
     let ready = 0;
+    const per: { address: string; claimable: bigint; ready: number }[] = [];
     for (const w of wallets) {
       try {
         const a = await api.account(w.address);
+        const r = a.tokens.filter((t) => t.mergeState === 'ready').length;
         claimable += a.claimable;
-        ready += a.tokens.filter((t) => t.mergeState === 'ready').length;
+        ready += r;
+        per.push({ address: w.address, claimable: a.claimable, ready: r });
       } catch { /* bỏ qua ví lỗi */ }
     }
     let height = 0;
     try { height = (await api.status()).blockHeight; } catch { /* ignore */ }
 
     await notify(u.tg_id, digestMsg(langOf(user), {
-      day, wallets: wallets.length, claimable, ready, height,
+      day, wallets: wallets.length, claimable, ready, height, per,
     }), true);
     markDigest(db, u.tg_id, day);
   }

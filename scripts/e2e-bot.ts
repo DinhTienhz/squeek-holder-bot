@@ -172,7 +172,7 @@ try {
   record('14. hamster alert text (stopped)', true, alertHamster('en', { ...st, coreStatus: 'IDLE' }));
   record('14b. hamster alert text (running)', true, alertHamster('en', { ...st, coreStatus: 'SPINNING', rpmMilli: 4200 }));
 
-  record('15. block alert text', true, alertBlock('en', { height: st.blockHeight, minted: null }));
+  record('15. block alert text', true, alertBlock('en', { first: st.blockHeight, last: st.blockHeight, blocks: 1, minted: null }));
 
   const acts = await api.activity(WALLET);
   if (acts.length) {
