@@ -191,3 +191,22 @@ test('alertBlock: batch settle hiển thị đúng range + số SQK 4 chữ số
   assert.match(vi, /Blocks 8\.288–8\.332/);
   assert.match(vi, /179\.079,7265 SQK đã phát/);
 });
+
+
+test('activity: rewards_claimed có nhãn riêng, khác claim thường', async () => {
+  const { activityLabel, activityList } = await import('../src/format.ts');
+  assert.equal(activityLabel('vi', 'rewards_claimed'), 'Đã claim phần thưởng');
+  assert.equal(activityLabel('vi', 'claimed'), 'Đã claim SQK');
+  assert.equal(activityLabel('en', 'rewards_claimed'), 'Rewards claimed');
+
+  const s = activityList('vi', {
+    address: '0x4e6fc32b6a0adc1cd1e13949666fe66ec40e01f2',
+    items: [
+      { kind: 'rewards_claimed', amount: 1234n * 10n ** 18n, tx: '0xabc', at: '2026-11-04T04:12:00.000Z' },
+      { kind: 'nft_merged', amount: null, tx: '0xdef', at: '2026-11-04T03:00:00.000Z' },
+    ],
+  });
+  assert.match(s, /Đã claim phần thưởng · 1\.234 SQK/);
+  assert.match(s, /etherscan\.io\/tx\/0xabc/);
+  assert.match(s, /Merge Squeek/);
+});

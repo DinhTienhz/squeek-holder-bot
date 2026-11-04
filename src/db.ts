@@ -12,6 +12,7 @@ export type User = {
   blocked: number;
   block_alerts: number;
   hamster_alerts: number;
+  activity_alerts: number;
   digest: number;
   last_digest: string | null;
 };
@@ -67,6 +68,7 @@ export function openDb(path: string): DatabaseSync {
   if (!cols.has('digest')) db.exec('ALTER TABLE users ADD COLUMN digest INTEGER NOT NULL DEFAULT 1');
   if (!cols.has('last_digest')) db.exec('ALTER TABLE users ADD COLUMN last_digest TEXT');
   if (!cols.has('hamster_alerts')) db.exec('ALTER TABLE users ADD COLUMN hamster_alerts INTEGER NOT NULL DEFAULT 1');
+  if (!cols.has('activity_alerts')) db.exec('ALTER TABLE users ADD COLUMN activity_alerts INTEGER NOT NULL DEFAULT 1');
   return db;
 }
 
@@ -156,6 +158,10 @@ export function wipeUser(db: DatabaseSync, tgId: string): void {
 
 export function setHamsterAlerts(db: DatabaseSync, tgId: string, on: boolean): void {
   db.prepare('UPDATE users SET hamster_alerts = ? WHERE tg_id = ?').run(on ? 1 : 0, tgId);
+}
+
+export function setActivityAlerts(db: DatabaseSync, tgId: string, on: boolean): void {
+  db.prepare('UPDATE users SET activity_alerts = ? WHERE tg_id = ?').run(on ? 1 : 0, tgId);
 }
 
 export function setBlockAlerts(db: DatabaseSync, tgId: string, on: boolean): void {

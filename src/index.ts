@@ -174,11 +174,11 @@ async function pollWallets(): Promise<void> {
         continue;
       }
       for (const it of items) {
-        if (it.kind === 'rewards_claimed') continue;
         if (!newActivity(db, address, it.id)) continue;
         for (const tgId of watchers) {
           const user = getUser(db, tgId);
-          if (!user) continue;
+          // Tôn trọng /alerts off, /activity off và lệnh ban.
+          if (!user || !user.alerts || user.blocked || !user.activity_alerts) continue;
           await notify(tgId, alertActivity(langOf(user), {
             address, kind: it.kind,
             amount: it.amount > 0n ? it.amount : null,

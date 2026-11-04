@@ -92,3 +92,15 @@ test('digest + block alerts mặc định bật', () => withDb((db) => {
   assert.equal(u2.block_alerts, 0);
   assert.equal(u2.last_digest, '2026-11-01');
 }));
+
+
+test('activity_alerts: mặc định bật, tắt được', async () => {
+  const { openDb, upsertUser, setActivityAlerts, getUser } = await import('../src/db.ts');
+  const db = openDb(':memory:');
+  const u = upsertUser(db, '42');
+  assert.equal(u.activity_alerts, 1);
+  setActivityAlerts(db, '42', false);
+  assert.equal(getUser(db, '42')!.activity_alerts, 0);
+  setActivityAlerts(db, '42', true);
+  assert.equal(getUser(db, '42')!.activity_alerts, 1);
+});

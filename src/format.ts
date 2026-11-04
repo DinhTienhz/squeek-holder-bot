@@ -284,6 +284,7 @@ const ACTIVITY_KINDS: Record<string, { en: string; vi: string }> = {
   nft_withdrawn: { en: 'Squeek sent', vi: 'Gửi Squeek' },
   nft_merged: { en: 'Squeek merged', vi: 'Merge Squeek' },
   claimed: { en: 'SQK claimed', vi: 'Đã claim SQK' },
+  rewards_claimed: { en: 'Rewards claimed', vi: 'Đã claim phần thưởng' },
   claim: { en: 'SQK claimed', vi: 'Đã claim SQK' },
   transfer: { en: 'Transfer', vi: 'Chuyển' },
 };
@@ -292,6 +293,24 @@ export function activityLabel(lang: Lang, kind: string): string {
   const k = ACTIVITY_KINDS[kind];
   if (!k) return kind;
   return lang === 'en' ? k.en : k.vi;
+}
+
+export function activityList(lang: Lang, p: {
+  address: string; items: { kind: string; amount: bigint | null; tx?: string; at?: string }[];
+}): string {
+  const vi = lang !== 'en';
+  const head = `🔔 <b>${vi ? 'Hoạt động ví' : 'Wallet activity'}</b> · ${addrShort(p.address)}`;
+  if (!p.items.length) return [head, '', `<i>${vi ? 'chưa có sự kiện' : 'no events yet'}</i>`].join('\n');
+  const rows = p.items.map((i) => {
+    const label = esc(activityLabel(lang, i.kind));
+    const amt = i.amount ? ` · ${fmtSqk(i.amount, lang)}` : '';
+    const hhmm = i.at ? new Date(i.at).toISOString().slice(11, 16) : '';
+    const when = hhmm && i.tx
+      ? `<a href="https://sepolia.etherscan.io/tx/${esc(i.tx)}">${hhmm}</a> · `
+      : (hhmm ? `${hhmm} · ` : '');
+    return `• ${when}${label}${amt}`;
+  });
+  return [head, '', ...rows].join('\n');
 }
 
 export function alertActivity(lang: Lang, p: { address: string; kind: string; amount: bigint | null; tx?: string }): string {

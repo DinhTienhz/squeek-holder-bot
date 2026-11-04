@@ -7,11 +7,11 @@ import { COMMANDS } from './commands.ts';
 import { parseQuietRange } from './queue.ts';
 import {
   alertBlock, alertCooldown, alertHamster, addrShort, claimMsg, digestMsg, esc, fmtSqk, fullAddr,
-  help, ladderMsg, mergeMsg, privacy, statusMsg, t as tr, walletAdded, walletList, welcome, type Lang,
+  activityList, help, ladderMsg, mergeMsg, privacy, statusMsg, t as tr, walletAdded, walletList, welcome, type Lang,
 } from './format.ts';
 import {
   addWallet, getUser, listWallets, openDb, removeWallet, setAlerts, setBlockAlerts, setHamsterAlerts,
-  setBlocked, setDigest, setLang, setQuiet, setThreshold, stats, upsertUser, wipeUser, type User,
+  setActivityAlerts, setBlocked, setDigest, setLang, setQuiet, setThreshold, stats, upsertUser, wipeUser, type User,
 } from './db.ts';
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -38,6 +38,9 @@ const MSG = {
     hamsterOn: '🐹 Đã bật cảnh báo hamster chạy/dừng.',
     hamsterOff: '🐹 Đã tắt cảnh báo hamster.',
     hamsterNow: '🐹 Cảnh báo hamster: <b>{state}</b>\nĐổi bằng <code>/hamster on</code> hoặc <code>/hamster off</code>',
+    activityOn: '🔔 Đã bật theo dõi mọi hoạt động ví (gồm claim phần thưởng).',
+    activityOff: '🔕 Đã tắt theo dõi hoạt động ví.',
+    activityNow: '🔔 Hoạt động ví: <b>{state}</b>\nĐổi bằng <code>/activity on</code> hoặc <code>/activity off</code>\nXem gần đây: <code>/activity 0x…</code>',
     digestNow: '📊 Digest: <b>{state}</b>\nĐổi bằng <code>/digest on</code> hoặc <code>/digest off</code>',
     quietNow: '🌙 Im lặng: <b>{state}</b>\nĐổi bằng <code>/quiet 22:00-07:00</code> hoặc <code>/quiet off</code>',
     threshold: '🎯 Ngưỡng báo claim: <b>{amount}</b>',
@@ -74,6 +77,9 @@ const MSG = {
     hamsterOn: '🐹 Hamster started/stopped alerts on.',
     hamsterOff: '🐹 Hamster alerts off.',
     hamsterNow: '🐹 Hamster alerts: <b>{state}</b>\nChange with <code>/hamster on</code> or <code>/hamster off</code>',
+    activityOn: '🔔 Wallet activity tracking on (includes rewards claimed).',
+    activityOff: '🔕 Wallet activity tracking off.',
+    activityNow: '🔔 Wallet activity: <b>{state}</b>\nChange with <code>/activity on</code> or <code>/activity off</code>\nRecent: <code>/activity 0x…</code>',
     digestNow: '📊 Digest: <b>{state}</b>\nChange with <code>/digest on</code> or <code>/digest off</code>',
     quietNow: '🌙 Quiet hours: <b>{state}</b>\nChange with <code>/quiet 22:00-07:00</code> or <code>/quiet off</code>',
     threshold: '🎯 Claim threshold: <b>{amount}</b>',
@@ -331,6 +337,36 @@ export function createBot(cfg: Config) {
     const on = arg !== 'off';
     setHamsterAlerts(db, u.tg_id, on);
     await reply(ctx, m(u, on ? 'hamsterOn' : 'hamsterOff'));
+  });
+
+  bot.command('activity', async (ctx) => {
+    const u = userOf(ctx.from!.id);
+    const lang = langOf(u);
+    const arg = (ctx.match ?? '').trim();
+
+    // /activity 0x… — 10 sự kiện gần nhất của ví đó.
+    if (arg && !/^(on|off)$/i.test(arg)) {
+      if (!ADDRESS.test(arg)) return void (await reply(ctx, m(u, 'badAddr')));
+      if (!listWallets(db, u.tg_id).length) return void (await reply(ctx, tr(lang, 'noWallet')));
+      const addr = arg.toLowerCase();
+      try {
+        const items = (await api.activity(addr)).slice(0, 10).map((x) => ({
+          kind: x.kind,
+          amount: x.amount > 0n ? x.amount : null,
+          tx: x.txHash || undefined,
+          at: x.at || undefined,
+        }));
+        await reply(ctx, activityList(lang, { address: addr, items }));
+      } catch {
+        await reply(ctx, tr(lang, 'apiDown'));
+      }
+      return;
+    }
+
+    if (!arg) return void (await reply(ctx, m(u, 'activityNow', { state: stateWord(u, !!u.activity_alerts) })));
+    const on = arg.toLowerCase() !== 'off';
+    setActivityAlerts(db, u.tg_id, on);
+    await reply(ctx, m(u, on ? 'activityOn' : 'activityOff'));
   });
 
   bot.command('block', async (ctx) => {
