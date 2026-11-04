@@ -365,10 +365,10 @@ const visorMat = new THREE.MeshPhysicalMaterial({
 });
 
 const hamster = new THREE.Group();
-const HAM_Y = -0.78;
+const HAM_Y = -0.35;
 
 // torso: chubby capsule
-const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.55,.55,10,20), suitMat);
+const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.50,.55,10,20), suitMat);
 torso.rotation.z = Math.PI/2; torso.position.set(0,2.25,0);
 torso.castShadow=true; hamster.add(torso);
 
@@ -426,8 +426,8 @@ function makeLimb(parent, x,y,z, len, mat, thumb){
 }
 const armL = makeLimb(hamster, -.50, 2.52, .10, .52, suitMat, false);
 const armR = makeLimb(hamster,  .50, 2.50, -.06, .52, suitMat, false);
-const legL = makeLimb(hamster, -.28, 1.94, .18, .76, suitMat, true);
-const legR = makeLimb(hamster,  .30, 1.94, -.12, .76, suitMat, true);
+const legL = makeLimb(hamster, -.34, 1.78, .24, .88, suitMat, true);
+const legR = makeLimb(hamster,  .36, 1.78, -.20, .88, suitMat, true);
 
 // gloves + boots ride the pivots
 for(const [pivot,sx] of [[armL,-1],[armR,1]]){
@@ -435,10 +435,10 @@ for(const [pivot,sx] of [[armL,-1],[armR,1]]){
   gl.position.set(0,-.56,.02); pivot.add(gl);
 }
 for(const [pivot,sx] of [[legL,-1],[legR,1]]){
-  const boot = new THREE.Mesh(new THREE.BoxGeometry(.30,.20,.42), suitMat);
-  boot.position.set(0,-.80,.06); boot.castShadow=true; pivot.add(boot);
-  const sole = new THREE.Mesh(new THREE.BoxGeometry(.31,.05,.44), new THREE.MeshStandardMaterial({color:0xff9b2f, roughness:.6}));
-  sole.position.set(0,-.90,.06); pivot.add(sole);
+  const boot = new THREE.Mesh(new THREE.BoxGeometry(.34,.24,.48), suitMat);
+  boot.position.set(0,-.94,.07); boot.castShadow=true; pivot.add(boot);
+  const sole = new THREE.Mesh(new THREE.BoxGeometry(.35,.06,.50), new THREE.MeshStandardMaterial({color:0xff9b2f, roughness:.6}));
+  sole.position.set(0,-1.05,.07); pivot.add(sole);
 }
 
 // tail
@@ -665,7 +665,7 @@ function tick(now){
 
   // blink every ~3 s
   if (now/1000 > blinkAt){ blinkAt = now/1000 + 2.6 + Math.random()*2.4; }
-  const blinking = (blinkAt - now/1000) > 2.45;
+  const blinking = !STILL && (blinkAt - now/1000) > 2.45;
   for(const e of eyes) e.scale.y = blinking ? 0.18 : 1;
 
   // dust drift into the nozzle
