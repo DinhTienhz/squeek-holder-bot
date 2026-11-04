@@ -440,7 +440,7 @@ blur.position.z=.06; wheel.add(blur);
 wheel.position.set(0,2.45,0);
 scene.add(wheel);
 // the hamster must NOT inherit the wheel's spin
-hamster.position.set(0,2.45,0);
+hamster.position.set(0,0.18,0);
 scene.add(hamster);
 
 /* ------------------------------- vehicle -------------------------------- */
@@ -543,7 +543,7 @@ scene.add(glints);
 /* --------------------------------- views -------------------------------- */
 const views = {
   hero:   { pos:[6.5,4.0,13.0], look:[0,2.2,-4], fov:46 },
-  close:  { pos:[3.1,2.9,4.4],  look:[0,2.35,0], fov:34 },
+  close:  { pos:[2.0,3.15,6.0],  look:[0,2.55,0], fov:30 },
   wide:   { pos:[15,8.5,24],    look:[0,2.0,-14], fov:55 },
 };
 const v = views[VIEW] || views.hero;
