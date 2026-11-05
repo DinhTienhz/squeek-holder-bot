@@ -83,14 +83,14 @@ test('mergeMsg: danh sách + số đang cooldown', () => {
     address: '0x32cd5f4a2a93bdb558dd04b40520c3b6886acc41',
     ready: [{ tokenId: '8939', level: 2 }, { tokenId: '8941', level: 2 }], cooling: 7,
   });
-  assert.match(s, /Mergeable \(2\)/);
+  assert.match(s, /Mergeable \(2 Squeek NFT\)/);
   assert.match(s, /#8939 · L2/);
   assert.match(s, /7 still cooling/);
 });
 
 test('alert messages: gọn, đúng dữ liệu', () => {
   assert.match(alertClaim('en', { address: '0x32cd5f4a2a93bdb558dd04b40520c3b6886acc41', amount: 50n * 10n ** 18n, threshold: 5n * 10n ** 17n }), /Claimable 50 SQK/);
-  assert.match(alertCooldown('en', { address: '0x32cd5f4a2a93bdb558dd04b40520c3b6886acc41', tokenId: '42' }), /Squeek #42 is off cooldown/);
+  assert.match(alertCooldown('en', { address: '0x32cd5f4a2a93bdb558dd04b40520c3b6886acc41', tokenId: '42' }), /Squeek NFT #42 is off cooldown/);
   assert.match(alertHamster('en', { coreStatus: 'SPINNING', rpmMilli: 3420, blockHeight: 5973, blockProgress: 0 }), /running[\s\S]*3\.42 rpm/);
   assert.match(alertHamster('en', { coreStatus: 'IDLE', rpmMilli: 0, blockHeight: 5973, blockProgress: 5e8 }), /stopped/);
   assert.match(alertBlock('en', { first: 5974, last: 5974, blocks: 1, minted: 6900n * 10n ** 18n }), /Block #5,974[\s\S]*6,900\.0000 SQK minted/);
@@ -104,7 +104,7 @@ test('digestMsg: 4 dòng số liệu', () => {
   const s = digestMsg('en', { day: '2026-11-01', wallets: 2, claimable: 7235340000000000000000n, ready: 3, height: 5973 });
   assert.match(s, /Digest 2026-11-01/);
   assert.match(s, /Wallets · 2/);
-  assert.match(s, /Claimable · 7,235.34 SQK/);
+  assert.match(s, /Claimable · 7,235.34 SQK token/);
   assert.match(s, /Mergeable · 3/);
   assert.match(s, /Block · 5,973/);
 });
@@ -122,11 +122,11 @@ test('không có dòng trắng thừa ở cuối tin', () => {
 
 test('activityLabel: known kinds are translated, unknown pass through', async () => {
   const { activityLabel } = await import('../src/format.ts');
-  assert.equal(activityLabel('en', 'nft_deposited'), 'Squeek received');
-  assert.equal(activityLabel('vi', 'nft_deposited'), 'Nhận Squeek');
-  assert.equal(activityLabel('en', 'nft_merged'), 'Squeek merged');
-  assert.equal(activityLabel('vi', 'nft_claimed'), 'Nhận Squeek (claim)');
-  assert.equal(activityLabel('en', 'nft_transferred'), 'Squeek transferred');
+  assert.equal(activityLabel('en', 'nft_deposited'), 'Squeek NFT received');
+  assert.equal(activityLabel('vi', 'nft_deposited'), 'Nhận Squeek NFT');
+  assert.equal(activityLabel('en', 'nft_merged'), 'Squeek NFT merged');
+  assert.equal(activityLabel('vi', 'nft_claimed'), 'Nhận Squeek NFT (claim)');
+  assert.equal(activityLabel('en', 'nft_transferred'), 'Squeek NFT transferred');
   assert.equal(activityLabel('vi', 'sqk_staked'), 'Stake SQK');
   assert.equal(activityLabel('en', 'something_new'), 'something_new');
 });

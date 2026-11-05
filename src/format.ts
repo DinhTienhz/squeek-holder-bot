@@ -127,7 +127,7 @@ export function walletList(lang: Lang, wallets: { address: string; label: string
     const st = stats?.[w.address.toLowerCase()];
     if (!st) return [head];
     const vi = lang !== 'en';
-    return [head, `    💰 ${fmtSqk(st.claimable, lang)} · ${st.tokens} ${vi ? 'Squeek' : 'Squeek'} · ${st.ready} ${vi ? 'merge được' : 'ready'}`];
+    return [head, `    💰 ${fmtSqk(st.claimable, lang)} token · 🖼 ${st.tokens} Squeek NFT · ${st.ready} ${vi ? 'merge được' : 'ready'}`];
   });
   const hint = lang === 'en' ? '<i>Add: /watch 0x… label</i>' : '<i>Thêm: /watch 0x… tên</i>';
   return [head, '', ...rows, '', hint].join('\n');
@@ -191,8 +191,8 @@ export function claimExactMsg(lang: Lang, p: { address: string; total: bigint; s
   const lines = [
     `💰 <b>Claim</b> · ${addrShort(p.address)}`,
     '',
-    `<b>${fmtSqk(p.total, lang)}</b>`,
-    `🖼 ${p.nftStaked} ${vi ? 'Squeek đang stake' : 'Squeek staked'} · ${fmtSqk(p.sqkStaked, lang)} ${vi ? 'stake' : 'staked'}`,
+    `<b>${fmtSqk(p.total, lang)} token</b>`,
+    `🖼 ${p.nftStaked} ${vi ? 'Squeek NFT đang stake' : 'Squeek NFT staked'} · ${fmtSqk(p.sqkStaked, lang)} token ${vi ? 'đang stake' : 'staked'}`,
     p.total === 0n
       ? `<i>${vi ? 'chưa có gì để claim' : 'nothing to claim yet'}</i>`
       : (vi ? '1 giao dịch · trả toàn bộ phần thưởng' : '1 transaction · pays all rewards'),
@@ -227,7 +227,7 @@ export function mergeMsg(lang: Lang, p: { address: string; ready: { tokenId: str
   const rows = p.ready.slice(0, 15).map((x) => `#${esc(x.tokenId)} · L${x.level}`);
   if (p.ready.length > 15) rows.push('…');
   return [
-    `🔁 <b>${vi ? 'Merge được' : 'Mergeable'} (${p.ready.length})</b> · ${addrShort(p.address)}`,
+    `🔁 <b>${vi ? 'Merge được' : 'Mergeable'} (${p.ready.length} Squeek NFT)</b> · ${addrShort(p.address)}`,
     '',
     ...rows,
     '',
@@ -247,7 +247,7 @@ export function alertClaim(lang: Lang, p: { address: string; amount: bigint; thr
 export function alertCooldown(lang: Lang, p: { address: string; tokenId: string }): string {
   const vi = lang !== 'en';
   return [
-    `🔁 <b>Squeek #${esc(p.tokenId)} ${vi ? 'hết cooldown' : 'is off cooldown'}</b>`,
+    `🔁 <b>Squeek NFT #${esc(p.tokenId)} ${vi ? 'hết cooldown' : 'is off cooldown'}</b>`,
     `${vi ? 'Ví' : 'Wallet'} ${addrShort(p.address)} · ${vi ? 'merge được ngay' : 'mergeable now'}`,
   ].join('\n');
 }
@@ -304,11 +304,11 @@ export function alertBlock(lang: Lang, p: {
 }
 
 const ACTIVITY_KINDS: Record<string, { en: string; vi: string }> = {
-  nft_deposited: { en: 'Squeek received', vi: 'Nhận Squeek' },
-  nft_withdrawn: { en: 'Squeek sent', vi: 'Gửi Squeek' },
-  nft_transferred: { en: 'Squeek transferred', vi: 'Chuyển Squeek' },
-  nft_merged: { en: 'Squeek merged', vi: 'Merge Squeek' },
-  nft_claimed: { en: 'Squeek claimed', vi: 'Nhận Squeek (claim)' },
+  nft_deposited: { en: 'Squeek NFT received', vi: 'Nhận Squeek NFT' },
+  nft_withdrawn: { en: 'Squeek NFT sent', vi: 'Gửi Squeek NFT' },
+  nft_transferred: { en: 'Squeek NFT transferred', vi: 'Chuyển Squeek NFT' },
+  nft_merged: { en: 'Squeek NFT merged', vi: 'Merge Squeek NFT' },
+  nft_claimed: { en: 'Squeek NFT claimed', vi: 'Nhận Squeek NFT (claim)' },
   sqk_staked: { en: 'SQK staked', vi: 'Stake SQK' },
   sqk_unstaked: { en: 'SQK unstaked', vi: 'Unstake SQK' },
   rewards_staked: { en: 'Rewards staked', vi: 'Stake phần thưởng' },
@@ -381,7 +381,7 @@ export function digestMsg(lang: Lang, p: {
     `📊 <b>Digest ${esc(p.day)}</b>`,
     '',
     `👛 ${vi ? 'Ví' : 'Wallets'} · ${p.wallets}`,
-    `💰 Claimable · ${fmtSqk(p.claimable, lang)}`,
+    `💰 Claimable · ${fmtSqk(p.claimable, lang)} token`,
     `🔁 ${vi ? 'Merge được' : 'Mergeable'} · ${p.ready}`,
     `⛏️ Block · ${fmtInt(p.height, lang)}`,
   ];
