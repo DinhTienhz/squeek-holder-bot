@@ -72,6 +72,7 @@ async function readStakingTotals() {
     nftsStaked: nftsStaked.toString(),
     sqkStaked: sqkStaked.toString(),
     nftLive: String(eco?.nft?.live ?? '0'),
+    liveSupply: String(eco?.supply?.liveSupplyBaseUnits ?? '0'),
     miningMinted: String(eco?.supply?.miningMintedBaseUnits ?? '0'),
   });
   stakeCache = { at: Date.now(), body };

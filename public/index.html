@@ -150,7 +150,7 @@
         <div class="live-item"><div class="k">Hamster</div><div class="v" id="live-state">—</div></div>
         <div class="live-item"><div class="k">Wheel</div><div class="v" id="live-rpm">—</div></div>
         <div class="live-item"><div class="k">Block</div><div class="v" id="live-block">—</div></div>
-        <div class="live-item"><div class="k">SQK minted</div><div class="v" id="live-mint">—</div></div>
+        <div class="live-item"><div class="k">SQK supply</div><div class="v" id="live-mint">—</div></div>
         <div class="live-item"><div class="k">NFTs staked</div><div class="v" id="live-nft-staked">—</div></div>
         <div class="live-item"><div class="k">SQK staked</div><div class="v" id="live-sqk-staked">—</div></div>
       </div>
@@ -317,14 +317,15 @@
   }
   function paintEconomy(d) {
     var cap = Number((d.supply || {}).capBaseUnits || 0);
-    var minted = Number((d.supply || {}).miningMintedBaseUnits || (d.supply || {}).totalMintedBaseUnits || 0);
-    if (cap > 0) {
-      set('live-mint', compact(minted / 1e18) + ' / ' + compact(cap / 1e18) + ' (' + (minted / cap * 100).toFixed(2) + '%)');
+    var live = Number((d.supply || {}).liveSupplyBaseUnits || 0);
+    var mined = Number((d.supply || {}).miningMintedBaseUnits || 0);
+    if (cap > 0 && live > 0) {
+      set('live-mint', compact(live / 1e18) + ' / ' + compact(cap / 1e18) + ' (' + (live / cap * 100).toFixed(2) + '%)');
     }
     var closed = Number((d.schedule || {}).closedThroughBlock || 0);
-    if (closed > 0) {
-      var exact = Math.floor(minted / 1e18).toLocaleString('en-US');
-      set('live-settled', exact + ' SQK minted at settled block ' + closed.toLocaleString('en-US'));
+    if (closed > 0 && mined > 0) {
+      var exact = Math.floor(mined / 1e18).toLocaleString('en-US');
+      set('live-settled', exact + ' SQK mined at settled block ' + closed.toLocaleString('en-US'));
     }
   }
   function paintStaking(d) {

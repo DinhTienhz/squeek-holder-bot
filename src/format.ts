@@ -147,7 +147,7 @@ export function walletAdded(lang: Lang, address: string, label: string | null): 
 
 export function statusMsg(lang: Lang, s: {
   coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number;
-  settledThroughRound: number; settledHeight?: number; minted?: bigint; cap?: bigint;
+  settledThroughRound: number; settledHeight?: number; minted?: bigint; cap?: bigint; liveSupply?: bigint;
 }, ageSec: number, stake?: { nfts: bigint; nftLive: bigint; sqk: bigint; mined: bigint }, scope = ''): string {
   const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
   const state = spinning
@@ -165,9 +165,14 @@ export function statusMsg(lang: Lang, s: {
   ];
   const pctOf = (a: bigint, b: bigint) => (b > 0n ? fmtNum(Number(a * 1000n / b) / 10, lang, 1) : '—');
   const stats: string[] = [];
+  if (s.cap != null && s.cap > 0n && (s.liveSupply != null || s.minted != null)) {
+    const live = s.liveSupply ?? s.minted!;
+    const share = fmtNum((Number(live) / Number(s.cap)) * 100, lang, 2);
+    stats.push(`🪙 <b>${share}%</b> ${lang === 'en' ? 'live supply' : 'live supply'} · ${fmtInt(live / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)}`);
+  }
   if (s.minted != null && s.cap != null && s.cap > 0n) {
     const share = fmtNum((Number(s.minted) / Number(s.cap)) * 100, lang, 2);
-    stats.push(`🪙 <b>${share}%</b> SQK ${lang === 'en' ? 'minted' : 'đã mint'} · ${fmtInt(s.minted / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)}`);
+    stats.push(`⚒️ ${fmtInt(s.minted / 10n ** 18n, lang)} SQK ${lang === 'en' ? 'mined' : 'đã đào'} · ${share}%`);
   }
   if (stake) {
     stats.push(`🖼 <b>${pctOf(stake.nfts, stake.nftLive)}%</b> ${lang === 'en' ? 'staked' : 'đang stake'} · ${fmtInt(stake.nfts, lang)} / ${fmtInt(stake.nftLive, lang)} NFT`);
