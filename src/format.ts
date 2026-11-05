@@ -160,11 +160,13 @@ export function statusMsg(lang: Lang, s: {
       (s.settledHeight ? ` · ${lang === 'en' ? 'settled' : 'đã settle'} ${fmtInt(s.settledHeight, lang)}` : ''),
     `🔄 <b>Round</b> ${fmtInt(s.settledThroughRound, lang)} ${lang === 'en' ? 'settled' : 'đã settle'}`,
   ];
+  const stats: string[] = [];
   if (s.minted != null && s.cap != null && s.cap > 0n) {
     const share = fmtNum((Number(s.minted) / Number(s.cap)) * 100, lang, 2);
-    lines.push(`🪙 <b>SQK minted</b> · ${fmtInt(s.minted / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)} (${share}%)`);
+    stats.push(`🪙 <b>SQK minted</b> · ${fmtInt(s.minted / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)} (${share}%)`);
   }
-  if (extra.length) lines.push('', ...extra);
+  stats.push(...extra);
+  if (stats.length) lines.push('', ...stats);
   lines.push(`<i>${scope ? `${scope} · ` : ''}${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
   return lines.join('\n');
 }
