@@ -206,8 +206,9 @@ export function createBot(cfg: Config) {
         const nft = eco?.deployment?.components?.collection?.address as string | undefined;
         if (cfg.rpcUrl && staking && nft) {
           const totals = await stakingTotals(cfg.rpcUrl, staking, nft);
-          stake = `🖼 <b>${langOf(u) === 'en' ? 'NFTs staked' : 'NFT stake'}</b> · ${fmtInt(totals.nftsStaked, langOf(u))}`
-                + `\n💰 <b>${langOf(u) === 'en' ? 'SQK staked' : 'SQK stake'}</b> · ${fmtSqk(totals.sqkStaked, langOf(u))}`;
+          const scope = langOf(u) === 'en' ? 'protocol-wide' : 'toàn protocol';
+          stake = `🖼 <b>${langOf(u) === 'en' ? 'NFTs staked' : 'NFT stake'}</b> · ${fmtInt(totals.nftsStaked, langOf(u))} <i>${scope}</i>`
+                + `\n💰 <b>${langOf(u) === 'en' ? 'SQK staked' : 'SQK stake'}</b> · ${fmtSqk(totals.sqkStaked, langOf(u))} <i>${scope}</i>`;
         }
       } catch { /* keep the status without staking totals */ }
       const text = statusMsg(langOf(u), { ...s, minted, cap }, age, stake ? stake.split('\n') : []);
