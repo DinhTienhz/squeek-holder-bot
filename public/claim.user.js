@@ -224,12 +224,16 @@
       .actions { display:flex; gap:6px; }
       .actions button { flex:1; }
       .tiny { color:#5e7387; font-size:10px; }
-      .hide { display:none; }
+      .card.collapsed .body { display:none; }
+      .card.collapsed { width: 200px; }
     </style>
     <div class="card">
       <header>
         <h1>SQUEEK CLAIM CONSOLE</h1>
-        <button data-close title="Ẩn">×</button>
+        <span style="display:flex;gap:4px">
+          <button data-collapse title="Thu gọn">–</button>
+          <button data-close title="Ẩn">×</button>
+        </span>
       </header>
       <div class="body">
         <div class="row"><span class="k">wallet</span><span class="v" data-wallet>chưa kết nối</span></div>
@@ -318,6 +322,11 @@
   });
 
   $('[data-close]').addEventListener('click', () => { host.style.display = 'none'; });
+  $('[data-collapse]').addEventListener('click', () => {
+    const card = root.querySelector('.card');
+    card.classList.toggle('collapsed');
+    $('[data-collapse]').textContent = card.classList.contains('collapsed') ? '+' : '–';
+  });
 
   $('[data-claim]').addEventListener('click', async () => {
     if (state.busy) return;
