@@ -68,7 +68,12 @@ async function readStakingTotals() {
     call(staking, selector.totalStaked),
     call(nft, selector.balanceOf + pad(staking)),
   ]);
-  const body = JSON.stringify({ nftsStaked: nftsStaked.toString(), sqkStaked: sqkStaked.toString() });
+  const body = JSON.stringify({
+    nftsStaked: nftsStaked.toString(),
+    sqkStaked: sqkStaked.toString(),
+    nftLive: String(eco?.nft?.live ?? '0'),
+    miningMinted: String(eco?.supply?.miningMintedBaseUnits ?? '0'),
+  });
   stakeCache = { at: Date.now(), body };
   return body;
 }
