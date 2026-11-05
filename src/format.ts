@@ -121,16 +121,21 @@ export function walletList(lang: Lang, wallets: { address: string; label: string
   const head = lang === 'en'
     ? `👛 <b>Wallets</b> · ${wallets.length}/${max}`
     : `👛 <b>Ví đang theo dõi</b> · ${wallets.length}/${max}`;
-  const rows = wallets.flatMap((w, i) => {
+  const rows = wallets.map((w, i) => {
     const label = w.label ? ` — ${esc(w.label)}` : '';
-    const head = `${i + 1}. ${fullAddr(w.address)}${label}`;
+    const lines = [`${i + 1}. ${fullAddr(w.address)}${label}`];
     const st = stats?.[w.address.toLowerCase()];
-    if (!st) return [head];
+    if (!st) {
+      lines.push(`   <i>${lang === 'en' ? 'no data — API unreachable' : 'không đọc được dữ liệu'}</i>`);
+      return lines.join('\n');
+    }
     const vi = lang !== 'en';
-    return [head, `    💰 ${fmtSqk(st.claimable, lang)} token · 🖼 ${st.tokens} Squeek NFT · ${st.ready} ${vi ? 'merge được' : 'ready'}`];
+    lines.push(`   💰 ${fmtSqk(st.claimable, lang)} token`);
+    lines.push(`   🖼 ${st.tokens} Squeek NFT · ${st.ready} ${vi ? 'merge được' : 'ready'}`);
+    return lines.join('\n');
   });
   const hint = lang === 'en' ? '<i>Add: /watch 0x… label</i>' : '<i>Thêm: /watch 0x… tên</i>';
-  return [head, '', ...rows, '', hint].join('\n');
+  return [head, '', ...rows.flatMap((r, i) => (i === 0 ? [r] : ['', r])), '', hint].join('\n');
 }
 
 export function walletAdded(lang: Lang, address: string, label: string | null): string {
