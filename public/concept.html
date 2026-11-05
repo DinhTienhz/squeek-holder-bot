@@ -688,8 +688,8 @@ chassis.add(nozzle);
 
 // hose from vacuum to wheel
 const curve = new THREE.CatmullRomCurve3([
-  new THREE.Vector3(.2,.85,1.75), new THREE.Vector3(.75,1.35,1.1),
-  new THREE.Vector3(.62,1.9,.45), new THREE.Vector3(.3,2.2,.1)
+  new THREE.Vector3(.62,1.02,1.32), new THREE.Vector3(.95,1.52,1.05),
+  new THREE.Vector3(.78,2.02,.52), new THREE.Vector3(.32,2.24,.12)
 ]);
 const hose = new THREE.Mesh(new THREE.TubeGeometry(curve,40,.07,10,false), new THREE.MeshStandardMaterial({color:0x333842, roughness:.6, metalness:.35}));
 hose.castShadow=true; chassis.add(hose);
@@ -706,8 +706,15 @@ const innerShadow = new THREE.Mesh(new THREE.CircleGeometry(1.15,32),
   new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:.30, depthWrite:false }));
 innerShadow.rotation.x=-Math.PI/2; innerShadow.position.set(0,.42,0); scene.add(innerShadow);
 
-const contact = new THREE.Mesh(new THREE.CircleGeometry(2.4,48),
-  new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:.34, depthWrite:false }));
+const shadowTex = canvasTex(128,128,(g,w,h)=>{
+  const grd=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+  grd.addColorStop(0,'rgba(0,0,0,1)');
+  grd.addColorStop(.45,'rgba(0,0,0,.55)');
+  grd.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=grd; g.fillRect(0,0,w,h);
+});
+const contact = new THREE.Mesh(new THREE.CircleGeometry(2.9,48),
+  new THREE.MeshBasicMaterial({ map:shadowTex, transparent:true, opacity:.55, depthWrite:false }));
 contact.rotation.x=-Math.PI/2; contact.position.set(0,.02,.2); contact.scale.set(1,1.35,1); scene.add(contact);
 
 /* -------------------------------- dust ---------------------------------- */
