@@ -328,13 +328,13 @@ scene.add(sun);
 scene.add(new THREE.HemisphereLight(0x9dc4ff, 0x5b5850, .55));
 const earthShine = new THREE.DirectionalLight(0x7fb4ff, .55);
 // soft fill so the face is not lost inside the wheel
-const faceFill = new THREE.PointLight(0xffeedd, 14, 9, 2);
+const faceFill = new THREE.PointLight(0xffeedd, 8, 9, 2);
 faceFill.position.set(0, 3.3, 4.2);
 scene.add(faceFill);
 const rim = new THREE.DirectionalLight(0x9fd4ff, 1.15);
 rim.position.set(-38, 26, -46);
 scene.add(rim);
-const hubLight = new THREE.PointLight(0x6fe9ff, 6, 7, 2);
+const hubLight = new THREE.PointLight(0x6fe9ff, 3.5, 7, 2);
 hubLight.position.set(0, 2.45, 0);
 scene.add(hubLight);
 earthShine.position.set(70, 40, -120);
@@ -365,7 +365,7 @@ const metalRough = canvasTex(512,512,(g,w,h)=>{
 },[2,2]);
 
 const suitMat = new THREE.MeshPhysicalMaterial({ color:0xf7f8fa, roughness:.62, metalness:.02,
-  roughnessMap:fabricRough, sheen:.6, sheenRoughness:.7, sheenColor:0xdfe8ff });
+  roughnessMap:fabricRough, sheen:.3, sheenRoughness:.85, sheenColor:0xdfe8ff });
 const accentMat = new THREE.MeshStandardMaterial({ color:0xff9b2f, emissive:0xff7a00, emissiveIntensity:.12, roughness:.45 });
 const furMap = canvasTex(512,512,(g,w,h)=>{
   g.fillStyle='#e8b06a'; g.fillRect(0,0,w,h);
@@ -387,8 +387,8 @@ const furBump = canvasTex(256,256,(g,w,h)=>{
     g.fillRect(Math.random()*w, Math.random()*h, 1, 2+Math.random()*2);
   }
 },[4,4]);
-const furMat = new THREE.MeshStandardMaterial({ map:furMap, color:0xffffff, roughness:.92, bumpMap:furBump, bumpScale:.035 });
-const furLight = new THREE.MeshStandardMaterial({ map:furMap, color:0xffe9c8, roughness:.9, bumpMap:furBump, bumpScale:.03 });
+const furMat = new THREE.MeshStandardMaterial({ map:furMap, color:0xffffff, roughness:.97, metalness:0, bumpMap:furBump, bumpScale:.06, envMapIntensity:.25 });
+const furLight = new THREE.MeshStandardMaterial({ map:furMap, color:0xffe9c8, roughness:.95, metalness:0, bumpMap:furBump, bumpScale:.05, envMapIntensity:.25 });
 const pinkMat = new THREE.MeshStandardMaterial({ color:0xe79a9a, roughness:.8 });
 const gloveMat = new THREE.MeshStandardMaterial({ color:0xffd9a8, roughness:.75 });
 const visorMat = new THREE.MeshPhysicalMaterial({
