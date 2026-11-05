@@ -200,22 +200,16 @@ export function createBot(cfg: Config) {
                 ? `💤 <i>sensor paused while the hamster rests · last sample ${age}s ago</i>`
                 : `💤 <i>cảm biến dừng vì hamster nghỉ · mẫu cuối ${age}s trước</i>`))
         : '';
-      let stake = '';
+      let stake: { nfts: bigint; nftLive: bigint; sqk: bigint; mined: bigint } | undefined;
       try {
         const staking = eco?.deployment?.components?.staking?.address as string | undefined;
         const nft = eco?.deployment?.components?.collection?.address as string | undefined;
         if (cfg.rpcUrl && staking && nft) {
           const totals = await stakingTotals(cfg.rpcUrl, staking, nft);
-          const nftLive = BigInt(eco?.nft?.live ?? '0');
-          const mined = BigInt(eco?.supply?.miningMintedBaseUnits ?? '0');
-          const pct = (a: bigint, b: bigint) => b > 0n
-            ? (Number(a * 1000n / b) / 10).toLocaleString(langOf(u) === 'en' ? 'en-US' : 'vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-            : '—';
-          stake = `🖼 <b>${langOf(u) === 'en' ? 'NFTs staked' : 'NFT stake'}</b> · ${fmtInt(totals.nftsStaked, langOf(u))} / ${fmtInt(nftLive, langOf(u))} (${pct(totals.nftsStaked, nftLive)}%)`
-                + `\n💰 <b>${langOf(u) === 'en' ? 'SQK staked' : 'SQK stake'}</b> · ${fmtInt(totals.sqkStaked / 10n ** 18n, langOf(u))} / ${fmtInt(mined / 10n ** 18n, langOf(u))} SQK (${pct(totals.sqkStaked, mined)}%)`;
+          stake = { nfts: totals.nftsStaked, nftLive: BigInt(eco?.nft?.live ?? '0'), sqk: totals.sqkStaked, mined: BigInt(eco?.supply?.miningMintedBaseUnits ?? '0') };
         }
       } catch { /* keep the status without staking totals */ }
-      const text = statusMsg(langOf(u), { ...s, minted, cap }, age, stake ? stake.split('\n') : [], langOf(u) === 'en' ? 'protocol-wide' : 'toàn protocol');
+      const text = statusMsg(langOf(u), { ...s, minted, cap }, age, stake, langOf(u) === 'en' ? 'protocol-wide' : 'toàn protocol');
       await reply(ctx, text + (note ? `\n${note}` : ''));
     } catch {
       await reply(ctx, tr(langOf(u), 'apiDown'));

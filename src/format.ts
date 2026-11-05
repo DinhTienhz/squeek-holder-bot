@@ -148,26 +148,33 @@ export function walletAdded(lang: Lang, address: string, label: string | null): 
 export function statusMsg(lang: Lang, s: {
   coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number;
   settledThroughRound: number; settledHeight?: number; minted?: bigint; cap?: bigint;
-}, ageSec: number, extra: string[] = [], scope = ''): string {
+}, ageSec: number, stake?: { nfts: bigint; nftLive: bigint; sqk: bigint; mined: bigint }, scope = ''): string {
   const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
   const state = spinning
     ? `🏃 ${lang === 'en' ? 'running' : 'đang chạy'} · ${fmtNum(s.rpmMilli / 1000, lang, 2)} rpm`
     : (lang === 'en' ? '😴 resting' : '😴 nghỉ');
   const pct = fmtNum((s.blockProgress / 1e9) * 100, lang, 1);
+  const filled = Math.max(0, Math.min(20, Math.round((s.blockProgress / 1e9) * 20)));
+  const bar = '█'.repeat(filled) + '░'.repeat(20 - filled);
   const lines = [
     `🐹 <b>Hamster</b> · ${state}`,
     `⛏️ <b>Block</b> ${fmtInt(s.blockHeight, lang)} · ${pct}%` +
       (s.settledHeight ? ` · ${lang === 'en' ? 'settled' : 'đã settle'} ${fmtInt(s.settledHeight, lang)}` : ''),
+    bar,
     `🔄 <b>Round</b> ${fmtInt(s.settledThroughRound, lang)} ${lang === 'en' ? 'settled' : 'đã settle'}`,
   ];
+  const pctOf = (a: bigint, b: bigint) => (b > 0n ? fmtNum(Number(a * 1000n / b) / 10, lang, 1) : '—');
   const stats: string[] = [];
   if (s.minted != null && s.cap != null && s.cap > 0n) {
     const share = fmtNum((Number(s.minted) / Number(s.cap)) * 100, lang, 2);
-    stats.push(`🪙 <b>SQK minted</b> · ${fmtInt(s.minted / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)} (${share}%)`);
+    stats.push(`🪙 <b>${share}%</b> SQK ${lang === 'en' ? 'minted' : 'đã mint'} · ${fmtInt(s.minted / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)}`);
   }
-  stats.push(...extra);
+  if (stake) {
+    stats.push(`🖼 <b>${pctOf(stake.nfts, stake.nftLive)}%</b> ${lang === 'en' ? 'staked' : 'đang stake'} · ${fmtInt(stake.nfts, lang)} / ${fmtInt(stake.nftLive, lang)} NFT`);
+    stats.push(`💰 <b>${pctOf(stake.sqk, stake.mined)}%</b> ${lang === 'en' ? 'staked' : 'đang stake'} · ${fmtInt(stake.sqk / 10n ** 18n, lang)} / ${fmtInt(stake.mined / 10n ** 18n, lang)} SQK`);
+  }
   if (stats.length) lines.push('', ...stats);
-  lines.push(`<i>${scope ? `${scope} · ` : ''}${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
+  lines.push('', `<i>${scope ? `${scope} · ` : ''}${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
   return lines.join('\n');
 }
 
