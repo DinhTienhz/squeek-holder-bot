@@ -7,6 +7,7 @@ const acct = (claimable: bigint, tokens: { id: string; state: string; next?: num
   address: '0xabc0000000000000000000000000000000000001',
   claimable,
   tokenCount: tokens.length,
+  stakedSqk: 0n,
   tokens: tokens.map((t) => ({
     tokenId: t.id, level: 1, basePower: '1000',
     nextMergeHeight: t.next ?? 0, mergeState: t.state, custody: 'wallet',

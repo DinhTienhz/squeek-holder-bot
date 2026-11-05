@@ -40,6 +40,7 @@ export type Account = {
   claimable: bigint;
   tokens: Holding[];
   tokenCount: number;
+  stakedSqk: bigint;
 };
 
 type FetchLike = (url: string, init?: any) => Promise<any>;
@@ -150,6 +151,7 @@ export class ApiClient {
       claimable: BigInt(d.rewards?.claimableBaseUnits ?? '0'),
       tokens,
       tokenCount: tokens.length,
+      stakedSqk: BigInt(d.stake?.principalBaseUnits ?? '0'),
     };
     this.accountCache.set(key, { at: Date.now(), v: acc });
     return acc;

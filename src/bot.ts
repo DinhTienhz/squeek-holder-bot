@@ -253,12 +253,14 @@ export function createBot(cfg: Config) {
             source = 'chain';
           } catch { /* keep the API figure and label it */ }
         }
-        if (total === 0n) {
-          parts.push(`💰 <b>${addrShort(addr)}</b> · 0 SQK\n<i>${lang === 'en' ? 'nothing to claim yet' : 'chưa có gì để claim'}</i>`);
-          continue;
-        }
         sum += total;
-        parts.push(claimExactMsg(lang, { address: addr, total, source }));
+        parts.push(claimExactMsg(lang, {
+          address: addr,
+          total,
+          source,
+          nftStaked: a.tokens.filter((t) => t.custody === 'staking').length,
+          sqkStaked: a.stakedSqk,
+        }));
       } catch {
         parts.push(failLine(lang, addr));
       }

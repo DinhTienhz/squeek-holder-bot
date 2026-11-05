@@ -186,13 +186,16 @@ export function claimMsg(lang: Lang, p: {
   return lines.join('\n');
 }
 
-export function claimExactMsg(lang: Lang, p: { address: string; total: bigint; source: 'chain' | 'api' }): string {
+export function claimExactMsg(lang: Lang, p: { address: string; total: bigint; source: 'chain' | 'api'; nftStaked: number; sqkStaked: bigint }): string {
   const vi = lang !== 'en';
   const lines = [
     `💰 <b>Claim</b> · ${addrShort(p.address)}`,
     '',
     `<b>${fmtSqk(p.total, lang)}</b>`,
-    vi ? '1 giao dịch · trả toàn bộ phần thưởng' : '1 transaction · pays all rewards',
+    `🖼 ${p.nftStaked} ${vi ? 'Squeek đang stake' : 'Squeek staked'} · ${fmtSqk(p.sqkStaked, lang)} ${vi ? 'stake' : 'staked'}`,
+    p.total === 0n
+      ? `<i>${vi ? 'chưa có gì để claim' : 'nothing to claim yet'}</i>`
+      : (vi ? '1 giao dịch · trả toàn bộ phần thưởng' : '1 transaction · pays all rewards'),
   ];
   if (p.source === 'api') {
     lines.push('', `<i>${vi ? 'số từ API — RPC chưa đọc được' : 'figure from the API — RPC read unavailable'}</i>`);
