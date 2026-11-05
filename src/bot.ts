@@ -1,7 +1,7 @@
 import { Bot, type Context } from 'grammy';
 import type { Config } from './config.ts';
 import { ApiClient } from './api.ts';
-import { ladderPowerGain, optimizeClaim, planLadder } from './rules.ts';
+import { isHamsterRunning, ladderPowerGain, optimizeClaim, planLadder } from './rules.ts';
 import { claimablePerToken } from './chain.ts';
 import { COMMANDS } from './commands.ts';
 import { parseQuietRange } from './queue.ts';
@@ -190,7 +190,18 @@ export function createBot(cfg: Config) {
       const minted = eco?.supply?.miningMintedBaseUnits ? BigInt(eco.supply.miningMintedBaseUnits) : undefined;
       const cap = eco?.supply?.capBaseUnits ? BigInt(eco.supply.capBaseUnits) : undefined;
       const text = statusMsg(langOf(u), { ...s, minted, cap }, age);
-      await reply(ctx, age > 30 ? `${text}\n⚠️ <i>dữ liệu cảm biến cũ ${age}s</i>` : text);
+      const staleAfter = s.staleAfterSeconds || 120;
+      const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
+      const note = age > staleAfter
+        ? (spinning
+            ? (langOf(u) === 'en'
+                ? `⚠️ <i>sensor data is ${age}s old</i>`
+                : `⚠️ <i>dữ liệu cảm biến cũ ${age}s</i>`)
+            : (langOf(u) === 'en'
+                ? `💤 <i>sensor paused while the hamster rests · last sample ${age}s ago</i>`
+                : `💤 <i>cảm biến dừng vì hamster nghỉ · mẫu cuối ${age}s trước</i>`))
+        : '';
+      await reply(ctx, note ? `${text}\n${note}` : text);
     } catch {
       await reply(ctx, tr(langOf(u), 'apiDown'));
     }

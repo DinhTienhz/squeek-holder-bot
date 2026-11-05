@@ -14,6 +14,7 @@ export type Status = {
   generatedAt: string;
   observedAt?: string;         // sensor sample time (changes every ~10 s)
   freshness: string;
+  staleAfterSeconds: number;   // the API's own freshness budget
 };
 
 export type Holding = {
@@ -123,6 +124,7 @@ export class ApiClient {
       generatedAt: String(d.generatedAt ?? ''),
       observedAt: String(m.observedAt ?? ''),
       freshness: String(m.freshness ?? 'unknown'),
+      staleAfterSeconds: Number(m.staleAfterSeconds ?? 120),
     };
   }
 
