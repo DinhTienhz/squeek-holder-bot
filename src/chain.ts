@@ -5,6 +5,21 @@ const ABI = parseAbi([
   'function claimable(uint8 collection, uint256[] tokenIds) view returns (uint256)',
 ]);
 
+const STAKING_ABI = parseAbi([
+  'function claimable(address account) view returns (uint256)',
+]);
+
+/** Exact account-level claimable from Staking. Rewards are per account, not per token. */
+export async function stakingClaimable(rpcUrl: string, staking: string, account: string): Promise<bigint> {
+  const client = createPublicClient({ chain: sepolia, transport: http(rpcUrl, { timeout: 12_000 }) });
+  return (await client.readContract({
+    address: staking as `0x${string}`,
+    abi: STAKING_ABI,
+    functionName: 'claimable',
+    args: [account as `0x${string}`],
+  } as any)) as bigint;
+}
+
 /**
  * Đọc claimable chính xác cho từng token bằng multicall.
  * Trả mảng cùng thứ tự với `tokenIds`; lỗi từng token → 0n.

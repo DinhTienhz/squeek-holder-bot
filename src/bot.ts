@@ -1,12 +1,12 @@
 import { Bot, type Context } from 'grammy';
 import type { Config } from './config.ts';
 import { ApiClient } from './api.ts';
-import { isHamsterRunning, ladderPowerGain, optimizeClaim, planLadder } from './rules.ts';
-import { claimablePerToken } from './chain.ts';
+import { isHamsterRunning, ladderPowerGain, planLadder } from './rules.ts';
+import { stakingClaimable } from './chain.ts';
 import { COMMANDS } from './commands.ts';
 import { parseQuietRange } from './queue.ts';
 import {
-  alertBlock, alertCooldown, alertHamster, addrShort, claimMsg, digestMsg, esc, fmtSqk, fullAddr,
+  alertBlock, alertCooldown, alertHamster, addrShort, claimExactMsg, digestMsg, esc, fmtSqk, fullAddr,
   activityList, help, ladderMsg, mergeMsg, privacy, statusMsg, t as tr, walletAdded, walletList, welcome, type Lang,
 } from './format.ts';
 import {
@@ -239,39 +239,26 @@ export function createBot(cfg: Config) {
 
     const parts: string[] = [];
     let sum = 0n;
+    // Rewards are account-level now: one claim pays everything, no per-token split.
+    const eco = await api.economy().catch(() => null);
+    const staking = eco?.deployment?.components?.staking?.address as string | undefined;
     for (const addr of addrs) {
       try {
         const a = await api.account(addr);
-        if (!a.tokenCount) {
-          parts.push(`💰 <b>${addrShort(addr)}</b> · 0 SQK`);
-          continue;
-        }
-
-        let approx: 'rpc' | 'noRpc' | null = null;
-        let per: { tokenId: string; amount: bigint }[];
-        if (cfg.rpcUrl) {
+        let total = a.claimable;
+        let source: 'chain' | 'api' = 'api';
+        if (staking && cfg.rpcUrl) {
           try {
-            const amounts = await claimablePerToken(cfg.rpcUrl, cfg.miningAddress, a.tokens.map((x) => x.tokenId), cfg.collection);
-            per = a.tokens.map((x, i) => ({ tokenId: x.tokenId, amount: amounts[i] }));
-          } catch {
-            per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
-            approx = 'rpc';
-          }
-        } else {
-          per = evenSplit(a.tokens.map((x) => x.tokenId), a.claimable);
-          approx = 'noRpc';
+            total = await stakingClaimable(cfg.rpcUrl, staking, addr);
+            source = 'chain';
+          } catch { /* keep the API figure and label it */ }
         }
-
-        const plan = optimizeClaim(per);
-        sum += plan.total;
-        if (plan.total === 0n) {
+        if (total === 0n) {
           parts.push(`💰 <b>${addrShort(addr)}</b> · 0 SQK\n<i>${lang === 'en' ? 'nothing to claim yet' : 'chưa có gì để claim'}</i>`);
           continue;
         }
-        parts.push(claimMsg(lang, {
-          address: addr, total: plan.total, dust: plan.dust,
-          tokens: plan.tokens.length, skipped: plan.skipped, batches: plan.batches, approx,
-        }));
+        sum += total;
+        parts.push(claimExactMsg(lang, { address: addr, total, source }));
       } catch {
         parts.push(failLine(lang, addr));
       }

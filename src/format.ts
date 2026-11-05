@@ -186,6 +186,21 @@ export function claimMsg(lang: Lang, p: {
   return lines.join('\n');
 }
 
+export function claimExactMsg(lang: Lang, p: { address: string; total: bigint; source: 'chain' | 'api' }): string {
+  const vi = lang !== 'en';
+  const lines = [
+    `💰 <b>Claim</b> · ${addrShort(p.address)}`,
+    '',
+    `<b>${fmtSqk(p.total, lang)}</b>`,
+    vi ? '1 giao dịch · trả toàn bộ phần thưởng' : '1 transaction · pays all rewards',
+  ];
+  if (p.source === 'api') {
+    lines.push('', `<i>${vi ? 'số từ API — RPC chưa đọc được' : 'figure from the API — RPC read unavailable'}</i>`);
+  }
+  lines.push(vi ? L.vi.appLink : L.en.appLink);
+  return lines.join('\n');
+}
+
 export function ladderMsg(lang: Lang, p: {
   address: string; steps: { level: number; merges: number; produced: number; cooldownBlocks: number }[];
   before: bigint; after: bigint;

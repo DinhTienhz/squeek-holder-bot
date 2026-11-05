@@ -22,7 +22,7 @@ export const COMMANDS: CommandDef[] = [
   { name: 'list', group: 'wallets', en: 'your wallets', vi: 'danh sách ví' },
 
   { name: 'status', group: 'track', en: 'hamster, block, round', vi: 'hamster, block, round' },
-  { name: 'claim', usage: '[0x…]', group: 'track', en: 'best batch, dust, transactions', vi: 'batch tối ưu, dust, số giao dịch' },
+  { name: 'claim', usage: '[0x…]', group: 'track', en: 'exact claimable, one transaction', vi: 'số claim chính xác, 1 giao dịch' },
   { name: 'mergecheck', usage: '[0x…]', group: 'track', en: 'Squeeks off cooldown', vi: 'Squeek đã hết cooldown' },
   { name: 'ladder', usage: '[0x…]', group: 'track', en: 'merge plan + power gain', vi: 'kế hoạch merge + power gain' },
   { name: 'threshold', usage: '[amount]', group: 'track', en: 'claim alert level (bare: show current)', vi: 'ngưỡng báo claim (trống: xem hiện tại)' },
