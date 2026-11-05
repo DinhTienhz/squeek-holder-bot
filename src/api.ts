@@ -134,6 +134,7 @@ export class ApiClient {
     const hit = this.accountCache.get(key);
     if (hit && Date.now() - hit.at < maxAgeMs) return hit.v;
     const d: any = await this.getJson(`/accounts/${address}`);
+    if (d.status && d.status !== 'available') throw new Error(`account ${d.status}`);
     const tokens: Holding[] = (d.tokens ?? []).map((t: any) => ({
       tokenId: String(t.tokenId),
       level: Number(t.level ?? 0),
@@ -155,6 +156,7 @@ export class ApiClient {
   /** Mốc settle on-chain: mỗi entry là một batch block + SQK mint chính xác. */
   async settlements(): Promise<Settlement[]> {
     const d: any = await this.getJson('/settlements');
+    if (d.status && d.status !== 'available') throw new Error(`settlements ${d.status}`);
     return (d?.recentSettlements ?? []).map((x: any) => ({
       hash: String(x.transactionHash ?? ''),
       first: Number(x.firstCompletedBlock ?? 0),
@@ -172,6 +174,7 @@ export class ApiClient {
 
   async activity(address: string): Promise<ActivityItem[]> {
     const d: any = await this.getJson(`/accounts/${address}/activity`);
+    if (d.status && d.status !== 'available') throw new Error(`activity ${d.status}`);
     return (d.activity ?? []).map((a: any) => ({
       id: String(a.id),
       kind: String(a.kind ?? 'unknown'),
