@@ -148,7 +148,7 @@ export function walletAdded(lang: Lang, address: string, label: string | null): 
 export function statusMsg(lang: Lang, s: {
   coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number;
   settledThroughRound: number; settledHeight?: number; minted?: bigint; cap?: bigint;
-}, ageSec: number, extra: string[] = []): string {
+}, ageSec: number, extra: string[] = [], scope = ''): string {
   const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
   const state = spinning
     ? `🏃 ${lang === 'en' ? 'running' : 'đang chạy'} · ${fmtNum(s.rpmMilli / 1000, lang, 2)} rpm`
@@ -161,11 +161,11 @@ export function statusMsg(lang: Lang, s: {
     `🔄 <b>Round</b> ${fmtInt(s.settledThroughRound, lang)} ${lang === 'en' ? 'settled' : 'đã settle'}`,
   ];
   if (s.minted != null && s.cap != null && s.cap > 0n) {
-    const share = (Number(s.minted) / Number(s.cap)) * 100;
-    lines.push(`💰 <b>SQK minted</b> ${fmtInt(s.minted / 10n ** 18n, lang)} · ${fmtNum(share, lang, 2)}%`);
+    const share = fmtNum((Number(s.minted) / Number(s.cap)) * 100, lang, 2);
+    lines.push(`🪙 <b>SQK minted</b> · ${fmtInt(s.minted / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)} (${share}%)`);
   }
-  if (extra.length) lines.push(...extra);
-  lines.push(`<i>${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
+  if (extra.length) lines.push('', ...extra);
+  lines.push(`<i>${scope ? `${scope} · ` : ''}${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
   return lines.join('\n');
 }
 
