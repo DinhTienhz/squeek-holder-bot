@@ -151,6 +151,8 @@
         <div class="live-item"><div class="k">Wheel</div><div class="v" id="live-rpm">—</div></div>
         <div class="live-item"><div class="k">Block</div><div class="v" id="live-block">—</div></div>
         <div class="live-item"><div class="k">SQK minted</div><div class="v" id="live-mint">—</div></div>
+        <div class="live-item"><div class="k">NFTs staked</div><div class="v" id="live-nft-staked">—</div></div>
+        <div class="live-item"><div class="k">SQK staked</div><div class="v" id="live-sqk-staked">—</div></div>
       </div>
       <div class="bar-row">
         <span class="live-note" id="live-progress-label">Block progress</span>
@@ -325,10 +327,23 @@
       set('live-settled', exact + ' SQK minted at settled block ' + closed.toLocaleString('en-US'));
     }
   }
+  function paintStaking(d) {
+    var n = Number(d.nftsStaked || 0);
+    var s = Number(d.sqkStaked || 0) / 1e18;
+    set('live-nft-staked', n.toLocaleString('en-US'));
+    set('live-sqk-staked', Math.floor(s).toLocaleString('en-US'));
+  }
+  function staking() {
+    fetch('/api/staking-totals', { headers: { accept: 'application/json' } })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(paintStaking)
+      .catch(function () {});
+  }
   if (btn) btn.addEventListener('click', manualRefresh);
-  status(); economy();
+  status(); economy(); staking();
   setInterval(status, 10000);
   setInterval(economy, 60000);
+  setInterval(staking, 60000);
 })();
 </script>
 </body>

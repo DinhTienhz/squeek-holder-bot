@@ -41,9 +41,56 @@ function isImage(path) {
   return /\.(png|ico|svg|webp|jpg|jpeg|gif|avif)$/i.test(path);
 }
 
+const RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
+const selector = { totalStaked: '0x817b1cd2', balanceOf: '0x70a08231' };
+let stakeCache = { at: 0, body: null };
+
+async function readStakingTotals() {
+  if (stakeCache.body && Date.now() - stakeCache.at < 60_000) return stakeCache.body;
+  const eco = await fetch('https://api.squeekchain.com/v1/economy/state', {
+    headers: { 'user-agent': 'squeek-holder-bot/0.1' },
+  }).then((r) => r.json());
+  const staking = eco?.deployment?.components?.staking?.address;
+  const nft = eco?.deployment?.components?.collection?.address;
+  if (!staking || !nft) throw new Error('deployment missing');
+  const call = async (to, data) => {
+    const r = await fetch(RPC, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] }),
+    });
+    const j = await r.json();
+    if (j.error || typeof j.result !== 'string') throw new Error('rpc failed');
+    return BigInt(j.result);
+  };
+  const pad = (a) => a.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  const [sqkStaked, nftsStaked] = await Promise.all([
+    call(staking, selector.totalStaked),
+    call(nft, selector.balanceOf + pad(staking)),
+  ]);
+  const body = JSON.stringify({ nftsStaked: nftsStaked.toString(), sqkStaked: sqkStaked.toString() });
+  stakeCache = { at: Date.now(), body };
+  return body;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === '/api/staking-totals') {
+      try {
+        const body = await readStakingTotals();
+        return new Response(body, {
+          headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
+        });
+      } catch {
+        return new Response(JSON.stringify({ error: 'unavailable' }), {
+          status: 503,
+          headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
+        });
+      }
+    }
+
     const res = await env.ASSETS.fetch(request);
 
     if (res.status === 404 && !isImage(url.pathname)) {

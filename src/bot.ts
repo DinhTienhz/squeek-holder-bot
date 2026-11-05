@@ -2,11 +2,11 @@ import { Bot, type Context } from 'grammy';
 import type { Config } from './config.ts';
 import { ApiClient } from './api.ts';
 import { isHamsterRunning, ladderPowerGain, planLadder } from './rules.ts';
-import { stakingClaimable } from './chain.ts';
+import { stakingClaimable, stakingTotals } from './chain.ts';
 import { COMMANDS } from './commands.ts';
 import { parseQuietRange } from './queue.ts';
 import {
-  alertBlock, alertCooldown, alertHamster, addrShort, claimExactMsg, digestMsg, esc, fmtSqk, fullAddr,
+  alertBlock, alertCooldown, alertHamster, addrShort, claimExactMsg, digestMsg, esc, fmtInt, fmtSqk, fullAddr,
   activityList, help, ladderMsg, mergeMsg, privacy, statusMsg, t as tr, walletAdded, walletList, welcome, type Lang,
 } from './format.ts';
 import {
@@ -201,7 +201,17 @@ export function createBot(cfg: Config) {
                 ? `💤 <i>sensor paused while the hamster rests · last sample ${age}s ago</i>`
                 : `💤 <i>cảm biến dừng vì hamster nghỉ · mẫu cuối ${age}s trước</i>`))
         : '';
-      await reply(ctx, note ? `${text}\n${note}` : text);
+      let stake = '';
+      try {
+        const staking = eco?.deployment?.components?.staking?.address as string | undefined;
+        const nft = eco?.deployment?.components?.collection?.address as string | undefined;
+        if (cfg.rpcUrl && staking && nft) {
+          const t = await stakingTotals(cfg.rpcUrl, staking, nft);
+          stake = `\n🖼 <b>${langOf(u) === 'en' ? 'NFTs staked' : 'NFT stake'}</b> · ${fmtInt(t.nftsStaked, langOf(u))}`
+                + `\n💰 <b>${langOf(u) === 'en' ? 'SQK staked' : 'SQK stake'}</b> · ${fmtSqk(t.sqkStaked, langOf(u))}`;
+        }
+      } catch { /* keep the status without staking totals */ }
+      await reply(ctx, text + stake + (note ? `\n${note}` : ''));
     } catch {
       await reply(ctx, tr(langOf(u), 'apiDown'));
     }

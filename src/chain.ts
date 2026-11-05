@@ -20,6 +20,28 @@ export async function stakingClaimable(rpcUrl: string, staking: string, account:
   } as any)) as bigint;
 }
 
+/** Global staking totals straight from the contracts: SQK staked and NFTs held by Staking. */
+export async function stakingTotals(
+  rpcUrl: string, staking: string, nft: string,
+): Promise<{ sqkStaked: bigint; nftsStaked: bigint }> {
+  const call = async (to: string, data: string): Promise<bigint> => {
+    const r = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] }),
+    });
+    const j: any = await r.json();
+    if (j.error || typeof j.result !== 'string') throw new Error(j.error?.message ?? 'eth_call failed');
+    return BigInt(j.result);
+  };
+  const pad = (a: string) => a.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  const [sqkStaked, nftsStaked] = await Promise.all([
+    call(staking, '0x817b1cd2'),                 // totalStaked()
+    call(nft, '0x70a08231' + pad(staking)),      // balanceOf(staking)
+  ]);
+  return { sqkStaked, nftsStaked };
+}
+
 /**
  * Đọc claimable chính xác cho từng token bằng multicall.
  * Trả mảng cùng thứ tự với `tokenIds`; lỗi từng token → 0n.
