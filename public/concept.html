@@ -387,6 +387,34 @@ const furBump = canvasTex(256,256,(g,w,h)=>{
     g.fillRect(Math.random()*w, Math.random()*h, 1, 2+Math.random()*2);
   }
 },[4,4]);
+const furCardTex = canvasTex(256,256,(g,w,h)=>{
+  g.clearRect(0,0,w,h);
+  for(let i=0;i<190;i++){
+    const x0 = w*0.5 + rnd(-w*0.42, w*0.42);
+    const y0 = h - rnd(0,10);
+    const len = rnd(h*0.45, h*0.95);
+    const bend = rnd(-28,28);
+    const tone = 190 + Math.floor(rnd(0,50));
+    g.strokeStyle = `rgba(${tone},${Math.floor(tone*0.72)},${Math.floor(tone*0.42)},${rnd(.45,.95)})`;
+    g.lineWidth = rnd(.8,2.1);
+    g.beginPath();
+    g.moveTo(x0,y0);
+    g.quadraticCurveTo(x0+bend*0.4, y0-len*0.55, x0+bend, y0-len);
+    g.stroke();
+  }
+},[1,1]);
+
+const furCardMat = new THREE.MeshStandardMaterial({
+  map:furCardTex, transparent:true, alphaTest:.12, depthWrite:false,
+  roughness:1, metalness:0, side:THREE.DoubleSide, opacity:.9
+});
+const furCards = [];
+function addFurCard(x,y,z,w,h){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w,h), furCardMat);
+  m.userData.off = new THREE.Vector3(x,y,z);
+  m.renderOrder = 4;
+  scene.add(m); furCards.push(m);
+}
 const furMat = new THREE.MeshStandardMaterial({ map:furMap, color:0xffffff, roughness:.97, metalness:0, bumpMap:furBump, bumpScale:.06, envMapIntensity:.25 });
 const furLight = new THREE.MeshStandardMaterial({ map:furMap, color:0xffe9c8, roughness:.95, metalness:0, bumpMap:furBump, bumpScale:.05, envMapIntensity:.25 });
 const pinkMat = new THREE.MeshStandardMaterial({ color:0xe79a9a, roughness:.8 });
@@ -466,6 +494,20 @@ for(const sx of [-1,1]){
     w.rotation.x = (i-1)*0.14 - 0.05;
     hamster.add(w);
   }
+}
+
+// fur wisps: sides, back and underside of the head, never over the face
+for(let i=0;i<18;i++){
+  const a = i/18*Math.PI*2;
+  const front = Math.cos(a); // +1 = facing camera
+  if(front > 0.55) continue;  // keep the face clear
+  const r = .36 + rnd(-.01,.03);
+  addFurCard(Math.sin(a)*r, 3.02 + rnd(-.13,.13), .10 + Math.cos(a)*r, rnd(.24,.34), rnd(.20,.30));
+}
+// cheek side wisps
+for(const sx of [-1,1]){
+  addFurCard(sx*.36, 2.95, .20, .26, .22);
+  addFurCard(sx*.34, 2.88, .10, .22, .20);
 }
 
 /* --- ears: big round, pink inside, poking through the helmet --- */
@@ -748,6 +790,10 @@ function tick(now){
   tail.rotation.x = Math.sin(phase)*0.25;
   const jig = 1 + Math.abs(Math.sin(phase))*0.015;
   hamster.scale.set(jig, 1/jig, jig);
+  for(const c of furCards){
+    c.position.copy(c.userData.off).multiplyScalar(jig).applyAxisAngle(new THREE.Vector3(0,1,0), hamster.rotation.y).add(hamster.position);
+    c.quaternion.copy(camera.quaternion);
+  }
 
   // blink every ~3 s
   if (now/1000 > blinkAt){ blinkAt = now/1000 + 2.6 + Math.random()*2.4; }
