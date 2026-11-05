@@ -331,6 +331,12 @@ const earthShine = new THREE.DirectionalLight(0x7fb4ff, .55);
 const faceFill = new THREE.PointLight(0xffeedd, 14, 9, 2);
 faceFill.position.set(0, 3.3, 4.2);
 scene.add(faceFill);
+const rim = new THREE.DirectionalLight(0x9fd4ff, 1.15);
+rim.position.set(-38, 26, -46);
+scene.add(rim);
+const hubLight = new THREE.PointLight(0x6fe9ff, 6, 7, 2);
+hubLight.position.set(0, 2.45, 0);
+scene.add(hubLight);
 earthShine.position.set(70, 40, -120);
 scene.add(earthShine);
 
@@ -361,6 +367,18 @@ const metalRough = canvasTex(512,512,(g,w,h)=>{
 const suitMat = new THREE.MeshPhysicalMaterial({ color:0xf7f8fa, roughness:.62, metalness:.02,
   roughnessMap:fabricRough, sheen:.6, sheenRoughness:.7, sheenColor:0xdfe8ff });
 const accentMat = new THREE.MeshStandardMaterial({ color:0xff9b2f, emissive:0xff7a00, emissiveIntensity:.12, roughness:.45 });
+const furMap = canvasTex(512,512,(g,w,h)=>{
+  g.fillStyle='#e8b06a'; g.fillRect(0,0,w,h);
+  for(let i=0;i<240;i++){
+    g.fillStyle = Math.random()<.55 ? `rgba(196,138,78,${rnd(.05,.16)})` : `rgba(255,220,170,${rnd(.05,.18)})`;
+    g.beginPath(); g.ellipse(Math.random()*w, Math.random()*h, rnd(8,40), rnd(5,22), rnd(0,3),0,7); g.fill();
+  }
+  for(let i=0;i<5000;i++){
+    const v=Math.random()<.5?150:250;
+    g.fillStyle=`rgba(${v},${v*0.85},${v*0.65},.10)`;
+    g.fillRect(Math.random()*w, Math.random()*h, 1, rnd(2,5));
+  }
+},[2,2]);
 const furBump = canvasTex(256,256,(g,w,h)=>{
   g.fillStyle='#808080'; g.fillRect(0,0,w,h);
   for(let i=0;i<14000;i++){
@@ -369,8 +387,8 @@ const furBump = canvasTex(256,256,(g,w,h)=>{
     g.fillRect(Math.random()*w, Math.random()*h, 1, 2+Math.random()*2);
   }
 },[4,4]);
-const furMat = new THREE.MeshStandardMaterial({ color:0xe8b06a, roughness:.92, bumpMap:furBump, bumpScale:.03 });
-const furLight = new THREE.MeshStandardMaterial({ color:0xf6d3a4, roughness:.9, bumpMap:furBump, bumpScale:.025 });
+const furMat = new THREE.MeshStandardMaterial({ map:furMap, color:0xffffff, roughness:.92, bumpMap:furBump, bumpScale:.035 });
+const furLight = new THREE.MeshStandardMaterial({ map:furMap, color:0xffe9c8, roughness:.9, bumpMap:furBump, bumpScale:.03 });
 const pinkMat = new THREE.MeshStandardMaterial({ color:0xe79a9a, roughness:.8 });
 const gloveMat = new THREE.MeshStandardMaterial({ color:0xffd9a8, roughness:.75 });
 const visorMat = new THREE.MeshPhysicalMaterial({
@@ -379,7 +397,7 @@ const visorMat = new THREE.MeshPhysicalMaterial({
 });
 
 const hamster = new THREE.Group();
-const HAM_Y = -0.72;
+const HAM_Y = -0.47;
 
 /* --- torso: white suit over a round hamster body --- */
 const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.50,.50,10,20), suitMat);
@@ -387,11 +405,11 @@ torso.rotation.z = Math.PI/2; torso.position.set(0,2.24,0);
 torso.castShadow=true; hamster.add(torso);
 
 for(const dx of [-.30,.30]){
-  const band = new THREE.Mesh(new THREE.TorusGeometry(.51,.065,10,28), accentMat);
-  band.rotation.y = Math.PI/2; band.position.set(dx,2.24,0); hamster.add(band);
+  const band = new THREE.Mesh(new THREE.TorusGeometry(.47,.06,10,28), accentMat);
+  band.rotation.y = Math.PI/2; band.position.set(dx,2.30,0); hamster.add(band);
 }
 // collar
-const collar = new THREE.Mesh(new THREE.TorusGeometry(.30,.07,10,28), accentMat);
+const collar = new THREE.Mesh(new THREE.TorusGeometry(.29,.06,10,28), accentMat);
 collar.rotation.x = Math.PI/2; collar.position.set(0,2.72,.02); hamster.add(collar);
 const emblem = new THREE.Mesh(new THREE.CircleGeometry(.12,20), new THREE.MeshStandardMaterial({color:0x2ad8ff, emissive:0x22c8ff, emissiveIntensity:1.1}));
 emblem.position.set(0,2.46,.50); hamster.add(emblem);
@@ -411,6 +429,26 @@ muzzle.position.set(0,2.92,.36); muzzle.scale.set(1.15,.85,.8); hamster.add(muzz
 const nose = new THREE.Mesh(new THREE.SphereGeometry(.045,12,10), pinkMat);
 nose.position.set(0,2.98,.44); hamster.add(nose);
 // mouth
+// incisors — the detail that says 'rodent' instantly
+for(const sx of [-1,1]){
+  const tooth = new THREE.Mesh(new THREE.BoxGeometry(.036,.062,.02), new THREE.MeshStandardMaterial({color:0xfff8e6, roughness:.35}));
+  tooth.position.set(sx*.021,2.868,.445); hamster.add(tooth);
+}
+// eyelids
+for(const sx of [-1,1]){
+  const lid = new THREE.Mesh(new THREE.SphereGeometry(.062,14,10,0,Math.PI*2,0,Math.PI/2), furLight);
+  lid.position.set(sx*.135,3.118,.375); lid.rotation.x = Math.PI/2 + .25; hamster.add(lid);
+}
+// cheek fur tufts break the silhouette
+for(const sx of [-1,1]){
+  for(let i=0;i<3;i++){
+    const tuft = new THREE.Mesh(new THREE.ConeGeometry(.045,.15,6), furMat);
+    tuft.position.set(sx*(.30+i*.015), 2.99-i*.06, .20);
+    tuft.rotation.z = sx*(Math.PI/2 - .25 - i*.12);
+    tuft.rotation.x = -0.2;
+    hamster.add(tuft);
+  }
+}
 const smile = new THREE.Mesh(new THREE.TorusGeometry(.045,.008,6,16,Math.PI), new THREE.MeshStandardMaterial({color:0x8a5a4a, roughness:1}));
 smile.position.set(0,2.90,.43); smile.rotation.z=Math.PI; hamster.add(smile);
 
@@ -442,11 +480,11 @@ for(const sx of [-1,1]){
 const ears=[];
 for(const sx of [-1,1]){
   const pivot = new THREE.Group(); pivot.position.set(sx*.30,3.30,.02);
-  const ear = new THREE.Mesh(new THREE.SphereGeometry(.15,18,14), furMat);
-  ear.scale.set(1,1.05,.55); ear.position.set(0,.09,0); pivot.add(ear);
-  const inner = new THREE.Mesh(new THREE.SphereGeometry(.095,14,12), pinkMat);
-  inner.scale.set(1,1,.35); inner.position.set(0,.09,.055); pivot.add(inner);
-  pivot.rotation.z = -sx*0.22; pivot.rotation.x = -0.15;
+  const ear = new THREE.Mesh(new THREE.SphereGeometry(.175,20,16), furMat);
+  ear.scale.set(1,1.05,.5); ear.position.set(0,.10,0); pivot.add(ear);
+  const inner = new THREE.Mesh(new THREE.SphereGeometry(.115,16,12), pinkMat);
+  inner.scale.set(1,1,.32); inner.position.set(0,.10,.06); pivot.add(inner);
+  pivot.rotation.z = -sx*0.34; pivot.rotation.x = -0.18;
   hamster.add(pivot); ears.push(pivot);
 }
 
@@ -475,8 +513,8 @@ function makeLimb(parent, x,y,z, len, mat, thick){
 }
 const armL = makeLimb(hamster, -.48, 2.48, .12, .38, suitMat, .105);
 const armR = makeLimb(hamster,  .48, 2.46, -.04, .38, suitMat, .105);
-const legL = makeLimb(hamster, -.32, 1.86, .22, .62, suitMat, .15);
-const legR = makeLimb(hamster,  .34, 1.86, -.16, .62, suitMat, .15);
+const legL = makeLimb(hamster, -.34, 1.78, .24, .72, suitMat, .145);
+const legR = makeLimb(hamster,  .36, 1.78, -.18, .72, suitMat, .145);
 
 // fur paws
 for(const [pivot,sx] of [[armL,-1],[armR,1]]){
@@ -490,9 +528,9 @@ for(const [pivot,sx] of [[armL,-1],[armR,1]]){
 // boots with orange soles
 for(const [pivot] of [[legL],[legR]]){
   const boot = new THREE.Mesh(new THREE.BoxGeometry(.32,.22,.46), suitMat);
-  boot.position.set(0,-.62,.06); boot.castShadow=true; pivot.add(boot);
+  boot.position.set(0,-.72,.06); boot.castShadow=true; pivot.add(boot);
   const sole = new THREE.Mesh(new THREE.BoxGeometry(.33,.06,.48), new THREE.MeshStandardMaterial({color:0xff9b2f, roughness:.6}));
-  sole.position.set(0,-.74,.06); pivot.add(sole);
+  sole.position.set(0,-.84,.06); pivot.add(sole);
 }
 
 /* --- tail --- */
@@ -716,6 +754,8 @@ function tick(now){
   ears[0].rotation.z = 0.10 + s1*0.10;
   ears[1].rotation.z = -0.10 - s2*0.10;
   tail.rotation.x = Math.sin(phase)*0.25;
+  const jig = 1 + Math.abs(Math.sin(phase))*0.015;
+  hamster.scale.set(jig, 1/jig, jig);
 
   // blink every ~3 s
   if (now/1000 > blinkAt){ blinkAt = now/1000 + 2.6 + Math.random()*2.4; }
