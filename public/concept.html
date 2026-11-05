@@ -430,14 +430,16 @@ const nose = new THREE.Mesh(new THREE.SphereGeometry(.045,12,10), pinkMat);
 nose.position.set(0,2.98,.44); hamster.add(nose);
 // mouth
 // incisors — the detail that says 'rodent' instantly
+const gum = new THREE.Mesh(new THREE.BoxGeometry(.10,.045,.03), new THREE.MeshStandardMaterial({color:0x5e3a34, roughness:.9}));
+gum.position.set(0,2.845,.475); hamster.add(gum);
 for(const sx of [-1,1]){
-  const tooth = new THREE.Mesh(new THREE.BoxGeometry(.036,.062,.02), new THREE.MeshStandardMaterial({color:0xfff8e6, roughness:.35}));
-  tooth.position.set(sx*.021,2.868,.445); hamster.add(tooth);
+  const tooth = new THREE.Mesh(new THREE.BoxGeometry(.034,.070,.028), new THREE.MeshStandardMaterial({color:0xfffbee, roughness:.3}));
+  tooth.position.set(sx*.020,2.835,.492); hamster.add(tooth);
 }
 // eyelids
 for(const sx of [-1,1]){
-  const lid = new THREE.Mesh(new THREE.SphereGeometry(.062,14,10,0,Math.PI*2,0,Math.PI/2), furLight);
-  lid.position.set(sx*.135,3.118,.375); lid.rotation.x = Math.PI/2 + .25; hamster.add(lid);
+  const lid = new THREE.Mesh(new THREE.SphereGeometry(.070,16,10,0,Math.PI,0,Math.PI/2), furLight);
+  lid.position.set(sx*.135,3.118,.386); lid.rotation.set(Math.PI/2 + .55, 0, Math.PI/2); lid.scale.set(1.15,.85,1); hamster.add(lid);
 }
 // cheek fur tufts break the silhouette
 for(const sx of [-1,1]){
@@ -450,7 +452,7 @@ for(const sx of [-1,1]){
   }
 }
 const smile = new THREE.Mesh(new THREE.TorusGeometry(.045,.008,6,16,Math.PI), new THREE.MeshStandardMaterial({color:0x8a5a4a, roughness:1}));
-smile.position.set(0,2.90,.43); smile.rotation.z=Math.PI; hamster.add(smile);
+smile.position.set(0,2.885,.455); smile.rotation.z=Math.PI; hamster.add(smile);
 
 // eyes with shine
 const eyes=[];
@@ -468,10 +470,10 @@ for(const sx of [-1,1]){
 const whiskerMat = new THREE.MeshBasicMaterial({ color:0xfff4e6, transparent:true, opacity:.95 });
 for(const sx of [-1,1]){
   for(let i=0;i<3;i++){
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(.007,.007,.34,5), whiskerMat);
-    w.position.set(sx*.17, 2.95+ (i-1)*.05, .46);
-    w.rotation.z = Math.PI/2 * sx * 0.92;
-    w.rotation.x = (i-1)*0.18;
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(.009,.006,.38,5), whiskerMat);
+    w.position.set(sx*.215, 2.945+ (i-1)*.05, .445);
+    w.rotation.z = Math.PI/2 * sx * 0.99;
+    w.rotation.x = (i-1)*0.14 - 0.05;
     hamster.add(w);
   }
 }
