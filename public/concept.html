@@ -433,23 +433,13 @@ nose.position.set(0,2.98,.44); hamster.add(nose);
 const gum = new THREE.Mesh(new THREE.BoxGeometry(.10,.045,.03), new THREE.MeshStandardMaterial({color:0x5e3a34, roughness:.9}));
 gum.position.set(0,2.845,.475); hamster.add(gum);
 for(const sx of [-1,1]){
-  const tooth = new THREE.Mesh(new THREE.BoxGeometry(.034,.070,.028), new THREE.MeshStandardMaterial({color:0xfffbee, roughness:.3}));
-  tooth.position.set(sx*.020,2.835,.492); hamster.add(tooth);
+  const tooth = new THREE.Mesh(new THREE.SphereGeometry(.030,12,10), new THREE.MeshStandardMaterial({color:0xfffbee, roughness:.3}));
+  tooth.position.set(sx*.020,2.835,.492); tooth.scale.set(.9,1.5,.7); hamster.add(tooth);
 }
 // eyelids
 for(const sx of [-1,1]){
   const lid = new THREE.Mesh(new THREE.SphereGeometry(.070,16,10,0,Math.PI,0,Math.PI/2), furLight);
   lid.position.set(sx*.135,3.118,.386); lid.rotation.set(Math.PI/2 + .55, 0, Math.PI/2); lid.scale.set(1.15,.85,1); hamster.add(lid);
-}
-// cheek fur tufts break the silhouette
-for(const sx of [-1,1]){
-  for(let i=0;i<3;i++){
-    const tuft = new THREE.Mesh(new THREE.ConeGeometry(.045,.15,6), furMat);
-    tuft.position.set(sx*(.30+i*.015), 2.99-i*.06, .20);
-    tuft.rotation.z = sx*(Math.PI/2 - .25 - i*.12);
-    tuft.rotation.x = -0.2;
-    hamster.add(tuft);
-  }
 }
 const smile = new THREE.Mesh(new THREE.TorusGeometry(.045,.008,6,16,Math.PI), new THREE.MeshStandardMaterial({color:0x8a5a4a, roughness:1}));
 smile.position.set(0,2.885,.455); smile.rotation.z=Math.PI; hamster.add(smile);
@@ -470,8 +460,8 @@ for(const sx of [-1,1]){
 const whiskerMat = new THREE.MeshBasicMaterial({ color:0xfff4e6, transparent:true, opacity:.95 });
 for(const sx of [-1,1]){
   for(let i=0;i<3;i++){
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(.009,.006,.38,5), whiskerMat);
-    w.position.set(sx*.215, 2.945+ (i-1)*.05, .445);
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(.005,.004,.30,5), whiskerMat);
+    w.position.set(sx*.19, 2.945+ (i-1)*.05, .455);
     w.rotation.z = Math.PI/2 * sx * 0.99;
     w.rotation.x = (i-1)*0.14 - 0.05;
     hamster.add(w);
