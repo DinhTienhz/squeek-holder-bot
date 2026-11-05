@@ -148,7 +148,7 @@ export function walletAdded(lang: Lang, address: string, label: string | null): 
 export function statusMsg(lang: Lang, s: {
   coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number;
   settledThroughRound: number; settledHeight?: number; minted?: bigint; cap?: bigint;
-}, ageSec: number): string {
+}, ageSec: number, extra: string[] = []): string {
   const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
   const state = spinning
     ? `🏃 ${lang === 'en' ? 'running' : 'đang chạy'} · ${fmtNum(s.rpmMilli / 1000, lang, 2)} rpm`
@@ -164,6 +164,7 @@ export function statusMsg(lang: Lang, s: {
     const share = (Number(s.minted) / Number(s.cap)) * 100;
     lines.push(`💰 <b>SQK minted</b> ${fmtInt(s.minted / 10n ** 18n, lang)} · ${fmtNum(share, lang, 2)}%`);
   }
+  if (extra.length) lines.push(...extra);
   lines.push(`<i>${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
   return lines.join('\n');
 }

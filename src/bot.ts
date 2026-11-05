@@ -189,7 +189,6 @@ export function createBot(cfg: Config) {
       const age = Math.max(0, Math.round((Date.now() - stamp) / 1000));
       const minted = eco?.supply?.miningMintedBaseUnits ? BigInt(eco.supply.miningMintedBaseUnits) : undefined;
       const cap = eco?.supply?.capBaseUnits ? BigInt(eco.supply.capBaseUnits) : undefined;
-      const text = statusMsg(langOf(u), { ...s, minted, cap }, age);
       const staleAfter = s.staleAfterSeconds || 120;
       const spinning = isHamsterRunning(s.coreStatus, s.rpmMilli);
       const note = age > staleAfter
@@ -206,12 +205,13 @@ export function createBot(cfg: Config) {
         const staking = eco?.deployment?.components?.staking?.address as string | undefined;
         const nft = eco?.deployment?.components?.collection?.address as string | undefined;
         if (cfg.rpcUrl && staking && nft) {
-          const t = await stakingTotals(cfg.rpcUrl, staking, nft);
-          stake = `\n🖼 <b>${langOf(u) === 'en' ? 'NFTs staked' : 'NFT stake'}</b> · ${fmtInt(t.nftsStaked, langOf(u))}`
-                + `\n💰 <b>${langOf(u) === 'en' ? 'SQK staked' : 'SQK stake'}</b> · ${fmtSqk(t.sqkStaked, langOf(u))}`;
+          const totals = await stakingTotals(cfg.rpcUrl, staking, nft);
+          stake = `🖼 <b>${langOf(u) === 'en' ? 'NFTs staked' : 'NFT stake'}</b> · ${fmtInt(totals.nftsStaked, langOf(u))}`
+                + `\n💰 <b>${langOf(u) === 'en' ? 'SQK staked' : 'SQK stake'}</b> · ${fmtSqk(totals.sqkStaked, langOf(u))}`;
         }
       } catch { /* keep the status without staking totals */ }
-      await reply(ctx, text + stake + (note ? `\n${note}` : ''));
+      const text = statusMsg(langOf(u), { ...s, minted, cap }, age, stake ? stake.split('\n') : []);
+      await reply(ctx, text + (note ? `\n${note}` : ''));
     } catch {
       await reply(ctx, tr(langOf(u), 'apiDown'));
     }
