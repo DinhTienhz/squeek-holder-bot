@@ -264,6 +264,10 @@ export function createBot(cfg: Config) {
 
         const plan = optimizeClaim(per);
         sum += plan.total;
+        if (plan.total === 0n) {
+          parts.push(`💰 <b>${addrShort(addr)}</b> · 0 SQK\n<i>${lang === 'en' ? 'nothing to claim yet' : 'chưa có gì để claim'}</i>`);
+          continue;
+        }
         parts.push(claimMsg(lang, {
           address: addr, total: plan.total, dust: plan.dust,
           tokens: plan.tokens.length, skipped: plan.skipped, batches: plan.batches, approx,

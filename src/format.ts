@@ -288,7 +288,12 @@ export function alertBlock(lang: Lang, p: {
 const ACTIVITY_KINDS: Record<string, { en: string; vi: string }> = {
   nft_deposited: { en: 'Squeek received', vi: 'Nhận Squeek' },
   nft_withdrawn: { en: 'Squeek sent', vi: 'Gửi Squeek' },
+  nft_transferred: { en: 'Squeek transferred', vi: 'Chuyển Squeek' },
   nft_merged: { en: 'Squeek merged', vi: 'Merge Squeek' },
+  nft_claimed: { en: 'Squeek claimed', vi: 'Nhận Squeek (claim)' },
+  sqk_staked: { en: 'SQK staked', vi: 'Stake SQK' },
+  sqk_unstaked: { en: 'SQK unstaked', vi: 'Unstake SQK' },
+  rewards_staked: { en: 'Rewards staked', vi: 'Stake phần thưởng' },
   claimed: { en: 'SQK claimed', vi: 'Đã claim SQK' },
   rewards_claimed: { en: 'Rewards claimed', vi: 'Đã claim phần thưởng' },
   claim: { en: 'SQK claimed', vi: 'Đã claim SQK' },
@@ -305,7 +310,7 @@ export function activityList(lang: Lang, p: {
   address: string; items: { kind: string; amount: bigint | null; tx?: string; at?: string }[];
 }): string {
   const vi = lang !== 'en';
-  const head = `🔔 <b>${vi ? 'Hoạt động ví' : 'Wallet activity'}</b> · ${addrShort(p.address)}`;
+  const head = `🔔 <b>${vi ? 'Hoạt động ví' : 'Wallet activity'}</b> · ${addrShort(p.address)} · UTC`;
   if (!p.items.length) return [head, '', `<i>${vi ? 'chưa có sự kiện' : 'no events yet'}</i>`].join('\n');
   const rows = p.items.map((i) => {
     const label = esc(activityLabel(lang, i.kind));

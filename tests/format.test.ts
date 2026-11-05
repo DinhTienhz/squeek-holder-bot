@@ -125,6 +125,9 @@ test('activityLabel: known kinds are translated, unknown pass through', async ()
   assert.equal(activityLabel('en', 'nft_deposited'), 'Squeek received');
   assert.equal(activityLabel('vi', 'nft_deposited'), 'Nhận Squeek');
   assert.equal(activityLabel('en', 'nft_merged'), 'Squeek merged');
+  assert.equal(activityLabel('vi', 'nft_claimed'), 'Nhận Squeek (claim)');
+  assert.equal(activityLabel('en', 'nft_transferred'), 'Squeek transferred');
+  assert.equal(activityLabel('vi', 'sqk_staked'), 'Stake SQK');
   assert.equal(activityLabel('en', 'something_new'), 'something_new');
 });
 
