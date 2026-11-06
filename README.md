@@ -9,7 +9,7 @@ One repo, two products for [Squeekchain](https://squeekchain.com) on Sepolia:
 | Product | What it does | Live |
 |---|---|---|
 | **Telegram bot** | Alerts and tools for Squeekchain holders | [@SqueekHolder_Bot](https://t.me/SqueekHolder_Bot) |
-| **OTC market** | Non-custodial NFT trading — list, buy, bid | <https://squeeksotc.bid/otc> |
+| **OTC market** | Non-custodial NFT trading — list, buy, bid | <https://squeeksotc.bid/> |
 
 Landing page for both: <https://squeek-holder-bot.chainn.workers.dev/>
 
@@ -25,7 +25,7 @@ Landing page for both: <https://squeek-holder-bot.chainn.workers.dev/>
 
 ## OTC market
 
-Non-custodial NFT trading on Sepolia: **<https://squeeksotc.bid/otc>**
+Non-custodial NFT trading on Sepolia: **<https://squeeksotc.bid/>**
 
 The market is multi-collection by design. Each collection trades through its own escrow,
 so new collections can be onboarded without touching the markets already live.

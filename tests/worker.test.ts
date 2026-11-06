@@ -20,28 +20,34 @@ const env = {
 
 const get = (url) => worker.fetch(new Request(url), env);
 
-test('otc host: / redirects to /otc', async () => {
-  const r = await get('https://squeeksotc.bid/');
-  assert.equal(r.status, 302);
-  assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/otc');
+test('otc host: the market is served at the root', async () => {
+  const seen: string[] = [];
+  const env2 = { ASSETS: { fetch: async (req: Request) => {
+    seen.push(new URL(req.url).pathname);
+    return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+  } } };
+  const r = await worker.fetch(new Request('https://squeeksotc.bid/'), env2);
+  assert.equal(r.status, 200);
+  assert.deepEqual(seen, ['/otc.html']);
+  assert.match(r.headers.get('content-security-policy') || '', /default-src 'self'/);
 });
 
-test('otc host: the market page is served with security headers', async () => {
-  const r = await get('https://squeeksotc.bid/otc');
-  assert.equal(r.status, 200);
-  assert.match(r.headers.get('content-security-policy') || '', /default-src 'self'/);
+test('otc host: /otc redirects to the root and keeps the query', async () => {
+  const r = await get('https://squeeksotc.bid/otc?c=0xabc');
+  assert.equal(r.status, 301);
+  assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/?c=0xabc');
 });
 
 test('otc host: the landing page does not exist there', async () => {
   const r = await get('https://squeeksotc.bid/index.html');
-  assert.equal(r.status, 302);
-  assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/otc');
+  assert.equal(r.status, 301);
+  assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/');
 });
 
 test('otc host: unknown pages return the market 404', async () => {
   const r = await get('https://squeeksotc.bid/claim');
   assert.equal(r.status, 404);
-  assert.match(await r.text(), /OTC market/);
+  assert.match(await r.text(), /market/);
 });
 
 test('otc host: static images still load', async () => {
@@ -58,7 +64,7 @@ test('bot host: landing works and /otc redirects to the market domain', async ()
   assert.equal((await get('https://squeek-holder-bot.chainn.workers.dev/')).status, 200);
   const r = await get('https://squeek-holder-bot.chainn.workers.dev/otc');
   assert.equal(r.status, 302);
-  assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/otc');
+  assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/');
 });
 
 test('bot host: 404 page is the landing one', async () => {

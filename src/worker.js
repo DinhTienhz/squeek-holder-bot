@@ -42,7 +42,7 @@ const OTC_NOT_FOUND = `<!doctype html>
  h1{font-size:54px;margin:0 0 8px;color:#c9f24d}
  a{color:#7de2d1;text-decoration:none}
 </style></head>
-<body><div class="box"><h1>404</h1><p>Nothing here. Go to the <a href="/otc">OTC market</a>.</p></div></body></html>`;
+<body><div class="box"><h1>404</h1><p>Nothing here. Back to the <a href="/">market</a>.</p></div></body></html>`;
 
 function isAssetPath(path) {
   return isImage(path) || /\.(css|js|map|woff2?|txt)$/i.test(path);
@@ -109,21 +109,25 @@ export default {
     const onOtcHost = OTC_HOSTS.has(url.hostname);
 
     if (onOtcHost) {
-      // The market host only serves the market: / redirects there, other pages 404.
-      if (url.pathname === '/' || url.pathname === '/index.html') {
-        return Response.redirect(url.origin + '/otc', 302);
+      // The market lives at the root of its own domain; /otc is kept as a redirect
+      // so old links (and the bot host) keep working.
+      if (/^\/otc(\.html)?$/.test(url.pathname)) {
+        return Response.redirect(url.origin + '/' + url.search, 301);
+      }
+      if (url.pathname === '/index.html') {
+        return Response.redirect(url.origin + '/', 301);
       }
       if (url.pathname === '/api/staking-totals') {
         return new Response('Not found', { status: 404, headers: SECURITY_HEADERS });
       }
-      if (!/^\/otc(\.html)?$/.test(url.pathname) && !isAssetPath(url.pathname)) {
+      if (url.pathname !== '/' && !isAssetPath(url.pathname)) {
         return new Response(OTC_NOT_FOUND, {
           status: 404,
           headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
         });
       }
     } else if (OTC_ORIGIN && /^\/otc(\.html)?$/.test(url.pathname)) {
-      return Response.redirect(OTC_ORIGIN + '/otc', 302);
+      return Response.redirect(OTC_ORIGIN + '/', 302);
     }
 
     if (url.pathname === '/api/staking-totals') {
@@ -142,7 +146,9 @@ export default {
 
     // Fetch assets by path on a synthetic origin: fetching the original URL while a
     // custom-domain route exists can loop back into this Worker (Cloudflare 1042).
-    const assetReq = new Request('https://assets.local' + url.pathname + url.search, request);
+    // On the market host the root path serves the market page.
+    const assetPath = onOtcHost && url.pathname === '/' ? '/otc.html' : url.pathname;
+    const assetReq = new Request('https://assets.local' + assetPath + url.search, request);
     const res = await env.ASSETS.fetch(assetReq);
 
     if (res.status === 404 && !isImage(url.pathname)) {
