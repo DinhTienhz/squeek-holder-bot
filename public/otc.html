@@ -517,7 +517,7 @@
     <div class="bid-row">
       <div class="field">
         <label for="bidAmount">Bid (ETH)</label>
-        <input id="bidAmount" placeholder="e.g. 0.08" inputmode="decimal" autocomplete="off">
+        <input id="bidAmount" placeholder="e.g. 0.08" inputmode="decimal" autocomplete="off" aria-describedby="bidHint">
       </div>
       <button id="placeBid" class="primary" type="button" disabled>Place bid</button>
     </div>
@@ -880,7 +880,12 @@
     const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
     return JSON.parse(new TextDecoder().decode(bytes));
   }
-  function toWei(s) {
+  function toWei(input) {
+    let s = String(input).trim().replace(/\s+/g, '');
+    // accept Vietnamese/European decimals: 0,1 and 1.000,5
+    if (s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    }
     if (!/^\d*\.?\d*$/.test(s) || s === '' || s === '.') return null;
     const [a, b = ''] = s.split('.');
     if (b.length > 18) return null;
