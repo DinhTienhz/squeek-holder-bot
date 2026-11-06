@@ -46,7 +46,7 @@
   .hidden{display:none !important}
 
   /* ---------- shell ---------- */
-  .wrap{margin:0 auto;padding:0 26px 70px;max-width:1560px}
+  .wrap{margin:0 auto;padding:0 26px 70px}
   header.site{
     position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:22px;
     padding:14px 0;margin-bottom:8px;
@@ -363,7 +363,7 @@
   footer{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--dim);font-size:11.5px;
     padding:26px 2px 0;border-top:1px solid var(--line);margin-top:26px}
   footer a{color:var(--muted)}
-  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0 6px}
+  .how{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:20px 0 6px}
   .step{border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(255,255,255,.02)}
   .step .n{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:900;
     color:#0a0a10;background:var(--accent);margin-bottom:9px}
@@ -592,9 +592,10 @@
   </div>
 
   <div class="how">
-    <div class="step"><div class="n">1</div><h3>List</h3><p>Approve the escrow for one token, then list it. The Squeek leaves your wallet and waits inside the contract.</p></div>
-    <div class="step"><div class="n">2</div><h3>Buy</h3><p>A buyer sends the exact price. The contract transfers the NFT and pays you in the same transaction.</p></div>
-    <div class="step"><div class="n">3</div><h3>Cancel anytime</h3><p>Change your mind? The seller can withdraw the Squeek with one transaction while it is still listed.</p></div>
+    <div class="step"><div class="n">1</div><h3>List</h3><p>Approve the escrow and set a price. The Squeek waits inside the contract until it sells or you pull it back.</p></div>
+    <div class="step"><div class="n">2</div><h3>Buy</h3><p>The buyer pays the price plus the 0.1% fee; the NFT and the ETH move in the same transaction.</p></div>
+    <div class="step"><div class="n">3</div><h3>Bid</h3><p>Lock ETH at any price for the whole collection. The earliest bid at a level is served first, and any holder can accept — the seller pays the 0.1%.</p></div>
+    <div class="step"><div class="n">4</div><h3>Cancel anytime</h3><p>Sellers can withdraw a listed Squeek; bidders can cancel a bid and get their ETH back.</p></div>
   </div>
 
   <footer>
