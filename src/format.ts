@@ -291,6 +291,7 @@ export function alertHamster(
   lang: Lang,
   s: { coreStatus: string; rpmMilli: number; blockHeight: number; blockProgress: number },
   runMs?: number | null,
+  endedAt?: number,
 ): string {
   const vi = lang !== 'en';
   const live = `🔴 <a href="https://x.com/squeekchain">${vi ? 'Xem live trên X' : 'Watch live on X'}</a>`;
@@ -302,8 +303,9 @@ export function alertHamster(
     ].join('\n');
   }
   const pct = fmtNum((s.blockProgress / 1e9) * 100, lang, 1);
+  const stopped = endedAt ? ` · ${vi ? 'dừng' : 'stopped'} ${new Date(endedAt).toISOString().slice(11, 16)} UTC` : '';
   const ran = runMs && runMs > 0
-    ? (vi ? ` (chạy ${formatDuration(lang, runMs)})` : ` (ran ${formatDuration(lang, runMs)})`)
+    ? (vi ? ` (chạy ${formatDuration(lang, runMs)}${stopped})` : ` (ran ${formatDuration(lang, runMs)}${stopped})`)
     : '';
   return [
     `😴 <b>${vi ? 'Hamster đã dừng' : 'Hamster stopped'}</b>${ran}`,

@@ -93,7 +93,7 @@ async function pollStatus(): Promise<void> {
       for (const u of usersWith('hamster_alerts')) {
         const user = getUser(db, u.tg_id);
         if (!user) continue;
-        await notify(u.tg_id, alertHamster(langOf(user), s, runMs));
+        await notify(u.tg_id, alertHamster(langOf(user), s, runMs, running ? undefined : endMs));
       }
     }
     if (++settlementTick % 8 === 0) await pollSettlements();
