@@ -28,7 +28,7 @@ test('otc host: the market is served at the root', async () => {
   } } };
   const r = await worker.fetch(new Request('https://squeeksotc.bid/'), env2);
   assert.equal(r.status, 200);
-  assert.deepEqual(seen, ['/otc.html']);
+  assert.deepEqual(seen, ['/otc']);
   assert.match(r.headers.get('content-security-policy') || '', /default-src 'self'/);
 });
 

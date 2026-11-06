@@ -146,8 +146,9 @@ export default {
 
     // Fetch assets by path on a synthetic origin: fetching the original URL while a
     // custom-domain route exists can loop back into this Worker (Cloudflare 1042).
-    // On the market host the root path serves the market page.
-    const assetPath = onOtcHost && url.pathname === '/' ? '/otc.html' : url.pathname;
+    // On the market host the root path serves the market page. Fetch it as /otc:
+    // asking for /otc.html makes the assets layer 307-redirect to the clean URL.
+    const assetPath = onOtcHost && url.pathname === '/' ? '/otc' : url.pathname;
     const assetReq = new Request('https://assets.local' + assetPath + url.search, request);
     const res = await env.ASSETS.fetch(assetReq);
 
