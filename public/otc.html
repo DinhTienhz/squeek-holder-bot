@@ -443,7 +443,7 @@
     body.is-market .panel-head{flex:none;margin-bottom:8px}
     body.is-market .panel-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:4px;padding-bottom:4px}
     body.is-market .sell-grid{grid-template-columns:minmax(0,1fr) 190px;gap:14px}
-    body.is-market .preview-img{max-height:130px}
+    body.is-market .preview-img{max-height:130px;aspect-ratio:auto;height:130px}
     body.is-market .card-item.promo{display:none}
     body.is-market .grid{gap:10px}
   }
@@ -2191,7 +2191,7 @@
   if (auto) {
     bindProvider(auto);
     auto.request({ method: 'eth_accounts' }).then((accs) => {
-      if (accs && accs[0]) { account = accs[0]; paintAccount(); }
+      if (accs && accs[0]) { account = accs[0]; paintAccount(); loadOwned(); }
       paintNetwork();
     }).catch(() => {});
   }
