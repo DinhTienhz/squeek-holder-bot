@@ -1,13 +1,27 @@
-# Squeek Holder Bot
+# Squeek Holder
 
 [![test](https://github.com/DinhTienhz/squeek-holder-bot/actions/workflows/test.yml/badge.svg)](https://github.com/DinhTienhz/squeek-holder-bot/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![node](https://img.shields.io/badge/node-%E2%89%A524-brightgreen.svg)](package.json)
 
-Multi-user Telegram bot for [Squeekchain](https://squeekchain.com) holders (Sepolia testnet).
-Anyone who knows the bot's username can `/start` — no invite needed.
+One repo, two products for [Squeekchain](https://squeekchain.com) on Sepolia:
 
-**Bot:** [@SqueekHolder_Bot](https://t.me/SqueekHolder_Bot) · **Landing page:** <https://squeek-holder-bot.chainn.workers.dev/> · **OTC market:** <https://squeeksotc.bid/otc>
+| Product | What it does | Live |
+|---|---|---|
+| **Telegram bot** | Alerts and tools for Squeekchain holders | [@SqueekHolder_Bot](https://t.me/SqueekHolder_Bot) |
+| **OTC market** | Non-custodial NFT trading — list, buy, bid | <https://squeeksotc.bid/otc> |
+
+Landing page for both: <https://squeek-holder-bot.chainn.workers.dev/>
+
+## Contents
+
+- [OTC market](#otc-market)
+- [Telegram bot](#telegram-bot)
+- [Running](#running)
+- [Tests](#tests)
+- [Architecture](#architecture)
+- [Deployment](#deployment)
+- [Known limitations](#known-limitations)
 
 ## OTC market
 
@@ -44,7 +58,7 @@ no owner, no pause switch and no upgrade path.
 
 ### Adding a collection
 
-1. Deploy `SqueekOTC` with the new ERC-721 address as the constructor argument.
+1. Deploy the escrow for the new ERC-721 address (the collection is a constructor argument).
 2. Add an entry to the `MARKETS` registry in `public/otc.html`:
 
 ```js
@@ -61,13 +75,16 @@ no owner, no pause switch and no upgrade path.
 The collections row and the escrow switch on the page are driven by that list, so one entry is
 all it takes for the market to list, price and settle a new collection.
 
-### Contract tests
+The escrow itself is tested outside this repo with a Hardhat suite against a mock ERC-721
+(list/buy/cancel, bids, FIFO ordering, fee maths, refunds, approvals) plus a gas test asserting
+that cancelled bids do not inflate the cost of accepting the head bid.
 
-Hardhat suite against a mock ERC-721 covering list/buy/cancel, bids, FIFO ordering, fee maths,
-refunds, approvals and view functions — plus a gas test asserting that cancelled bids do not
-inflate the cost of accepting the head bid.
+## Telegram bot
 
-## Features
+Multi-user bot for Squeekchain holders (Sepolia testnet). Anyone who knows the username can
+`/start` — no invite needed.
+
+### Features
 
 1. **Claimable above threshold** — DM when unclaimed SQK is at or above the threshold; repeats only when it doubles or after 6 hours (anti-spam)
 2. **Claim optimizer** — `/claim`: batches of up to 32 tokens, total, dust, number of transactions
@@ -80,7 +97,7 @@ inflate the cost of accepting the head bid.
 
 Also: **English by default**, switch to Vietnamese with `/lang vi`; `/privacy`, `/delete`; admin `/stats`, `/ban`, `/unban`.
 
-## Commands
+### Commands
 
 | Command | What it does |
 |---|---|
@@ -101,7 +118,7 @@ Also: **English by default**, switch to Vietnamese with `/lang vi`; `/privacy`, 
 | `/lang vi\|en` | switch language |
 | `/privacy`, `/delete` | data handling |
 
-## Run
+## Running
 
 ```bash
 npm ci
@@ -115,7 +132,7 @@ Without a token the bot runs in `DRY_RUN` (still polls data, sends nothing):
 npm run dry
 ```
 
-## Test
+## Tests
 
 ```bash
 npm test
@@ -125,9 +142,12 @@ npm test
 (HTML escaping, en/vi number locale), rate-limit queue, quiet hours, database (wallet limits,
 dedupe, activity, meta, wipe) and worker host routing for the OTC domain.
 
+The bot is also exercised end to end without a Telegram user: `node scripts/e2e-bot.ts`.
+
 ## Architecture
 
 ```
+Bot
 src/api.ts     Squeekchain API client (ETag, 429/5xx backoff, timeout)
 src/format.ts  all user-facing copy (HTML, en/vi locale) — pure, tested
 src/rules.ts   pure: evaluateAccount / evaluateHamster / optimizeClaim / planLadder
@@ -135,13 +155,24 @@ src/db.ts      node:sqlite (users, wallets, sent) — no native dependency
 src/queue.ts   1 message/second per chat + quiet hours
 src/bot.ts     grammY handlers + vi/en i18n
 src/chain.ts   claimable() per token via multicall (fail-soft to the API)
-src/worker.js  Cloudflare Worker: static site + OTC host routing
 src/index.ts   poll: status 15 s, wallets 45 s, digest 60 s, healthcheck 5 min
+
+Web
+src/worker.js  Cloudflare Worker: static site + OTC host routing
+public/        landing page, /otc market, assets
 ```
 
-Data comes from the public API at `api.squeekchain.com/v1` (`/status`, `/accounts/{address}`).
+The bot reads the public API at `api.squeekchain.com/v1` (`/status`, `/accounts/{address}`).
 No private keys are read and no transactions are signed — every action is a link into the
-official app.
+official app. The market talks to the chain straight from the browser; it holds no keys either.
+
+## Deployment
+
+The Worker serves the landing page on `squeek-holder-bot.chainn.workers.dev` and the market on
+`squeeksotc.bid`. Custom domains are managed in the Cloudflare dashboard, not in
+`wrangler.toml` — a `routes` entry breaks the workers.dev host with error 1042.
+
+Verify a deployment: `./scripts/smoke.sh` (12 checks: page, headers, assets, 404). See [DEPLOY.md](DEPLOY.md).
 
 ## Known limitations
 
@@ -149,17 +180,6 @@ official app.
 - No Discord support
 - Regular alerts are dropped (not queued) during quiet hours; the digest still goes out
 - Escrows are Sepolia-only; each one serves a single collection, so every new collection needs its own deployment
-
-## Static site
-
-`public/` is a static site (dark landing page with a live Squeekchain panel) served by
-`src/worker.js`. The market lives on its own host, `squeeksotc.bid`; custom domains are
-managed in the Cloudflare dashboard, not in `wrangler.toml` (a `routes` entry breaks the
-workers.dev host with error 1042).
-
-Exercise every bot command without a Telegram user: `node scripts/e2e-bot.ts`.
-
-Verify the deployment: `./scripts/smoke.sh` (12 checks: page, headers, assets, 404). See [DEPLOY.md](DEPLOY.md).
 
 ## License
 
