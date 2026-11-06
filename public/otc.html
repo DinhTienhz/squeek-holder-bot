@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Squeek OTC — escrowed Squeek NFT trades</title>
-<meta name="description" content="Trade Squeek NFTs on Sepolia with escrow: the NFT is held by the contract until the ETH arrives. One atomic transaction, 0% fee, no admin.">
+<meta name="description" content="Trade Squeek NFTs on Sepolia with escrow: the NFT is held by the contract until the ETH arrives. One atomic transaction, 0.1% fee, no admin.">
 <meta property="og:title" content="Squeek OTC — escrowed Squeek NFT trades">
-<meta property="og:description" content="The Squeek sits in escrow until the ETH arrives. One atomic transaction, 0% fee, no admin.">
+<meta property="og:description" content="The Squeek sits in escrow until the ETH arrives. One atomic transaction, 0.1% fee, no admin.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://squeek-holder-bot.chainn.workers.dev/otc">
 <meta property="og:image" content="https://squeek-holder-bot.chainn.workers.dev/og.png">
@@ -220,6 +220,14 @@
   .bid-box{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
   .bid-k{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
   .bid-box b{color:var(--accent)}
+  .bid-book{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+  .bid-opt{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;
+    padding:8px 10px;background:#0c0d13;font-size:12.5px;margin-bottom:6px}
+  .bid-opt .grow{flex:1;min-width:0}
+  .bid-opt b{color:var(--accent)}
+  .bid-opt span{color:var(--muted);font-size:11px}
+  .bid-opt button{padding:5px 12px;font-size:11.5px;height:auto}
+  .fee-line{font-size:10.5px;color:var(--muted);margin-top:6px}
   .my-bids{margin-top:12px;display:flex;flex-direction:column;gap:6px}
   .my-bid{display:flex;align-items:center;gap:10px;font-size:12.5px;border:1px solid var(--line);
     border-radius:9px;padding:8px 10px;background:#0c0d13}
@@ -329,11 +337,11 @@
   <section class="hero">
     <div class="eyebrow"><span class="pulse"></span> Squeekchain · Sepolia</div>
     <h1>Buy and sell Squeeks <em>without trusting anyone.</em></h1>
-    <p class="lead">The Squeek sits in escrow until the ETH arrives. Payment and transfer settle in the same transaction — no middleman, no “send first”, no fee.</p>
+    <p class="lead">The Squeek sits in escrow until the ETH arrives. Payment and transfer settle in the same transaction — no middleman, no “send first”, a flat 0.1% fee.</p>
     <div class="chips">
       <span class="chip">🔒 <b>NFT held by escrow</b></span>
       <span class="chip">⚡ <b>Atomic swap</b></span>
-      <span class="chip">0% fee</span>
+      <span class="chip">0.1% fee</span>
       <span class="chip">No admin key</span>
     </div>
   </section>
@@ -405,7 +413,7 @@
   <section class="panel" aria-labelledby="sell-title">
     <div class="panel-head">
       <div><h2 id="sell-title">List</h2></div>
-      <div class="note">NFT only · 0% fee · you receive the full price</div>
+      <div class="note">NFT only · buyer pays 0.1% · you receive the full price</div>
     </div>
     <div class="sell-grid">
       <div>
@@ -423,8 +431,8 @@
         <button id="list" class="primary wide" type="button" disabled>Approve &amp; list</button>
         <div class="step-note" id="listStatus"></div>
         <div id="bidBox" class="bid-box hidden">
-          <div><span class="bid-k">Highest bid</span> <b id="bidView">—</b></div>
-          <button id="acceptBid" class="primary wide" type="button">Approve &amp; accept bid</button>
+          <div class="bid-k">Collection bids — pick a price</div>
+          <div id="bidLevels"></div>
         </div>
       </div>
       <div class="preview">
@@ -448,16 +456,13 @@
     </div>
     <div class="bid-row">
       <div class="field">
-        <label for="bidId">Token ID</label>
-        <input id="bidId" placeholder="e.g. 4821" inputmode="numeric" autocomplete="off">
-      </div>
-      <div class="field">
         <label for="bidAmount">Bid (ETH)</label>
         <input id="bidAmount" placeholder="e.g. 0.08" inputmode="decimal" autocomplete="off">
       </div>
       <button id="placeBid" class="primary" type="button" disabled>Place bid</button>
     </div>
-    <div class="calc" id="bidNote">Your ETH stays in escrow until the owner accepts or you cancel.</div>
+    <div class="calc" id="bidNote">Bids are for the whole collection. Your ETH stays in escrow until a seller accepts or you cancel.</div>
+    <div class="bid-book" id="bidBook"></div>
     <div class="my-bids" id="myBids"></div>
   </section>
 
@@ -493,7 +498,7 @@
   </div>
 
   <footer>
-    <div>Non-custodial · escrow has no owner and no fee · testnet only</div>
+    <div>Non-custodial · escrow has no owner · 0.1% fee · testnet only</div>
     <div><a href="/">Squeek Holder</a> · <a href="https://t.me/SqueekHolder_Bot">@SqueekHolder_Bot</a></div>
   </footer>
 </div>
@@ -555,9 +560,10 @@
     list: '0x50fd7367', buy: '0xd96a094a', cancel: '0x40e58ee5', all: '0x10c4e8b0',
     ownerOf: '0x6352211e', getApproved: '0x081812fc', approve: '0x095ea7b3',
     tokenURI: '0xc87b56dd', nft: '0x47ccca02', listing: '0xde74e57b',
-    placeBid: '0x9979ef45', cancelBid: '0x9703ef35', acceptBid: '0x2b1fd58a',
-    withdraw: '0x3ccfd60b', bids: '0x4423c5f1', pendingReturns: '0x26b387bb',
-    isApprovedForAll: '0xe985e9c5'
+    placeBid: '0xecfc7ecc', cancelBid: '0x9703ef35', acceptBid: '0x02e9d5e4',
+    bids: '0x4423c5f1', myBidIds: '0x4477cf92', levelCount: '0x651a2b4c',
+    levels: '0xb2596a67', activeAt: '0x15d6f71a', headBid: '0x073b4f37',
+    feeBps: '0xbf333f2c', isApprovedForAll: '0xe985e9c5'
   };
   const TOPIC = {
     listed: '0x50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc08343',
@@ -638,7 +644,7 @@
     await refresh();
     await detectBids();
     await updateSellState();
-    await paintMyBids();
+    await paintBids();
   }
 
   function renderWalletList() {
@@ -757,6 +763,7 @@
     if (b.length > 18) return null;
     return BigInt(a || '0') * 10n ** 18n + BigInt((b + '0'.repeat(18)).slice(0, 18));
   }
+  function feeOf(price) { return (price * 10n) / 10000n; }
   function fmtEth(w) {
     const s = w.toString().padStart(19, '0');
     const i = s.slice(0, -18).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -1020,7 +1027,13 @@
       '</div>';
     const act = document.createElement('button');
     act.className = mine ? 'ghost' : 'primary';
-    act.textContent = mine ? 'Cancel listing' : 'Buy for ' + fmtEth(r.price) + ' ETH';
+    act.textContent = mine ? 'Cancel listing' : 'Buy for ' + fmtEth(r.price + feeOf(r.price)) + ' ETH';
+    if (!mine) {
+      const feeLine = document.createElement('div');
+      feeLine.className = 'fee-line';
+      feeLine.textContent = 'Includes 0.1% fee (' + fmtEth(feeOf(r.price)) + ' ETH)';
+      $('imBody').querySelector('.im-info').appendChild(feeLine);
+    }
     act.onclick = () => { closeItem(); mine ? cancel(r) : buy(r); };
     $('imBody').querySelector('.im-info').appendChild(act);
     $('itemModal').classList.remove('hidden');
@@ -1264,9 +1277,10 @@
     if (!account) return say('Connect a wallet first.', 'bad');
     if (!canTrade()) return say('Unverified market — trading is disabled.', 'bad');
     try {
-      say('Confirm ' + fmtEth(r.price) + ' ETH in your wallet…');
+      const fee = feeOf(r.price);
+      say('Confirm ' + fmtEth(r.price + fee) + ' ETH (' + fmtEth(r.price) + ' + ' + fmtEth(fee) + ' fee)…');
       const hash = await rpc('eth_sendTransaction', [{
-        from: account, to: escrow, value: '0x' + r.price.toString(16), data: SEL.buy + pad(r.id)
+        from: account, to: escrow, value: '0x' + (r.price + fee).toString(16), data: SEL.buy + pad(r.id)
       }]);
       say('Buying Squeek #' + r.id + '… ' + shortHash(hash));
       await receipt(hash);
@@ -1298,7 +1312,7 @@
     const btn = $('list');
     const calc = $('calc');
     if (price == null || price === 0n) calc.textContent = 'Enter a token ID and a price.';
-    else calc.innerHTML = 'You receive <b>' + fmtEth(price) + ' ETH</b> · 0% fee · buyer pays the exact price.';
+    else calc.innerHTML = 'You receive <b>' + fmtEth(price) + ' ETH</b> · the buyer pays the 0.1% fee.';
     btn.disabled = !canTrade() || !account || !/^\d+$/.test(id) || !price || price === 0n;
     if (!escrow) sellNote('No escrow configured for this market yet.');
     else if (!account && !$('listStatus').textContent) sellNote('Connect a wallet to list a Squeek.');
@@ -1356,14 +1370,32 @@
           $('ownerLine').textContent = 'Owned by you · ready to list';
           sellNote('');
           $('bidBox').classList.add('hidden');
+          $('bidLevels').innerHTML = '';
           if (bidsSupported) {
             try {
-              const b = await decodeBid(id);
-              if (b.amount > 0n) {
-                $('bidView').textContent = fmtEth(b.amount) + ' ETH';
-                $('bidBox').classList.remove('hidden');
+              const n = Number(await call(escrow, SEL.levelCount));
+              const levels = [];
+              for (let i = 0; i < Math.min(n, 8); i++) {
+                const p = BigInt(await call(escrow, SEL.levels + pad(i)));
+                const c = BigInt(await call(escrow, SEL.activeAt + pad(p)));
+                if (c > 0n) levels.push({ p, c });
               }
-            } catch { /* no bid */ }
+              levels.sort((a, b) => (a.p === b.p ? 0 : a.p > b.p ? -1 : 1));
+              for (const l of levels.slice(0, 3)) {
+                const row = document.createElement('div');
+                row.className = 'bid-opt';
+                const txt = document.createElement('div');
+                txt.className = 'grow';
+                txt.innerHTML = '<b>' + fmtEth(l.p) + ' ETH</b> <span>' + l.c.toString() +
+                  (l.c === 1n ? ' bid' : ' bids') + '</span>';
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'primary'; b.textContent = 'Accept';
+                b.onclick = () => acceptBidAt(id, l.p);
+                row.appendChild(txt); row.appendChild(b);
+                $('bidLevels').appendChild(row);
+              }
+              if (levels.length) $('bidBox').classList.remove('hidden');
+            } catch { /* no bids */ }
           }
         }
       } else {
@@ -1411,62 +1443,65 @@
     finally { $('list').disabled = false; }
   }
 
-  // ---------- bids ----------
-  const MYBIDS = 'otc.mybids';
-  function myBidIds() {
-    try {
-      const v = JSON.parse(localStorage.getItem(MYBIDS) || '[]');
-      return Array.isArray(v) ? v.map(String) : [];
-    } catch { return []; }
-  }
-  function saveMyBidIds(list) {
-    localStorage.setItem(MYBIDS, JSON.stringify([...new Set(list.map(String))]));
-  }
+  // ---------- collection bids ----------
   async function decodeBid(id) {
     const h = (await call(escrow, SEL.bids + pad(id))).replace(/^0x/, '');
-    return { buyer: hexAddr(h.slice(0, 64)), amount: BigInt('0x' + (h.slice(64, 128) || '0')) };
+    return {
+      buyer: hexAddr(h.slice(0, 64)),
+      amount: BigInt('0x' + (h.slice(64, 128) || '0')),
+      price: BigInt('0x' + (h.slice(128, 192) || '0')),
+      active: BigInt('0x' + (h.slice(256, 320) || '0')) !== 0n
+    };
+  }
+  function decodeUintArray(hex) {
+    const h = hex.replace(/^0x/, '');
+    const off = Number(BigInt('0x' + h.slice(0, 64))) / 32;
+    const len = Number(BigInt('0x' + h.slice(off * 64, off * 64 + 64)));
+    const out = [];
+    for (let i = 0; i < len; i++) {
+      out.push(BigInt('0x' + h.slice((off + 1 + i) * 64, (off + 2 + i) * 64)));
+    }
+    return out;
   }
   async function detectBids() {
     bidsSupported = false;
     if (escrow) {
       try {
-        await call(escrow, SEL.pendingReturns + addrWord('0x0000000000000000000000000000000000000000'));
+        await call(escrow, SEL.feeBps);
         bidsSupported = true;
-      } catch { /* v1 escrow without bids */ }
+      } catch { /* escrow without collection bids */ }
     }
     $('bidsPanel').classList.toggle('hidden', !bidsSupported);
     if (!bidsSupported) {
       $('bidBox').classList.add('hidden');
+      $('bidBook').innerHTML = '';
       $('myBids').innerHTML = '';
+      $('bidLevels').innerHTML = '';
     }
   }
   function bidNote(msg) { $('bidNote').textContent = msg; }
   function paintBidButton() {
-    const id = $('bidId').value.trim();
     const amount = toWei($('bidAmount').value.trim());
-    $('placeBid').disabled = !canTrade() || !account || !/^\d+$/.test(id) || !amount;
+    $('placeBid').disabled = !canTrade() || !account || !amount;
   }
 
   async function placeBid() {
     if (!canTrade()) return bidNote('This market is not verified — bidding is disabled.');
     if (!account) return bidNote('Connect a wallet to bid.');
-    const id = $('bidId').value.trim();
     const amount = toWei($('bidAmount').value.trim());
-    if (!/^\d+$/.test(id) || !amount) return bidNote('Enter a token ID and an amount.');
+    if (!amount) return bidNote('Enter an amount.');
     const btn = $('placeBid');
     try {
       btn.disabled = true;
       bidNote('Confirm ' + fmtEth(amount) + ' ETH in your wallet…');
       const h = await rpc('eth_sendTransaction', [{
-        from: account, to: escrow, value: '0x' + amount.toString(16), data: SEL.placeBid + pad(id)
+        from: account, to: escrow, value: '0x' + amount.toString(16), data: SEL.placeBid
       }]);
       await receipt(h);
-      saveMyBidIds([...myBidIds(), id]);
       $('bidAmount').value = '';
-      bidNote('Bid placed. The ETH stays in escrow until the owner accepts or you cancel.');
-      say('Bid ' + fmtEth(amount) + ' ETH on #' + id + '.', 'ok', EXPLORER + '/tx/' + h);
-      await paintMyBids();
-      await updateSellState();
+      bidNote('Bid placed at ' + fmtEth(amount) + ' ETH — queued in arrival order at that price.');
+      say('Bid ' + fmtEth(amount) + ' ETH placed.', 'ok', EXPLORER + '/tx/' + h);
+      await paintBids();
     } catch (e) {
       bidNote(e.message || String(e));
       say(e.message || String(e), 'bad');
@@ -1476,15 +1511,14 @@
     }
   }
 
-  async function doCancelBid(id, btn) {
+  async function cancelBid(id, btn) {
     if (!account) return say('Connect a wallet first.', 'bad');
     try {
       btn.disabled = true;
       const h = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.cancelBid + pad(id) }]);
       await receipt(h);
-      saveMyBidIds(myBidIds().filter((x) => x !== String(id)));
-      say('Bid on #' + id + ' cancelled — ETH returned.', 'ok', EXPLORER + '/tx/' + h);
-      await paintMyBids();
+      say('Bid cancelled — ETH returned.', 'ok', EXPLORER + '/tx/' + h);
+      await paintBids();
       await updateSellState();
     } catch (e) {
       say(e.message || String(e), 'bad');
@@ -1492,18 +1526,41 @@
     }
   }
 
-  async function doWithdraw(btn) {
-    if (!account) return say('Connect a wallet first.', 'bad');
+  async function paintBids() {
+    if (!bidsSupported || !escrow) return;
+    await Promise.all([paintBook(), paintMyBids()]);
+  }
+
+  async function paintBook() {
+    const box = $('bidBook');
+    if (!box) return;
+    if (!bidsSupported || !escrow) { box.innerHTML = ''; return; }
     try {
-      btn.disabled = true;
-      const h = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.withdraw }]);
-      await receipt(h);
-      say('Outbid ETH withdrawn.', 'ok', EXPLORER + '/tx/' + h);
-      await paintMyBids();
-    } catch (e) {
-      say(e.message || String(e), 'bad');
-      btn.disabled = false;
-    }
+      const n = Number(await call(escrow, SEL.levelCount));
+      const levels = [];
+      for (let i = 0; i < Math.min(n, 8); i++) {
+        const price = BigInt(await call(escrow, SEL.levels + pad(i)));
+        const count = BigInt(await call(escrow, SEL.activeAt + pad(price)));
+        const head = (await call(escrow, SEL.headBid + pad(price))).replace(/^0x/, '');
+        levels.push({ price, count, buyer: hexAddr(head.slice(64, 128)) });
+      }
+      levels.sort((a, b) => (a.price === b.price ? 0 : a.price > b.price ? -1 : 1));
+      box.innerHTML = '';
+      if (!levels.length) {
+        box.innerHTML = '<div class="calc">No bids yet — be the first.</div>';
+        return;
+      }
+      for (const l of levels) {
+        const row = document.createElement('div');
+        row.className = 'my-bid';
+        const txt = document.createElement('div');
+        txt.className = 'grow';
+        txt.innerHTML = '<b class="amt">' + fmtEth(l.price) + ' ETH</b> · ' + l.count.toString() +
+          (l.count === 1n ? ' bid' : ' bids') + ' · first ' + short(l.buyer);
+        row.appendChild(txt);
+        box.appendChild(row);
+      }
+    } catch { box.innerHTML = ''; }
   }
 
   async function paintMyBids() {
@@ -1512,80 +1569,55 @@
     if (!bidsSupported || !account || !escrow) { box.innerHTML = ''; return; }
     box.innerHTML = '';
     try {
-      const pending = BigInt(await call(escrow, SEL.pendingReturns + addrWord(account)));
-      if (pending > 0n) {
-        const row = document.createElement('div');
-        row.className = 'my-bid';
-        const txt = document.createElement('div');
-        txt.className = 'grow';
-        txt.innerHTML = 'Outbid — <span class="amt">' + fmtEth(pending) + ' ETH</span> ready to withdraw';
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'ghost'; b.textContent = 'Withdraw';
-        b.onclick = () => doWithdraw(b);
-        row.appendChild(txt); row.appendChild(b); box.appendChild(row);
-      }
-    } catch { /* ignore */ }
-
-    let alive = [];
-    for (const id of myBidIds()) {
-      try {
+      const ids = decodeUintArray(await call(escrow, SEL.myBidIds + addrWord(account)));
+      let live = 0;
+      for (const id of ids.slice(-20)) {
         const b = await decodeBid(id);
-        if (b.amount === 0n || b.buyer.toLowerCase() !== account.toLowerCase()) continue;
-        alive.push(id);
+        if (!b.active) continue;
+        live++;
         const row = document.createElement('div');
         row.className = 'my-bid';
         const txt = document.createElement('div');
         txt.className = 'grow';
-        txt.innerHTML = 'Bid on <b>Squeek #' + escapeHtml(id) + '</b>';
-        const amt = document.createElement('span');
-        amt.className = 'amt';
-        amt.textContent = fmtEth(b.amount) + ' ETH';
+        txt.innerHTML = 'Your bid <b>' + fmtEth(b.amount) + ' ETH</b>';
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'ghost'; btn.textContent = 'Cancel';
-        btn.onclick = () => doCancelBid(id, btn);
-        row.appendChild(txt); row.appendChild(amt); row.appendChild(btn);
-        box.appendChild(row);
-      } catch { /* skip unreadable */ }
-    }
-    if (alive.length !== myBidIds().length) saveMyBidIds(alive);
-    if (!box.children.length) box.innerHTML = '<div class="calc">No active bids from this wallet.</div>';
+        btn.onclick = () => cancelBid(id, btn);
+        row.appendChild(txt); row.appendChild(btn); box.appendChild(row);
+      }
+      if (!live) box.innerHTML = '<div class="calc">No active bids from this wallet.</div>';
+    } catch { box.innerHTML = ''; }
   }
 
-  async function acceptBid() {
+  async function acceptBidAt(tokenId, price) {
     if (!canTrade()) return sellNote('Unverified market — trading is disabled.', 'bad');
     if (!account) return sellNote('Connect a wallet first.', 'bad');
-    const id = $('tokenId').value.trim();
-    if (!/^\d+$/.test(id)) return sellNote('Enter the token ID first.', 'bad');
-    const btn = $('acceptBid');
+    if (!bidsSupported) return sellNote('This market does not support bids.', 'bad');
     try {
-      btn.disabled = true;
-      const owner = hexAddr(await call(collection, SEL.ownerOf + pad(id)));
+      const owner = hexAddr(await call(collection, SEL.ownerOf + pad(tokenId)));
       if (owner.toLowerCase() !== account.toLowerCase()) throw new Error('You do not own this token');
-      const b = await decodeBid(id);
-      if (b.amount === 0n) throw new Error('No active bid on this token');
-
-      const approved = hexAddr(await call(collection, SEL.getApproved + pad(id)));
+      const approved = hexAddr(await call(collection, SEL.getApproved + pad(tokenId)));
       const all = BigInt(await call(collection, SEL.isApprovedForAll + addrWord(account) + addrWord(escrow))) !== 0n;
       if (!all && approved.toLowerCase() !== escrow.toLowerCase()) {
         sellNote('Step 1/2 — approve the escrow in your wallet…');
         const ah = await rpc('eth_sendTransaction', [{
-          from: account, to: collection, data: SEL.approve + addrWord(escrow) + pad(id)
+          from: account, to: collection, data: SEL.approve + addrWord(escrow) + pad(tokenId)
         }]);
         await receipt(ah);
       }
-      sellNote('Step 2/2 — accept the bid in your wallet…');
-      const bh = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.acceptBid + pad(id) }]);
+      sellNote('Step 2/2 — accept the ' + fmtEth(price) + ' ETH bid…');
+      const bh = await rpc('eth_sendTransaction', [{
+        from: account, to: escrow, data: SEL.acceptBid + pad(tokenId) + pad(price)
+      }]);
       await receipt(bh);
       sellNote('');
-      say('Accepted ' + fmtEth(b.amount) + ' ETH for #' + id + '.', 'ok', EXPLORER + '/tx/' + bh);
+      say('Sold #' + tokenId + ' for ' + fmtEth(price) + ' ETH · 0.1% fee.', 'ok', EXPLORER + '/tx/' + bh);
       $('tokenId').value = ''; $('price').value = '';
       await refresh();
       await updateSellState();
-      await paintMyBids();
+      await paintBids();
     } catch (e) {
       sellNote(e.message || String(e), 'bad');
-    } finally {
-      btn.disabled = false;
     }
   }
 
@@ -1598,7 +1630,7 @@
     else localStorage.removeItem('otc.address');
     paintAddress();
     updateSellState();
-    detectBids().then(() => { paintMyBids(); updateSellState(); });
+    detectBids().then(() => { paintBids(); updateSellState(); });
   }
 
   function marketIndex(addr) {
@@ -1680,8 +1712,6 @@
   $('load').onclick = () => load($('addrInput').value.trim());
   $('list').onclick = approveAndList;
   $('placeBid').onclick = placeBid;
-  $('acceptBid').onclick = acceptBid;
-  $('bidId').oninput = paintBidButton;
   $('bidAmount').oninput = paintBidButton;
   $('refresh').onclick = refresh;
   $('copy').onclick = () => {
