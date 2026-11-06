@@ -84,6 +84,11 @@
   .live-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
   .live-item .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
   .live-item .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+  .live-item--wide{grid-column:span 3}
+  .live-v--small{font-size:15px!important}
+  .live-row-label{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase;margin:20px 0 6px}
+  .live-breakdown{margin-top:8px;font-variant-numeric:tabular-nums}
   .bar{height:6px;background:#20202c;border-radius:99px;overflow:hidden;margin-top:12px}
   .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .6s ease}
   .live-note{color:var(--muted);font-size:12px;margin-top:10px}
@@ -150,15 +155,23 @@
         <div class="live-item"><div class="k">Hamster</div><div class="v" id="live-state">—</div></div>
         <div class="live-item"><div class="k">Wheel</div><div class="v" id="live-rpm">—</div></div>
         <div class="live-item"><div class="k">Block</div><div class="v" id="live-block">—</div></div>
-        <div class="live-item"><div class="k">SQK supply</div><div class="v" id="live-mint">—</div></div>
-        <div class="live-item"><div class="k">NFTs staked</div><div class="v" id="live-nft-staked">—</div></div>
-        <div class="live-item"><div class="k">SQK staked</div><div class="v" id="live-sqk-staked">—</div></div>
       </div>
       <div class="bar-row">
         <span class="live-note" id="live-progress-label">Block progress</span>
       </div>
       <div class="bar"><i id="live-bar"></i></div>
-      <div class="live-note" id="live-settled">settled block —</div>
+
+      <div class="live-row-label">Supply</div>
+      <div class="live-grid">
+        <div class="live-item live-item--wide"><div class="k">SQK live / cap</div><div class="v" id="live-mint">—</div></div>
+      </div>
+      <div class="live-note live-breakdown" id="live-settled">premine — / mined — / burned —</div>
+
+      <div class="live-row-label">Staking</div>
+      <div class="live-grid">
+        <div class="live-item"><div class="k">NFTs staked</div><div class="v" id="live-nft-staked">—</div></div>
+        <div class="live-item"><div class="k">SQK staked</div><div class="v live-v--small" id="live-sqk-staked">—</div></div>
+      </div>
       <div class="live-foot">
         <div class="live-note" id="live-note">Refreshes every 10s</div>
         <div class="live-actions">
@@ -280,7 +293,7 @@
       ['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].indexOf(cs) >= 0;
     var pct = Math.max(0, Math.min(100, (Number(p.blockProgress ?? a.blockProgress) || 0) / 1e9 * 100));
     set('live-state', running ? 'Running' : 'Resting');
-    set('live-rpm', running ? nf.format((Number(m.rpmMilli) || 0) / 1000) + ' rpm' : '—');
+    set('live-rpm', nf.format((Number(m.rpmMilli) || 0) / 1000) + ' rpm');
     var lastCompleted = Number(p.blockHeight ?? a.blockHeight) || 0;
     var prog = Number(p.blockProgress ?? a.blockProgress) || 0;
     var liveBlock = p.blockHeight != null && prog > 0 ? lastCompleted + 1 : lastCompleted;
@@ -320,7 +333,8 @@
     var live = Number((d.supply || {}).liveSupplyBaseUnits || 0);
     var mined = Number((d.supply || {}).miningMintedBaseUnits || 0);
     if (cap > 0 && live > 0) {
-      set('live-mint', compact(live / 1e18) + ' / ' + compact(cap / 1e18) + ' (' + (live / cap * 100).toFixed(2) + '%)');
+      var fm = function (x) { return Math.floor(x / 1e18).toLocaleString('en-US'); };
+      set('live-mint', fm(live) + ' / ' + fm(cap) + ' (' + (live / cap * 100).toFixed(2) + '%)');
     }
     var premine = Number((d.supply || {}).premintBaseUnits || 0);
     var burned = Number((d.supply || {}).totalBurnedBaseUnits || 0);
