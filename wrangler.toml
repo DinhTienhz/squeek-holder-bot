@@ -2,12 +2,6 @@ name = "squeek-holder-bot"
 main = "src/worker.js"
 compatibility_date = "2026-11-01"
 
-# Custom domains for the market (zone squeeksotc.bid is active in this account).
-routes = [
-  { pattern = "squeeksotc.bid", custom_domain = true },
-  { pattern = "www.squeeksotc.bid", custom_domain = true }
-]
-
 # Static site: everything in ./public is served at the root.
 [assets]
 directory = "./public"
