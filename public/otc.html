@@ -608,6 +608,8 @@
       const here = location.host + location.pathname + location.search;
       const targets = [
         ['Open in MetaMask', 'https://metamask.app.link/dapp/' + here],
+        ['Open in Backpack', 'https://backpack.app/ul/v1/browse/' + encodeURIComponent(location.href) +
+          '?ref=' + encodeURIComponent(location.origin)],
         ['Open in Coinbase Wallet', 'https://go.cb-w.com/dapp?cb_url=' + encodeURIComponent(location.href)],
         ['Open in Trust Wallet', 'https://link.trustwallet.com/open_url?coin_id=60&url=' + encodeURIComponent(location.href)]
       ];
@@ -628,7 +630,7 @@
       }
       const note = document.createElement('div');
       note.className = 'wm-note';
-      note.textContent = 'Mobile browsers do not inject wallets. Open this page inside one of the apps above, then tap Connect wallet again. On desktop, install the MetaMask extension and reload.';
+      note.textContent = 'Mobile browsers do not inject wallets. Open this page inside one of the apps above, then tap Connect wallet again. On desktop, install the MetaMask or Backpack extension and reload.';
       box.appendChild(note);
       $('wmFoot').textContent = 'The page opens in the wallet’s own browser; nothing is signed until you approve it.';
       return;
