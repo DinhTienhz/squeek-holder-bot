@@ -13,12 +13,14 @@ Anyone who knows the bot's username can `/start` — no invite needed.
 
 Non-custodial NFT trading on Sepolia: **<https://squeeksotc.bid/otc>**
 
-| | |
+The market is multi-collection by design. Each collection trades through its own escrow,
+so new collections can be onboarded without touching the markets already live.
+
+| Collection | Escrow |
 |---|---|
-| Collection | [`0xc4c7982657f00509548f3a3a41db7fa439a6856b`](https://sepolia.etherscan.io/address/0xc4c7982657f00509548f3a3a41db7fa439a6856b) (Squeek) |
-| Escrow | [`0xe0c16a29c0ad3b123600284ceb1bc1678a171799`](https://sepolia.etherscan.io/address/0xe0c16a29c0ad3b123600284ceb1bc1678a171799) |
-| Fee | 0.1% (10 bps), fixed in the contract |
-| Fee recipient | [`0xd7a9f658E176B429869Fc934DF0214b05Eee8F48`](https://sepolia.etherscan.io/address/0xd7a9f658E176B429869Fc934DF0214b05Eee8F48) |
+| [`0xc4c7982657f00509548f3a3a41db7fa439a6856b`](https://sepolia.etherscan.io/address/0xc4c7982657f00509548f3a3a41db7fa439a6856b) — Squeek | [`0xe0c16a29c0ad3b123600284ceb1bc1678a171799`](https://sepolia.etherscan.io/address/0xe0c16a29c0ad3b123600284ceb1bc1678a171799) |
+
+Fee: **0.1% (10 bps)**, fixed in the escrow contract.
 
 The escrow holds the NFT until the ETH arrives. Payment and transfer settle in the same
 transaction, so there is no "send first" step and no operator in the middle. The contract has
@@ -35,10 +37,29 @@ no owner, no pause switch and no upgrade path.
 
 ### Notes
 
-- Each escrow is bound to one collection (the NFT address is immutable). A different collection needs its own escrow deployment.
+- Each escrow is bound to one collection because the NFT address is immutable. Supporting another collection means deploying one escrow for it and registering it on the site — existing markets keep running untouched.
 - `cancelBid` refunds the bidder immediately; `acceptBid` pays the seller `amount - fee` in the same transaction.
 - Bids are stored in a doubly linked list per price level, so cancelling a bid is O(1) and cannot be used to make acceptance progressively more expensive.
 - The page reads the market, the bid book and the activity feed over public RPC — no wallet, no account needed to browse.
+
+### Adding a collection
+
+1. Deploy `SqueekOTC` with the new ERC-721 address as the constructor argument.
+2. Add an entry to the `MARKETS` registry in `public/otc.html`:
+
+```js
+{
+  name: 'My collection',
+  collection: '0x…',        // ERC-721 address
+  escrow: '0x…',            // escrow deployed for it
+  fromBlock: 12345678,      // escrow deployment block (activity feed start)
+  image: 'my-sample.svg',   // card thumbnail
+  tag: 'ERC-721 · Sepolia'
+}
+```
+
+The collections row and the escrow switch on the page are driven by that list, so one entry is
+all it takes for the market to list, price and settle a new collection.
 
 ### Contract tests
 
@@ -127,7 +148,7 @@ official app.
 - Claimable amounts come from the indexer API (a few blocks behind); `claimable()` reverts on this Sepolia deployment, so the optimizer labels figures as estimates when it cannot read per token
 - No Discord support
 - Regular alerts are dropped (not queued) during quiet hours; the digest still goes out
-- The OTC escrow is Sepolia-only and bound to a single collection
+- Escrows are Sepolia-only; each one serves a single collection, so every new collection needs its own deployment
 
 ## Static site
 
