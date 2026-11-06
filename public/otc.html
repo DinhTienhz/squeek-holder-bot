@@ -567,7 +567,7 @@
   };
   const TOPIC = {
     listed: '0x50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc08343',
-    sold: '0x23f50d55776d8003622a982ade45a6c7f083116c8dbbcd980f59942f440badb1',
+    sold: '0xa70b1a854695e7921b122988e216d3a6cd10ed799017c67b1ff231967e6bf56d',
     cancelled: '0x26deca31ff8139a06c52453ce8985d34f7648a6d9af1d283c4063d052c355a0f'
   };
 
@@ -1374,12 +1374,12 @@
           if (bidsSupported) {
             try {
               const n = Number(await call(escrow, SEL.levelCount));
-              const levels = [];
-              for (let i = 0; i < Math.min(n, 8); i++) {
+              const idx = Array.from({ length: Math.min(n, 24) }, (_, i) => i);
+              const levels = (await Promise.all(idx.map(async (i) => {
                 const p = BigInt(await call(escrow, SEL.levels + pad(i)));
                 const c = BigInt(await call(escrow, SEL.activeAt + pad(p)));
-                if (c > 0n) levels.push({ p, c });
-              }
+                return { p, c };
+              }))).filter((l) => l.c > 0n);
               levels.sort((a, b) => (a.p === b.p ? 0 : a.p > b.p ? -1 : 1));
               for (const l of levels.slice(0, 3)) {
                 const row = document.createElement('div');
@@ -1450,7 +1450,7 @@
       buyer: hexAddr(h.slice(0, 64)),
       amount: BigInt('0x' + (h.slice(64, 128) || '0')),
       price: BigInt('0x' + (h.slice(128, 192) || '0')),
-      active: BigInt('0x' + (h.slice(256, 320) || '0')) !== 0n
+      active: BigInt('0x' + (h.slice(192, 256) || '0')) !== 0n
     };
   }
   function decodeUintArray(hex) {
@@ -1537,14 +1537,17 @@
     if (!bidsSupported || !escrow) { box.innerHTML = ''; return; }
     try {
       const n = Number(await call(escrow, SEL.levelCount));
-      const levels = [];
-      for (let i = 0; i < Math.min(n, 8); i++) {
+      const idx = Array.from({ length: Math.min(n, 24) }, (_, i) => i);
+      const levels = (await Promise.all(idx.map(async (i) => {
         const price = BigInt(await call(escrow, SEL.levels + pad(i)));
         const count = BigInt(await call(escrow, SEL.activeAt + pad(price)));
-        const head = (await call(escrow, SEL.headBid + pad(price))).replace(/^0x/, '');
-        levels.push({ price, count, buyer: hexAddr(head.slice(64, 128)) });
-      }
+        return { price, count };
+      }))).filter((l) => l.count > 0n);
       levels.sort((a, b) => (a.price === b.price ? 0 : a.price > b.price ? -1 : 1));
+      for (const l of levels.slice(0, 8)) {
+        const head = (await call(escrow, SEL.headBid + pad(l.price))).replace(/^0x/, '');
+        l.buyer = hexAddr(head.slice(64, 128));
+      }
       box.innerHTML = '';
       if (!levels.length) {
         box.innerHTML = '<div class="calc">No bids yet — be the first.</div>';
