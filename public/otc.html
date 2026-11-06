@@ -416,6 +416,36 @@
     .act-link{display:none}
     .act-more{display:none}
   }
+
+  /* ---------- market dashboard (one screen on desktop) ---------- */
+  @media (min-width:1100px){
+    body.is-market{overflow:hidden}
+    body.is-market .wrap{height:100vh;display:flex;flex-direction:column;padding-bottom:0}
+    body.is-market header.site{flex:none}
+    body.is-market footer{display:none}
+    body.is-market #marketView{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding-bottom:14px}
+    body.is-market .market-head{flex:none;margin-top:4px}
+    body.is-market .market-head h1{font-size:20px}
+    body.is-market .stats{flex:none;margin-top:10px;gap:10px}
+    body.is-market .stat{padding:9px 12px}
+    body.is-market .stat span{font-size:9px}
+    body.is-market .stat b{font-size:16px;margin-top:2px}
+    body.is-market .market-layout{flex:1;min-height:0;display:grid;gap:12px;
+      grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,.95fr);
+      grid-template-rows:minmax(0,1.08fr) minmax(0,1fr);
+      grid-template-areas:"listings bids activity" "sell bids activity";overflow:hidden}
+    body.is-market .market-main{display:contents}
+    body.is-market #listingsPanel{grid-area:listings}
+    body.is-market #sellPanel{grid-area:sell}
+    body.is-market #bidsPanel{grid-area:bids}
+    body.is-market aside.market-side{grid-area:activity}
+    body.is-market .panel{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:14px}
+    body.is-market .panel-head{flex:none;margin-bottom:8px}
+    body.is-market .panel-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:4px}
+    body.is-market .sell-grid{grid-template-columns:minmax(0,1fr) 190px;gap:14px}
+    body.is-market .preview-img{max-height:180px}
+    body.is-market .grid{gap:10px}
+  }
 </style>
 </head>
 <body>
@@ -479,7 +509,7 @@
 
   <div class="market-layout">
   <div class="market-main">
-  <section class="panel" aria-labelledby="listings-title">
+  <section class="panel" id="listingsPanel" aria-labelledby="listings-title">
     <div class="panel-head">
       <div>
         <h2 id="listings-title">Listings <span class="count" id="count">—</span></h2>
@@ -514,6 +544,7 @@
       </div>
     </div>
 
+    <div class="panel-body">
     <div class="change hidden" id="changeBox">
       <input id="addrInput" placeholder="0x… escrow contract address" autocomplete="off" spellcheck="false">
       <button id="load" type="button">Load market</button>
@@ -526,6 +557,7 @@
       <div><b id="emptyTitle">No Squeeks listed yet.</b></div>
       <div id="emptySub">Be the first — list one in the panel below.</div>
     </div>
+    </div>
   </section>
 
   <section class="panel" id="bidsPanel" aria-labelledby="bids-title">
@@ -535,6 +567,7 @@
         <div class="note">Park ETH on a token you want. The owner accepts and the NFT and ETH swap in one transaction.</div>
       </div>
     </div>
+    <div class="panel-body">
     <div class="bid-row">
       <div class="field">
         <label for="bidAmount">Bid (ETH)</label>
@@ -545,13 +578,15 @@
     <div class="calc" id="bidNote">Bids are for the whole collection. Your ETH stays in escrow until a seller accepts or you cancel.</div>
     <div class="bid-book" id="bidBook"></div>
     <div class="my-bids" id="myBids"></div>
+    </div>
   </section>
 
-  <section class="panel" aria-labelledby="sell-title">
+  <section class="panel" id="sellPanel" aria-labelledby="sell-title">
     <div class="panel-head">
       <div><h2 id="sell-title">List</h2></div>
       <div class="note">NFT only · buyer pays 0.1% · you receive the full price</div>
     </div>
+    <div class="panel-body">
     <div class="sell-grid">
       <div>
         <div class="owned-bar">
@@ -582,6 +617,7 @@
         </div>
       </div>
     </div>
+    </div>
   </section>
 
 
@@ -605,8 +641,10 @@
         </div>
       </div>
     </div>
+    <div class="panel-body">
     <div id="activity" class="activity hidden"></div>
     <div class="empty" id="actEmpty">Configure a market to see its activity.</div>
+    </div>
   </section>
 
   </aside>
@@ -2178,6 +2216,7 @@
   if (bootMarket >= 0) { activeMarket = bootMarket; collection = MARKETS[bootMarket].collection; }
   paintCollections();
   const isMarket = /\/market\/?$/.test(location.pathname);
+  document.body.classList.toggle('is-market', isMarket);
   $('homeView').classList.toggle('hidden', isMarket);
   $('marketView').classList.toggle('hidden', !isMarket);
   document.querySelectorAll('nav.site a[data-nav]').forEach((a) => {
