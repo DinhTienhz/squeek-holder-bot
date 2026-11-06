@@ -140,7 +140,10 @@ export default {
       }
     }
 
-    const res = await env.ASSETS.fetch(request);
+    // Fetch assets by path on a synthetic origin: fetching the original URL while a
+    // custom-domain route exists can loop back into this Worker (Cloudflare 1042).
+    const assetReq = new Request('https://assets.local' + url.pathname + url.search, request);
+    const res = await env.ASSETS.fetch(assetReq);
 
     if (res.status === 404 && !isImage(url.pathname)) {
       return new Response(NOT_FOUND, {

@@ -54,9 +54,11 @@ test('otc host: the staking API is not exposed', async () => {
   assert.equal(r.status, 404);
 });
 
-test('bot host: landing and /otc keep working', async () => {
+test('bot host: landing works and /otc redirects to the market domain', async () => {
   assert.equal((await get('https://squeek-holder-bot.chainn.workers.dev/')).status, 200);
-  assert.equal((await get('https://squeek-holder-bot.chainn.workers.dev/otc')).status, 200);
+  const r = await get('https://squeek-holder-bot.chainn.workers.dev/otc');
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/otc');
 });
 
 test('bot host: 404 page is the landing one', async () => {
