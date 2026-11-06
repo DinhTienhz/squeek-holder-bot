@@ -75,10 +75,10 @@
     border-radius:999px;padding:2px 9px;background:#0e0e15}
   .panel-head .note{color:var(--muted);font-size:12.5px}
   .contract-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:7px;font-size:12px}
-  .contract-box summary{cursor:pointer;color:var(--accent-2);font-size:12px;list-style:none}
+  .contract-box summary{display:inline-flex;align-items:center;cursor:pointer;color:var(--muted);list-style:none}
   .contract-box summary::-webkit-details-marker{display:none}
-  .contract-box summary:before{content:"▸ ";color:var(--muted)}
-  .contract-box[open] summary:before{content:"▾ "}
+  .contract-box summary:hover,.contract-box[open] summary{color:var(--accent-2)}
+  .contract-box summary svg{display:block}
   .contract-body{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
   .contract-line .mono{color:var(--muted);max-width:100%;overflow-wrap:anywhere}
   .trust-badge{font-size:9px;font-weight:800;letter-spacing:.1em;color:#ff9c9c;border:1px solid rgba(255,128,128,.45);
@@ -274,7 +274,13 @@
         <h2 id="listings-title">Listings <span class="count" id="count">—</span></h2>
         <div class="contract-line">
           <details id="contractBox" class="contract-box">
-            <summary>Contract</summary>
+            <summary aria-label="Contract address" title="Contract address">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 5"/>
+                <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19"/>
+              </svg>
+            </summary>
             <div class="contract-body">
               <span class="mono" id="addr">no escrow configured</span>
               <span class="trust-badge hidden" id="trustBadge">UNVERIFIED</span>
