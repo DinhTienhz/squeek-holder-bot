@@ -282,7 +282,7 @@
               <a class="linkbtn hidden" id="scan" target="_blank" rel="noopener">Etherscan ↗</a>
             </div>
           </details>
-          <button class="linkbtn" id="change" type="button">advanced</button>
+          <button class="linkbtn hidden" id="change" type="button">advanced</button>
         </div>
       </div>
       <div class="filters">
@@ -656,7 +656,7 @@
       $('listings').innerHTML = '';
       $('empty').classList.add('hidden');
       setMarketNotice('<span class="ico">⚠️</span><div><b>No escrow configured in this browser.</b> ' +
-        'If you deployed a market, open <b>advanced</b> and paste its address. The shared Sepolia address will be published here once it is live.</div>');
+        'If you deployed a market, open <b>?admin=1</b> and paste its address, then set DEFAULT_ESCROW to publish it.</div>');
       return;
     }
     try {
@@ -1157,6 +1157,7 @@
   }
 
   const params = new URLSearchParams(location.search);
+  if (params.get('admin') === '1') $('change').classList.remove('hidden');
   const requested = (params.get('c') || '').trim();
   const saved = (localStorage.getItem('otc.address') || '').trim();
   let initial = '';
