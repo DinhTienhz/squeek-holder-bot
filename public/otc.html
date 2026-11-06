@@ -76,6 +76,8 @@
   .panel-head .note{color:var(--muted);font-size:12.5px}
   .contract-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;font-size:12px}
   .contract-line .mono{color:var(--muted);max-width:100%;overflow-wrap:anywhere}
+  .trust-badge{font-size:9px;font-weight:800;letter-spacing:.1em;color:#ff9c9c;border:1px solid rgba(255,128,128,.45);
+    background:rgba(255,128,128,.08);border-radius:999px;padding:2px 7px}
   .linkbtn{background:none;border:none;color:var(--accent-2);padding:0;font-size:12px}
   .linkbtn:hover{text-decoration:underline;background:none}
   .filters{display:flex;align-items:center;gap:8px}
@@ -267,6 +269,7 @@
         <h2 id="listings-title">Listings <span class="count" id="count">—</span></h2>
         <div class="contract-line">
           <span class="mono" id="addr">no escrow configured</span>
+          <span class="trust-badge hidden" id="trustBadge">UNVERIFIED</span>
           <button class="linkbtn" id="copy" type="button">copy</button>
           <a class="linkbtn hidden" id="scan" target="_blank" rel="noopener">Etherscan ↗</a>
           <button class="linkbtn" id="change" type="button">advanced</button>
@@ -407,12 +410,22 @@
 
   let account = null;
   let escrow = null;
+  let escrowOfficial = false;   // canonical market (DEFAULT_ESCROW, or one this browser deployed)
+  let escrowAck = false;        // user explicitly confirmed an unofficial market in this session
   let rows = [];
   let filter = 'all';
   let actEvents = [];
   let actFilter = 'all';
   let actLoading = false;
   const metaCache = new Map();
+  const ownMarket = () => { try { return (localStorage.getItem('otc.ownMarket') || '').toLowerCase(); } catch { return ''; } };
+  const isOfficial = (v) => {
+    const a = (v || '').toLowerCase();
+    if (!a) return false;
+    const canonical = (DEFAULT_ESCROW || '').toLowerCase();
+    return canonical ? a === canonical : a === ownMarket();
+  };
+  const canTrade = () => !!escrow && (escrowOfficial || escrowAck);
 
   // ---------- wallet ----------
   const wallets = new Map();   // EIP-6963 announcements (uuid -> {info, provider})
@@ -619,6 +632,7 @@
     $('addr').textContent = escrow || 'no escrow configured';
     $('addrInput').value = escrow || '';
     $('scan').classList.toggle('hidden', !escrow);
+    $('trustBadge').classList.toggle('hidden', !escrow || escrowOfficial);
     if (escrow) $('scan').href = EXPLORER + '/address/' + escrow;
   }
 
@@ -658,7 +672,9 @@
       : rows;
     $('count').textContent = escrow ? String(list.length) : '—';
     $('empty').classList.toggle('hidden', !!list.length || !escrow || filter === 'mine');
-    if (filter !== 'mine') setMarketNotice('');
+    if (escrow && !escrowOfficial) {
+      setMarketNotice('<span class="ico">⚠️</span><div><b>Unverified market.</b> This contract is not the official Squeek escrow — you loaded it manually for this session. Check the address before approving a Squeek or sending ETH.</div>');
+    } else if (filter !== 'mine') setMarketNotice('');
     else if (!list.length && escrow) setMarketNotice('<span class="ico">👤</span><div>You have no Squeeks listed in this market.</div>');
     for (const r of list) box.appendChild(card(r));
     if (escrow) box.appendChild(promo());
@@ -883,6 +899,7 @@
 
   async function buy(r) {
     if (!account) return say('Connect a wallet first.', 'bad');
+    if (!canTrade()) return say('Unverified market — trading is disabled.', 'bad');
     try {
       say('Confirm ' + fmtEth(r.price) + ' ETH in your wallet…');
       const hash = await rpc('eth_sendTransaction', [{
@@ -896,6 +913,7 @@
   }
 
   async function cancel(r) {
+    if (!canTrade()) return say('Unverified market — trading is disabled.', 'bad');
     try {
       say('Confirm cancelling #' + r.id + ' in your wallet…');
       const hash = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.cancel + pad(r.id) }]);
@@ -918,7 +936,7 @@
     const calc = $('calc');
     if (price == null || price === 0n) calc.textContent = 'Enter a token ID and a price.';
     else calc.innerHTML = 'You receive <b>' + fmtEth(price) + ' ETH</b> · 0% fee · buyer pays the exact price.';
-    btn.disabled = !escrow || !account || !/^\d+$/.test(id) || !price || price === 0n;
+    btn.disabled = !canTrade() || !account || !/^\d+$/.test(id) || !price || price === 0n;
     if (!escrow) sellNote('No escrow configured for this market yet.');
     else if (!account && !$('listStatus').textContent) sellNote('Connect a wallet to list a Squeek.');
 
@@ -976,6 +994,7 @@
   }
 
   async function approveAndList() {
+    if (!canTrade()) return sellNote('Unverified market — trading is disabled.', 'bad');
     const id = $('tokenId').value.trim();
     const price = toWei($('price').value.trim());
     if (!/^\d+$/.test(id) || !price) return sellNote('Enter a token ID and a price.', 'bad');
@@ -1014,7 +1033,8 @@
       say('Deploying escrow… ' + shortHash(hash));
       const r = await receipt(hash);
       if (!r.contractAddress) throw new Error('No contract address in the receipt');
-      setEscrow(r.contractAddress);
+      localStorage.setItem('otc.ownMarket', r.contractAddress.toLowerCase());
+      setEscrow(r.contractAddress, { official: true });
       try { localStorage.setItem('otc.deploy.' + r.contractAddress.toLowerCase(), String(Number(BigInt(r.blockNumber)))); } catch {}
       say('Escrow deployed. Share the ?c= link so others join this market.', 'ok', EXPLORER + '/tx/' + hash);
       await refresh();
@@ -1022,9 +1042,12 @@
   }
 
   // ---------- escrow loading ----------
-  function setEscrow(v) {
-    escrow = v;
-    if (v) localStorage.setItem('otc.address', v); else localStorage.removeItem('otc.address');
+  function setEscrow(v, opts = {}) {
+    escrow = v || null;
+    escrowOfficial = !!v && (opts.official === true || isOfficial(v));
+    escrowAck = !!v && !escrowOfficial && opts.ack === true;
+    if (escrow && escrowOfficial && opts.persist !== false) localStorage.setItem('otc.address', escrow);
+    else localStorage.removeItem('otc.address');
     paintAddress();
     updateSellState();
   }
@@ -1036,8 +1059,14 @@
       if (!code || code === '0x') throw new Error('No contract at that address on Sepolia');
       const nft = hexAddr(await call(v, SEL.nft));
       if (nft.toLowerCase() !== NFT.toLowerCase()) throw new Error('That contract trades a different NFT');
-      setEscrow(v);
-      say('Market loaded.', 'ok');
+      const official = isOfficial(v);
+      if (!official) {
+        const ok = confirm('This is NOT the official Squeek escrow.\n\n' + v +
+          '\n\nApproving a Squeek or sending ETH to an unknown contract can lose it. Only continue if you trust this contract.');
+        if (!ok) return say('Market not loaded.', 'bad');
+      }
+      setEscrow(v, { ack: !official, persist: official });
+      say(official ? 'Market loaded.' : 'Unverified market loaded for this session only.', official ? 'ok' : 'bad');
       await refresh();
     } catch (e) { say(e.message || String(e), 'bad'); }
   }
@@ -1109,7 +1138,21 @@
   }
 
   const params = new URLSearchParams(location.search);
-  const initial = params.get('c') || DEFAULT_ESCROW || localStorage.getItem('otc.address') || '';
+  const requested = (params.get('c') || '').trim();
+  const saved = (localStorage.getItem('otc.address') || '').trim();
+  let initial = '';
+  if (requested) {
+    if (isOfficial(requested)) initial = requested;
+    else {
+      localStorage.removeItem('otc.address');
+      say('This link points at an unverified market — it was ignored.', 'bad');
+    }
+  } else if (saved && isOfficial(saved)) {
+    initial = saved;
+  } else if (saved) {
+    localStorage.removeItem('otc.address');
+  }
+  if (!initial && DEFAULT_ESCROW) initial = DEFAULT_ESCROW;
   if (initial) setEscrow(initial);
   else { paintAddress(); updateSellState(); }
   refresh();
