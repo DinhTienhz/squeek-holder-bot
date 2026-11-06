@@ -261,7 +261,7 @@
   .fee-line{font-size:10.5px;color:var(--muted);margin-top:7px}
 
   /* ---------- activity ---------- */
-  .activity{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.18)}
+  .activity{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.18);container-type:inline-size}
   .act-head{display:grid;grid-template-columns:88px minmax(0,1fr) 92px 58px 16px 12px;
     gap:9px;padding:9px 13px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
     font-weight:800;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;
@@ -385,6 +385,16 @@
     .im-img{max-width:240px;margin:0 auto}
     .how{grid-template-columns:1fr}
     .panel{padding:16px}
+  }
+  /* Narrow sidebar: two-line rows instead of a cramped table. */
+  @container (max-width:560px){
+    .act-head{display:none}
+    .act-row{grid-template-columns:74px minmax(0,1fr) auto;column-gap:8px;row-gap:3px;padding:10px 12px}
+    .act-badge{grid-column:1;grid-row:1/span 2;align-self:center}
+    .act-id{grid-column:2;grid-row:1}
+    .act-price{grid-column:3;grid-row:1;text-align:right;white-space:nowrap}
+    .act-time{grid-column:2/-1;grid-row:2;text-align:left;font-size:10.5px}
+    .act-link,.act-more{display:none}
   }
   @media (max-width:760px){
     .act-head{display:none}
