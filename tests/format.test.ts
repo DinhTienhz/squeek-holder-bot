@@ -52,7 +52,7 @@ test('statusMsg: trạng thái + block + round', () => {
   assert.match(s, /68\.9%/);
   assert.match(s, /897/);
   assert.match(s, /settled 5,900/);
-  assert.match(s, /live supply/);
+  assert.match(s, /Live supply/);
   assert.match(s, /1\.58%/);
 });
 

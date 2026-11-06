@@ -322,10 +322,11 @@
     if (cap > 0 && live > 0) {
       set('live-mint', compact(live / 1e18) + ' / ' + compact(cap / 1e18) + ' (' + (live / cap * 100).toFixed(2) + '%)');
     }
-    var closed = Number((d.schedule || {}).closedThroughBlock || 0);
-    if (closed > 0 && mined > 0) {
-      var exact = Math.floor(mined / 1e18).toLocaleString('en-US');
-      set('live-settled', exact + ' SQK mined at settled block ' + closed.toLocaleString('en-US'));
+    var premine = Number((d.supply || {}).premintBaseUnits || 0);
+    var burned = Number((d.supply || {}).totalBurnedBaseUnits || 0);
+    if (live > 0) {
+      var f = function (x) { return Math.floor(x / 1e18).toLocaleString('en-US'); };
+      set('live-settled', f(premine) + ' premine + ' + f(mined) + ' mined − ' + f(burned) + ' burned = ' + f(live) + ' live');
     }
   }
   function paintStaking(d) {

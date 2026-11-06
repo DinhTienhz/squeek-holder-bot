@@ -209,7 +209,7 @@ export function createBot(cfg: Config) {
           stake = { nfts: totals.nftsStaked, nftLive: BigInt(eco?.nft?.live ?? '0'), sqk: totals.sqkStaked, mined: BigInt(eco?.supply?.miningMintedBaseUnits ?? '0') };
         }
       } catch { /* keep the status without staking totals */ }
-      const text = statusMsg(langOf(u), { ...s, minted, cap, liveSupply: eco?.supply?.liveSupplyBaseUnits ? BigInt(eco.supply.liveSupplyBaseUnits) : undefined }, age, stake, langOf(u) === 'en' ? 'protocol-wide' : 'toàn protocol');
+      const text = statusMsg(langOf(u), { ...s, minted, cap, liveSupply: eco?.supply?.liveSupplyBaseUnits ? BigInt(eco.supply.liveSupplyBaseUnits) : undefined, premine: eco?.supply?.premintBaseUnits ? BigInt(eco.supply.premintBaseUnits) : undefined }, age, stake, langOf(u) === 'en' ? 'protocol-wide' : 'toàn protocol');
       await reply(ctx, text + (note ? `\n${note}` : ''));
     } catch {
       await reply(ctx, tr(langOf(u), 'apiDown'));
