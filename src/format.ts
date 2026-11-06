@@ -156,6 +156,10 @@ export function statusMsg(lang: Lang, s: {
   const pct = fmtNum((s.blockProgress / 1e9) * 100, lang, 1);
   const filled = Math.max(0, Math.min(20, Math.round((s.blockProgress / 1e9) * 20)));
   const bar = '█'.repeat(filled) + '░'.repeat(20 - filled);
+  const pctOf = (a: bigint, b: bigint) => (b > 0n ? fmtNum(Number(a * 1000n / b) / 10, lang, 1) : '—');
+  const live = s.liveSupply ?? s.minted;
+
+  // 1. What the chain is doing
   const lines = [
     `🐹 <b>Hamster</b> · ${state}`,
     `⛏️ <b>Block</b> ${fmtInt(s.blockHeight, lang)} · ${pct}%` +
@@ -163,25 +167,22 @@ export function statusMsg(lang: Lang, s: {
     bar,
     `🔄 <b>Round</b> ${fmtInt(s.settledThroughRound, lang)} ${lang === 'en' ? 'settled' : 'đã settle'}`,
   ];
-  const pctOf = (a: bigint, b: bigint) => (b > 0n ? fmtNum(Number(a * 1000n / b) / 10, lang, 1) : '—');
-  const stats: string[] = [];
-  const live = s.liveSupply ?? s.minted;
-  if (s.cap != null && s.cap > 0n && live != null) {
-    const share = fmtNum((Number(live) / Number(s.cap)) * 100, lang, 2);
-    stats.push(`🪙 <b>${lang === 'en' ? 'Live supply' : 'Live supply'}</b> · ${fmtInt(live / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)} (${share}%)`);
+
+  // 2. How much SQK exists
+  if (live != null && s.cap != null && s.cap > 0n) {
+    const capShare = fmtNum((Number(live) / Number(s.cap)) * 100, lang, 2);
+    lines.push('', `🪙 <b>${lang === 'en' ? 'Supply' : 'Cung'}</b> · ${fmtInt(live / 10n ** 18n, lang)} / ${fmtInt(s.cap / 10n ** 18n, lang)} (${capShare}%)`);
+    if (s.premine != null) lines.push(`├ ${lang === 'en' ? 'Premine' : 'Premine'} · ${fmtInt(s.premine / 10n ** 18n, lang)}`);
+    if (s.minted != null) lines.push(`└ ${lang === 'en' ? 'Mined' : 'Đã đào'} · ${fmtInt(s.minted / 10n ** 18n, lang)} (${pctOf(s.minted, live)}% ${lang === 'en' ? 'of live' : 'của cung'})`);
   }
-  if (s.premine != null) {
-    stats.push(`🏦 <b>${lang === 'en' ? 'Premine' : 'Premine'}</b> · ${fmtInt(s.premine / 10n ** 18n, lang)}`);
-  }
-  if (s.minted != null && live != null && live > 0n) {
-    stats.push(`⚒️ <b>${lang === 'en' ? 'Mined' : 'Đã đào'}</b> · ${fmtInt(s.minted / 10n ** 18n, lang)} (${pctOf(s.minted, live)}% ${lang === 'en' ? 'of live' : 'của live'})`);
-  }
+
+  // 3. How much is locked
   if (stake) {
-    stats.push(`🖼 <b>${pctOf(stake.nfts, stake.nftLive)}%</b> ${lang === 'en' ? 'staked' : 'đang stake'} · ${fmtInt(stake.nfts, lang)} / ${fmtInt(stake.nftLive, lang)} NFT`);
-    const liveSupp = s.liveSupply ?? stake.mined;
-    stats.push(`💰 <b>${pctOf(stake.sqk, liveSupp)}%</b> ${lang === 'en' ? 'of live supply staked' : 'live supply đang stake'} · ${fmtInt(stake.sqk / 10n ** 18n, lang)} SQK (${pctOf(stake.sqk, stake.mined)}% ${lang === 'en' ? 'of mined' : 'của đã đào'})`);
+    lines.push('', `🖼 <b>NFT ${lang === 'en' ? 'staked' : 'stake'}</b> · ${fmtInt(stake.nfts, lang)} / ${fmtInt(stake.nftLive, lang)} (${pctOf(stake.nfts, stake.nftLive)}%)`);
+    const liveSupp = live ?? stake.mined;
+    lines.push(`💰 <b>SQK ${lang === 'en' ? 'staked' : 'stake'}</b> · ${fmtInt(stake.sqk / 10n ** 18n, lang)} (${pctOf(stake.sqk, liveSupp)}% ${lang === 'en' ? 'live' : 'cung'} · ${pctOf(stake.sqk, stake.mined)}% ${lang === 'en' ? 'mined' : 'đào'})`);
   }
-  if (stats.length) lines.push('', ...stats);
+
   lines.push('', `<i>${scope ? `${scope} · ` : ''}${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
   return lines.join('\n');
 }
