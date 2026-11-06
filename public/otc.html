@@ -189,10 +189,13 @@
   .act-detail-stats{color:var(--accent-2);font-weight:700;margin-bottom:2px}
   .act-detail-note{color:var(--muted);font-weight:400;font-size:10px;margin-left:6px}
   .act-detail .im-label{margin-top:8px}
+  .act-detail-fee{font-size:10.5px;color:var(--muted)}
   .act-badge{font-size:9.5px;font-weight:800;letter-spacing:.1em;border:1px solid var(--line);
     border-radius:999px;padding:3px 8px;text-align:center;white-space:nowrap}
   .act-badge.listed{color:var(--accent);border-color:rgba(201,242,77,.35);background:rgba(201,242,77,.07)}
   .act-badge.sold{color:var(--accent-2);border-color:rgba(125,226,209,.4);background:rgba(125,226,209,.07)}
+  .act-badge.bid{color:#8fb8ff;border-color:#243a5c;background:#0e1622}
+  .act-badge.bidcancel{color:#b9a6ff;border-color:#332b52;background:#151024}
   .act-badge.cancelled{color:#ff9c9c;border-color:rgba(255,128,128,.3);background:rgba(255,128,128,.06)}
   .act-id{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .act-price{font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
@@ -480,6 +483,7 @@
           <button data-a="all" class="on" type="button">All</button>
           <button data-a="listed" type="button">Listed</button>
           <button data-a="sold" type="button">Sold</button>
+          <button data-a="bids" type="button">Bids</button>
           <button data-a="cancelled" type="button">Delisted</button>
         </div>
       </div>
@@ -568,7 +572,10 @@
   const TOPIC = {
     listed: '0x50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc08343',
     sold: '0xa70b1a854695e7921b122988e216d3a6cd10ed799017c67b1ff231967e6bf56d',
-    cancelled: '0x26deca31ff8139a06c52453ce8985d34f7648a6d9af1d283c4063d052c355a0f'
+    cancelled: '0x26deca31ff8139a06c52453ce8985d34f7648a6d9af1d283c4063d052c355a0f',
+    bidPlaced: '0x0e54eff26401bf69b81b26f60bd85ef47f5d85275c1d268d84f68d6897431c47',
+    bidCancelled: '0xaf2f02012ea1953fe9293dd4a8bb5194c96792324f9385297c991c2cfeade3d9',
+    bidAccepted: '0xd03315470d28070614b9df363c9487f50982f0b44efc4ed078f73b48e37fca6a'
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1090,7 +1097,7 @@
     try {
       return await rpc('eth_getLogs', [{
         address: addr, fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16),
-        topics: [[TOPIC.listed, TOPIC.sold, TOPIC.cancelled]]
+        topics: [[TOPIC.listed, TOPIC.sold, TOPIC.cancelled, TOPIC.bidPlaced, TOPIC.bidCancelled, TOPIC.bidAccepted]]
       }]);
     } catch (e) {
       if (to - from < 2000) throw e;
@@ -1109,21 +1116,49 @@
   }
 
   function decodeLogs(logs) {
-    const price = (data) => (data && data !== '0x' ? BigInt(data) : null);
-    return logs.map((l) => {
-      const kind = l.topics[0] === TOPIC.listed ? 'listed'
-        : l.topics[0] === TOPIC.sold ? 'sold' : 'cancelled';
-      const e = {
-        kind, id: BigInt(l.topics[1]).toString(),
-        seller: kind === 'sold' ? hexAddr(l.topics[3].slice(2)) : hexAddr(l.topics[2].slice(2)),
-        tx: l.transactionHash,
-        block: Number(BigInt(l.blockNumber)),
-        index: Number(BigInt(l.logIndex)),
-        price: kind === 'cancelled' ? null : price(l.data)
-      };
-      if (kind === 'sold') e.buyer = hexAddr(l.topics[2].slice(2));
-      return e;
+    const word = (d, i) => {
+      const h = d.replace(/^0x/, '');
+      return h.length >= (i + 1) * 64 ? BigInt('0x' + h.slice(i * 64, (i + 1) * 64)) : null;
+    };
+    const addrWord = (d, i) => {
+      const h = d.replace(/^0x/, '');
+      return '0x' + h.slice(i * 64 + 24, (i + 1) * 64);
+    };
+    const base = (l) => ({
+      tx: l.transactionHash,
+      block: Number(BigInt(l.blockNumber)),
+      index: Number(BigInt(l.logIndex))
     });
+    return logs.map((l) => {
+      const t = l.topics[0];
+      if (t === TOPIC.listed) {
+        return { ...base(l), kind: 'listed', id: BigInt(l.topics[1]).toString(),
+          seller: hexAddr(l.topics[2].slice(2)), price: word(l.data, 0) };
+      }
+      if (t === TOPIC.sold) {
+        // Sold(tokenId indexed, buyer indexed, seller indexed, price, fee)
+        return { ...base(l), kind: 'sold', id: BigInt(l.topics[1]).toString(),
+          buyer: hexAddr(l.topics[2].slice(2)), seller: hexAddr(l.topics[3].slice(2)),
+          price: word(l.data, 0), fee: word(l.data, 1) };
+      }
+      if (t === TOPIC.cancelled) {
+        return { ...base(l), kind: 'cancelled', id: BigInt(l.topics[1]).toString(),
+          seller: hexAddr(l.topics[2].slice(2)), price: null };
+      }
+      if (t === TOPIC.bidPlaced || t === TOPIC.bidCancelled) {
+        // BidPlaced/BidCancelled(bidId indexed, buyer indexed, price)
+        return { ...base(l), kind: t === TOPIC.bidPlaced ? 'bid' : 'bidcancel',
+          id: null, bidId: BigInt(l.topics[1]).toString(),
+          buyer: hexAddr(l.topics[2].slice(2)), price: word(l.data, 0) };
+      }
+      if (t === TOPIC.bidAccepted) {
+        // BidAccepted(bidId indexed, tokenId indexed, buyer indexed, seller, price, fee)
+        return { ...base(l), kind: 'sold', bid: true,
+          id: BigInt(l.topics[2]).toString(), buyer: hexAddr(l.topics[3].slice(2)),
+          seller: addrWord(l.data, 0), price: word(l.data, 1), fee: word(l.data, 2) };
+      }
+      return null;
+    }).filter(Boolean);
   }
 
   async function stampTimes(events) {
@@ -1175,7 +1210,9 @@
 
   function renderActivity(error) {
     const box = $('activity'), empty = $('actEmpty'), count = $('actCount');
-    const list = actFilter === 'all' ? actEvents : actEvents.filter((e) => e.kind === actFilter);
+    const list = actFilter === 'all' ? actEvents
+      : actFilter === 'bids' ? actEvents.filter((e) => e.kind === 'bid' || e.kind === 'bidcancel')
+      : actEvents.filter((e) => e.kind === actFilter);
     count.textContent = escrow ? String(list.length) : '—';
     if (error) {
       box.classList.add('hidden');
@@ -1211,15 +1248,21 @@
   function actRow(e) {
     const el = document.createElement('div');
     el.className = 'act-row';
-    const label = e.kind === 'listed' ? 'LISTED' : e.kind === 'sold' ? 'SOLD' : 'DELISTED';
-    const actor = e.kind === 'sold' ? 'buyer ' + short(e.buyer) : 'seller ' + short(e.seller);
+    const label = e.kind === 'listed' ? 'LISTED'
+      : e.kind === 'sold' ? 'SOLD'
+      : e.kind === 'bid' ? 'BID'
+      : e.kind === 'bidcancel' ? 'BID OUT' : 'DELISTED';
+    const actor = e.kind === 'sold' ? 'buyer ' + short(e.buyer)
+      : (e.kind === 'bid' || e.kind === 'bidcancel') ? 'bidder ' + short(e.buyer)
+      : 'seller ' + short(e.seller);
+    const actorAddr = e.seller || e.buyer || '';
     const price = e.price != null ? fmtEth(e.price) + ' ETH' : '—';
     const title = e.time ? new Date(e.time).toLocaleString() : '';
     el.innerHTML =
       '<span class="act-badge ' + e.kind + '">' + label + '</span>' +
-      '<span class="act-id">Squeek #' + e.id + '</span>' +
+      '<span class="act-id">' + (e.id ? 'Squeek #' + e.id : 'Bid #' + e.bidId) + '</span>' +
       '<span class="act-price' + (e.price == null ? ' none' : '') + '">' + price + '</span>' +
-      '<span class="act-actor" title="' + e.seller + '">' + actor + '</span>' +
+      '<span class="act-actor" title="' + actorAddr + '">' + actor + '</span>' +
       '<span class="act-time" title="' + title + '">' + ago(e.time) + '</span>' +
       '<a class="act-link" href="' + EXPLORER + '/tx/' + e.tx + '" target="_blank" rel="noopener" aria-label="View transaction on Etherscan">↗</a>' +
       '<span class="act-more" aria-hidden="true">▸</span>';
@@ -1245,6 +1288,11 @@
     row.classList.add('open');
     if (d.dataset.loaded) return;
     d.dataset.loaded = '1';
+    if (!e.id) {
+      d.innerHTML = '<div class="act-detail-stats">Bid escrow movement' +
+        '<span class="act-detail-note">no token attached</span></div>';
+      return;
+    }
     d.innerHTML = '<div>Reading level &amp; power…</div>';
     try {
       const [meta, stats] = await Promise.all([
@@ -1254,6 +1302,7 @@
       d.innerHTML =
         '<div class="act-detail-stats">' + (statLine(stats) || 'Level/power unavailable') +
           '<span class="act-detail-note">current on-chain state</span></div>' +
+        (e.fee != null ? '<div class="act-detail-fee">Fee paid ' + fmtEth(e.fee) + ' ETH (0.1%)</div>' : '') +
         '<div class="im-label">Traits (' + meta.traits.length + ')</div>' + traitsHtml(meta.traits);
     } catch (err) {
       d.textContent = 'Could not read token data — check your connection.';
