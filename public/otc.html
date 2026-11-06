@@ -83,6 +83,28 @@
   .c-badge{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-2);
     border:1px solid #2c3a1f;background:#141a10;border-radius:5px;padding:2px 6px}
   .collection-card.active .c-badge{color:#0a0a10;background:var(--accent);border-color:var(--accent)}
+  .market-layout{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:16px;align-items:start}
+  .market-main{min-width:0}
+  .market-main .panel{padding:16px}
+  .market-main .panel:first-child{margin-top:0}
+  .market-main .panel-head{margin-bottom:12px}
+  .market-side{min-width:0}
+  .market-side .panel{padding:16px;margin:0}
+  @media (min-width:1101px){
+    .market-side .act-head{display:none}
+    .market-side .act-row{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;padding:10px 11px}
+    .market-side .act-badge{order:1;min-width:64px;text-align:center}
+    .market-side .act-id{order:2;flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .market-side .act-price{order:3;flex:none}
+    .market-side .act-actor{order:4;flex:1 1 100%;font-size:10.5px;color:var(--muted);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .market-side .act-time{order:5;font-size:10.5px}
+    .market-side .act-link{order:6;margin-left:auto}
+    .market-side .act-more{order:7}
+  }
+  @media (max-width:1100px){
+    .market-layout{grid-template-columns:1fr}
+  }
   .panel-head h2{margin:0;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
   .count{font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);
     border-radius:999px;padding:2px 9px;background:#0e0e15}
@@ -317,6 +339,8 @@
     <div class="collection-row" id="collectionRow"></div>
   </section>
 
+  <div class="market-layout">
+  <div class="market-main">
   <section class="panel" aria-labelledby="listings-title">
     <div class="panel-head">
       <div>
@@ -364,25 +388,6 @@
     </div>
   </section>
 
-  <section class="panel" aria-labelledby="activity-title">
-    <div class="panel-head">
-      <div>
-        <h2 id="activity-title">Activity <span class="count" id="actCount">—</span></h2>
-        <div class="note" id="actNote">Every listing, sale and delisting in this market.</div>
-      </div>
-      <div class="filters">
-        <div class="seg" id="actFilters" role="group" aria-label="Filter activity">
-          <button data-a="all" class="on" type="button">All</button>
-          <button data-a="listed" type="button">Listed</button>
-          <button data-a="sold" type="button">Sold</button>
-          <button data-a="cancelled" type="button">Delisted</button>
-        </div>
-      </div>
-    </div>
-    <div id="activity" class="activity hidden"></div>
-    <div class="empty" id="actEmpty">Configure a market to see its activity.</div>
-  </section>
-
   <section class="panel" aria-labelledby="sell-title">
     <div class="panel-head">
       <div><h2 id="sell-title">List</h2></div>
@@ -415,6 +420,31 @@
       </div>
     </div>
   </section>
+
+  </div>
+
+  <aside class="market-side">
+  <section class="panel" aria-labelledby="activity-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="activity-title">Activity <span class="count" id="actCount">—</span></h2>
+        <div class="note" id="actNote">Every listing, sale and delisting in this market.</div>
+      </div>
+      <div class="filters">
+        <div class="seg" id="actFilters" role="group" aria-label="Filter activity">
+          <button data-a="all" class="on" type="button">All</button>
+          <button data-a="listed" type="button">Listed</button>
+          <button data-a="sold" type="button">Sold</button>
+          <button data-a="cancelled" type="button">Delisted</button>
+        </div>
+      </div>
+    </div>
+    <div id="activity" class="activity hidden"></div>
+    <div class="empty" id="actEmpty">Configure a market to see its activity.</div>
+  </section>
+
+  </aside>
+  </div>
 
   <div class="how">
     <div class="step"><div class="n">1</div><h3>List</h3><p>Approve the escrow for one token, then list it. The Squeek leaves your wallet and waits inside the contract.</p></div>
