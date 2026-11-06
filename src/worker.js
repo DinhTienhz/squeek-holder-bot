@@ -17,7 +17,7 @@ const SECURITY_HEADERS = {
     "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     "script-src 'self' 'unsafe-inline'",
-    "connect-src 'self' https://api.squeekchain.com",
+    "connect-src 'self' https://api.squeekchain.com https://ethereum-sepolia-rpc.publicnode.com",
     "base-uri 'none'",
     "form-action 'none'",
     "frame-ancestors 'none'",

@@ -551,6 +551,7 @@
       name: 'Squeek',
       collection: '0xc4c7982657f00509548f3a3a41db7fa439a6856b',
       escrow: '0xe0c16a29c0ad3b123600284ceb1bc1678a171799',
+      fromBlock: 12077382,
       image: 'squeek-sample.svg',
       tag: 'ERC-721 · Sepolia'
     }
@@ -618,10 +619,24 @@
     if (wallets.size === 0 && window.ethereum) return window.ethereum;
     return null;
   }
+  const PUBLIC_RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
+  const READ_METHODS = new Set(['eth_call', 'eth_getLogs', 'eth_getBlockByNumber', 'eth_getCode',
+    'eth_blockNumber', 'eth_chainId', 'eth_getBalance']);
   async function rpc(method, params) {
     const p = activeProvider();
-    if (!p) throw new Error('No EVM wallet found. Open this page inside MetaMask or Rabby.');
-    return p.request({ method, params });
+    if (p) return p.request({ method, params });
+    // No wallet: read-only calls go to a public Sepolia node so the market is browsable.
+    if (!READ_METHODS.has(method)) {
+      throw new Error('No EVM wallet found. Open this page inside MetaMask or Rabby.');
+    }
+    const res = await fetch(PUBLIC_RPC, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+    });
+    const j = await res.json();
+    if (j.error) throw new Error(j.error.message || 'RPC error');
+    return j.result;
   }
   async function call(to, data) { return rpc('eth_call', [{ to, data }, 'latest']); }
 
@@ -1082,19 +1097,29 @@
   // ---------- activity ----------
   async function deployBlock(addr) {
     const key = 'otc.deploy.' + addr.toLowerCase();
-    const saved = localStorage.getItem(key);
-    if (saved) return Number(saved);
+    const market = MARKETS.find((m) => m.escrow.toLowerCase() === addr.toLowerCase());
+    if (market && market.fromBlock) return market.fromBlock;
+    const cached = Number(localStorage.getItem(key) || 0);
+    if (cached > 0) return cached;
+
     const latest = Number(BigInt(await rpc('eth_blockNumber', [])));
-    const head = await rpc('eth_getCode', [addr, 'latest']);
-    if (!head || head === '0x') return latest;
-    let lo = 0, hi = latest;
-    while (lo < hi) {
-      const mid = Math.floor((lo + hi) / 2);
-      let code;
-      try { code = await rpc('eth_getCode', [addr, '0x' + mid.toString(16)]); }
-      catch { return Math.max(0, latest - 50000); }
-      if (code && code !== '0x') hi = mid; else lo = mid + 1;
+    let lo = Math.max(0, latest - 500000);
+    let hi = latest;
+    try {
+      if (await rpc('eth_getCode', [addr, '0x' + hi.toString(16)]).then((c) => c && c !== '0x')) {
+        while (lo < hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          const code = await rpc('eth_getCode', [addr, '0x' + mid.toString(16)]);
+          if (code && code !== '0x') hi = mid; else lo = mid + 1;
+        }
+      } else {
+        lo = Math.max(0, latest - 100000);
+      }
+    } catch {
+      // Public nodes often cannot serve old state; scan a bounded recent window.
+      lo = Math.max(0, latest - 100000);
     }
+    if (!lo) lo = Math.max(0, latest - 100000);
     localStorage.setItem(key, String(lo));
     return lo;
   }
@@ -1195,8 +1220,8 @@
     actLoading = true;
     $('actNote').textContent = 'Reading market logs…';
     try {
-      const from = await deployBlock(escrow);
       const latest = Number(BigInt(await rpc('eth_blockNumber', [])));
+      const from = Math.max(await deployBlock(escrow), latest - 500000);
       const logs = await logsSince(escrow, from, latest);
       actEvents = decodeLogs(logs)
         .sort((a, b) => (b.block - a.block) || (b.index - a.index))
