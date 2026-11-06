@@ -123,6 +123,8 @@ async function pollSettlements(): Promise<void> {
     // Settlement log có thể đi trước phần supply: sqkMinted còn null nghĩa là
     // API chưa index xong. Chờ vòng sau thay vì báo "không phát SQK".
     if (st.minted === null) break;
+    // Chỉ báo batch đã được xác nhận an toàn; batch đang chờ thì để vòng sau.
+    if (st.status && st.status !== 'safe') continue;
     const lag = st.at ? Math.round((Date.now() - Date.parse(st.at)) / 1000) : null;
     log('settlement seen', st.first + '-' + st.last, lag === null ? '' : `${lag}s after block time`);
     for (const u of usersWith('block_alerts')) {
