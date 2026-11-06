@@ -143,10 +143,17 @@
   .act-head{display:grid;grid-template-columns:92px minmax(0,1.1fr) 130px minmax(0,1fr) 104px 24px;
     gap:12px;align-items:center;padding:8px 13px;border-bottom:1px solid var(--line);
     font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:#6d6e85;background:#0b0b11}
-  .act-row{display:grid;grid-template-columns:92px minmax(0,1.1fr) 130px minmax(0,1fr) 104px 24px;
-    gap:12px;align-items:center;padding:11px 13px;border-top:1px solid #1f202b;font-size:12.5px}
+  .act-row{display:grid;grid-template-columns:92px minmax(0,1.1fr) 130px minmax(0,1fr) 104px 24px 16px;
+    gap:12px;align-items:center;padding:11px 13px;border-top:1px solid #1f202b;font-size:12.5px;cursor:pointer}
   .act-row:first-child{border-top:0}
-  .act-row:hover{background:#12131a}
+  .act-row:hover,.act-row.open{background:#12131a}
+  .act-more{color:var(--muted);font-size:10px;text-align:center;transition:transform .15s}
+  .act-row.open .act-more{transform:rotate(90deg);color:var(--accent)}
+  .act-detail{padding:10px 13px 12px;background:#0b0b11;border-top:1px solid #1f202b;
+    color:var(--muted);font-size:11.5px;line-height:1.5}
+  .act-detail-stats{color:var(--accent-2);font-weight:700;margin-bottom:2px}
+  .act-detail-note{color:var(--muted);font-weight:400;font-size:10px;margin-left:6px}
+  .act-detail .im-label{margin-top:8px}
   .act-badge{font-size:9.5px;font-weight:800;letter-spacing:.1em;border:1px solid var(--line);
     border-radius:999px;padding:3px 8px;text-align:center;white-space:nowrap}
   .act-badge.listed{color:var(--accent);border-color:rgba(201,242,77,.35);background:rgba(201,242,77,.07)}
@@ -161,6 +168,7 @@
   .act-link:hover{color:var(--accent-2);text-decoration:none}
   @media (max-width:760px){
     .act-head{display:none}
+    .act-more{display:none}
     .act-row{grid-template-columns:80px minmax(0,1fr) auto;row-gap:3px;padding:10px 11px}
     .act-badge{grid-column:1;grid-row:1/span 2;align-self:center}
     .act-id{grid-column:2;grid-row:1}
@@ -191,6 +199,7 @@
   .preview-img .ph{font-size:13px;color:#3a3b4d;text-align:center;padding:20px}
   .preview-body{padding:10px 12px 12px}
   .preview-name{font-size:13px;font-weight:700;margin-bottom:3px}
+  .preview-stats{font-size:11px;color:var(--accent-2);min-height:14px;margin-bottom:2px}
   .traits{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
   .traits span{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
   .owner-line{font-size:11px;color:var(--muted);margin-top:6px;overflow-wrap:anywhere}
@@ -227,6 +236,22 @@
   .wallet-opt img{width:26px;height:26px;border-radius:6px;object-fit:contain}
   .wallet-opt .nm{font-weight:600;font-size:14px}
   .modal-foot{color:var(--muted);font-size:11.5px;line-height:1.5;margin-top:8px}
+  .item-card{max-width:560px}
+  .im-grid{display:grid;grid-template-columns:200px minmax(0,1fr);gap:14px}
+  .im-img{aspect-ratio:1;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0a0a10;display:grid;place-items:center}
+  .im-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .im-img .ph{color:#3a3b4d;font-size:13px}
+  .im-stats{font-size:13px;font-weight:700}
+  .im-seller{font-size:11px;color:var(--muted);margin-bottom:8px}
+  .im-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px}
+  .im-info button{margin-top:14px;width:100%}
+  .traits--full{display:flex;flex-wrap:wrap;gap:4px}
+  .traits--full span{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:6px;
+    padding:3px 7px;display:inline-flex;gap:5px;line-height:1.4}
+  .traits--full b{color:var(--text);font-weight:600}
+  .card-stats{font-size:10.5px;color:var(--accent-2);min-height:14px}
+  .card-id,.thumb{cursor:pointer}
+  @media(max-width:560px){.im-grid{grid-template-columns:1fr}.im-img{max-width:220px;margin:0 auto}}
 
   @media (max-width:720px){
     nav.site{display:none}
@@ -360,7 +385,8 @@
         <div class="preview-img" id="previewImg"><div class="ph">Token preview</div></div>
         <div class="preview-body">
           <div class="preview-name" id="previewName">—</div>
-          <div class="traits" id="previewTraits"></div>
+          <div class="preview-stats" id="previewStats"></div>
+          <div id="previewTraits"></div>
           <div class="owner-line" id="ownerLine"></div>
         </div>
       </div>
@@ -392,6 +418,19 @@
     </div>
     <div id="walletList"></div>
     <div class="modal-foot" id="wmFoot"></div>
+  </div>
+</div>
+
+<div id="itemModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="imTitle">
+  <div class="modal-card item-card">
+    <div class="modal-head">
+      <div>
+        <b id="imTitle">Squeek</b>
+        <div class="modal-sub" id="imSub"></div>
+      </div>
+      <button id="imClose" class="icon-btn" type="button" aria-label="Close">✕</button>
+    </div>
+    <div id="imBody"></div>
   </div>
 </div>
 
@@ -611,11 +650,79 @@
     const out = {
       name: (meta && meta.name) || ('Squeek #' + id),
       image: (meta && meta.image) || '',
-      traits: (meta && Array.isArray(meta.attributes) ? meta.attributes : []).slice(0, 3)
-        .map((a) => a.value).filter(Boolean)
+      traits: (meta && Array.isArray(meta.attributes) ? meta.attributes : [])
+        .filter((a) => a && a.value != null)
+        .map((a) => ({ type: String(a.trait_type || 'Trait'), value: String(a.value) }))
     };
     metaCache.set(id, out);
     return out;
+  }
+
+  // ---------- on-chain stats (level / power) ----------
+  const API = 'https://api.squeekchain.com/v1';
+  const statsCache = new Map();
+
+  async function getJson(url, tries = 2) {
+    let last;
+    for (let i = 0; i < tries; i++) {
+      try {
+        const r = await fetch(url, { headers: { accept: 'application/json' } });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return await r.json();
+      } catch (e) {
+        last = e;
+        if (i + 1 < tries) await new Promise((res) => setTimeout(res, 700));
+      }
+    }
+    throw last;
+  }
+
+  async function accountStats(addr) {
+    const key = String(addr).toLowerCase();
+    const hit = statsCache.get(key);
+    if (hit && Date.now() - hit.at < 60000) return hit.data;
+    try {
+      const d = await getJson(API + '/accounts/' + key);
+      const map = new Map();
+      if (d && d.status === 'available' && Array.isArray(d.tokens)) {
+        for (const t of d.tokens) {
+          map.set(String(t.tokenId), {
+            level: t.level != null ? t.level : null,
+            power: t.basePower != null ? t.basePower : null,
+            mergeState: t.mergeState || null
+          });
+        }
+      }
+      statsCache.set(key, { at: Date.now(), data: map });
+      return map;
+    } catch (e) {
+      statsCache.set(key, { at: Date.now() - 45000, data: new Map() });  // retry after 15s
+      return new Map();
+    }
+  }
+
+  async function tokenStats(id, owner) {
+    let addr = owner;
+    if (!addr) {
+      try { addr = hexAddr(await call(NFT, SEL.ownerOf + pad(id))); }
+      catch { return null; }
+    }
+    const map = await accountStats(addr);
+    return map.get(String(id)) || null;
+  }
+
+  function statLine(s) {
+    if (!s) return '';
+    const bits = [];
+    if (s.level != null) bits.push('Lv ' + s.level);
+    if (s.power != null) bits.push(Number(s.power).toLocaleString('en-US') + ' power');
+    return bits.join(' · ');
+  }
+
+  function traitsHtml(traits, limit) {
+    const list = limit ? traits.slice(0, limit) : traits;
+    return '<div class="traits traits--full">' + list.map((t) =>
+      '<span><b>' + escapeHtml(t.type) + '</b>' + escapeHtml(t.value) + '</span>').join('') + '</div>';
   }
 
   // ---------- listings ----------
@@ -725,6 +832,7 @@
       '<div class="card-body">' +
         '<div class="card-top"><div class="card-id">Squeek <span>#' + r.id + '</span></div>' +
           '<div class="card-price">' + fmtEth(r.price) + '<small>ETH</small></div></div>' +
+        '<div class="card-stats"></div>' +
         '<div class="card-seller">seller ' + short(r.seller) + (mine ? ' · you' : '') + '</div>' +
       '</div>';
     const btn = document.createElement('button');
@@ -749,7 +857,62 @@
       if (skel) skel.remove();
       thumb.querySelector('.ph').classList.remove('hidden');
     });
+    thumb.onclick = () => openItem(r);
+    el.querySelector('.card-id').onclick = () => openItem(r);
+    tokenStats(r.id, r.seller).then((s) => {
+      const n = el.querySelector('.card-stats');
+      if (n) n.textContent = statLine(s);
+    }).catch(() => {});
     return el;
+  }
+
+  // ---------- item details (buy preview) ----------
+  async function openItem(r) {
+    const mine = account && r.seller.toLowerCase() === account.toLowerCase();
+    $('imTitle').textContent = 'Squeek #' + r.id;
+    $('imSub').textContent = fmtEth(r.price) + ' ETH · seller ' + short(r.seller) + (mine ? ' · you' : '');
+    $('imBody').innerHTML =
+      '<div class="im-grid">' +
+        '<div class="im-img" id="imImg"><div class="ph">#' + r.id + '</div></div>' +
+        '<div class="im-info">' +
+          '<div class="im-stats" id="imStats">Reading level &amp; power…</div>' +
+          '<div class="im-seller">' + (mine ? 'Your listing' : 'Seller ' + short(r.seller)) + '</div>' +
+          '<div id="imTraits"></div>' +
+        '</div>' +
+      '</div>';
+    const act = document.createElement('button');
+    act.className = mine ? 'ghost' : 'primary';
+    act.textContent = mine ? 'Cancel listing' : 'Buy for ' + fmtEth(r.price) + ' ETH';
+    act.onclick = () => { closeItem(); mine ? cancel(r) : buy(r); };
+    $('imBody').querySelector('.im-info').appendChild(act);
+    $('itemModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    try {
+      const [meta, stats] = await Promise.all([
+        tokenMeta(r.id),
+        tokenStats(r.id, r.seller).catch(() => null)
+      ]);
+      const img = $('imImg');
+      img.innerHTML = '';
+      if (meta.image) {
+        const im = document.createElement('img');
+        im.src = meta.image; im.alt = meta.name;
+        img.appendChild(im);
+      } else {
+        img.innerHTML = '<div class="ph">#' + r.id + '</div>';
+      }
+      $('imStats').textContent = statLine(stats) || 'Level/power unavailable';
+      $('imTraits').innerHTML = '<div class="im-label">Traits (' + meta.traits.length + ')</div>' +
+        traitsHtml(meta.traits);
+    } catch (e) {
+      $('imStats').textContent = 'Could not read token data — check your connection.';
+    }
+  }
+
+  function closeItem() {
+    $('itemModal').classList.add('hidden');
+    if ($('walletModal').classList.contains('hidden')) document.body.style.overflow = '';
   }
 
   // ---------- activity ----------
@@ -886,8 +1049,12 @@
     empty.classList.add('hidden');
     box.classList.remove('hidden');
     box.innerHTML = '<div class="act-head"><span>Event</span><span>Item</span><span>Price</span>' +
-      '<span>Actor</span><span>When</span><span></span></div>';
-    for (const e of list) box.appendChild(actRow(e));
+      '<span>Actor</span><span>When</span><span></span><span></span></div>';
+    for (const e of list) {
+      const row = actRow(e);
+      box.appendChild(row);
+      box.appendChild(row.__detail);
+    }
   }
 
   function actRow(e) {
@@ -903,8 +1070,43 @@
       '<span class="act-price' + (e.price == null ? ' none' : '') + '">' + price + '</span>' +
       '<span class="act-actor" title="' + e.seller + '">' + actor + '</span>' +
       '<span class="act-time" title="' + title + '">' + ago(e.time) + '</span>' +
-      '<a class="act-link" href="' + EXPLORER + '/tx/' + e.tx + '" target="_blank" rel="noopener" aria-label="View transaction on Etherscan">↗</a>';
+      '<a class="act-link" href="' + EXPLORER + '/tx/' + e.tx + '" target="_blank" rel="noopener" aria-label="View transaction on Etherscan">↗</a>' +
+      '<span class="act-more" aria-hidden="true">▸</span>';
+    const detail = document.createElement('div');
+    detail.className = 'act-detail hidden';
+    el.__detail = detail;
+    el.onclick = (ev) => {
+      if (ev.target.closest('a')) return;
+      toggleActDetail(el, e);
+    };
     return el;
+  }
+
+  async function toggleActDetail(row, e) {
+    const d = row.__detail;
+    if (!d) return;
+    if (!d.classList.contains('hidden')) {
+      d.classList.add('hidden');
+      row.classList.remove('open');
+      return;
+    }
+    d.classList.remove('hidden');
+    row.classList.add('open');
+    if (d.dataset.loaded) return;
+    d.dataset.loaded = '1';
+    d.innerHTML = '<div>Reading level &amp; power…</div>';
+    try {
+      const [meta, stats] = await Promise.all([
+        tokenMeta(e.id),
+        tokenStats(e.id, null).catch(() => null)
+      ]);
+      d.innerHTML =
+        '<div class="act-detail-stats">' + (statLine(stats) || 'Level/power unavailable') +
+          '<span class="act-detail-note">current on-chain state</span></div>' +
+        '<div class="im-label">Traits (' + meta.traits.length + ')</div>' + traitsHtml(meta.traits);
+    } catch (err) {
+      d.textContent = 'Could not read token data — check your connection.';
+    }
   }
 
   // ---------- actions ----------
@@ -966,21 +1168,31 @@
     if (!/^\d+$/.test(id) || !escrow) {
       $('previewImg').innerHTML = '<div class="ph">Token preview</div>';
       $('previewName').textContent = '—';
+      $('previewStats').textContent = '';
       $('previewTraits').innerHTML = '';
       $('ownerLine').textContent = '';
       return;
     }
     try {
-      const [meta, ownerWord] = await Promise.all([
+      const [meta, ownerWord, stats] = await Promise.all([
         tokenMeta(id),
-        call(NFT, SEL.ownerOf + pad(id))
+        call(NFT, SEL.ownerOf + pad(id)),
+        tokenStats(id).catch(() => null)
       ]);
       const owner = hexAddr(ownerWord);
-      $('previewImg').innerHTML = meta.image
-        ? '<img src="' + meta.image + '" alt="' + escapeHtml(meta.name) + '">'
-        : '<div class="ph">#' + id + '</div>';
+      const imgBox = $('previewImg');
+      imgBox.innerHTML = '';
+      if (meta.image) {
+        const im = document.createElement('img');
+        im.src = meta.image; im.alt = meta.name;
+        imgBox.appendChild(im);
+      } else {
+        imgBox.innerHTML = '<div class="ph">#' + id + '</div>';
+      }
       $('previewName').textContent = meta.name;
-      $('previewTraits').innerHTML = meta.traits.map((t) => '<span>' + escapeHtml(String(t)) + '</span>').join('');
+      $('previewStats').textContent = statLine(stats) || 'Level/power unavailable';
+      $('previewTraits').innerHTML = '<div class="im-label">Traits (' + meta.traits.length + ')</div>' +
+        traitsHtml(meta.traits);
       const mine = account && owner.toLowerCase() === account.toLowerCase();
       $('ownerLine').className = 'owner-line' + (mine ? ' ok' : '');
       if (account && !mine) {
@@ -1089,8 +1301,10 @@
   };
   $('wmClose').onclick = closeWalletModal;
   $('walletModal').onclick = (e) => { if (e.target === $('walletModal')) closeWalletModal(); };
+  $('imClose').onclick = closeItem;
+  $('itemModal').onclick = (e) => { if (e.target === $('itemModal')) closeItem(); };
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeWalletModal();
+    if (e.key === 'Escape') { closeWalletModal(); closeItem(); }
   });
   $('switchNet').onclick = () => rpc('wallet_switchEthereumChain', [{ chainId: CHAIN_HEX }])
     .then(paintNetwork).catch((e) => say(e.message || String(e), 'bad'));
