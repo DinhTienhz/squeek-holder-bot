@@ -112,7 +112,7 @@ export default {
       // The market lives at the root of its own domain; /otc is kept as a redirect
       // so old links (and the bot host) keep working.
       if (/^\/otc(\.html)?$/.test(url.pathname)) {
-        return Response.redirect(url.origin + '/' + url.search, 301);
+        return Response.redirect(url.origin + '/market' + url.search, 301);
       }
       if (url.pathname === '/index.html') {
         return Response.redirect(url.origin + '/', 301);
@@ -120,14 +120,14 @@ export default {
       if (url.pathname === '/api/staking-totals') {
         return new Response('Not found', { status: 404, headers: SECURITY_HEADERS });
       }
-      if (url.pathname !== '/' && !isAssetPath(url.pathname)) {
+      if (url.pathname !== '/' && url.pathname !== '/market' && !isAssetPath(url.pathname)) {
         return new Response(OTC_NOT_FOUND, {
           status: 404,
           headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
         });
       }
     } else if (OTC_ORIGIN && /^\/otc(\.html)?$/.test(url.pathname)) {
-      return Response.redirect(OTC_ORIGIN + '/', 302);
+      return Response.redirect(OTC_ORIGIN + '/market', 302);
     }
 
     if (url.pathname === '/api/staking-totals') {
@@ -148,7 +148,7 @@ export default {
     // custom-domain route exists can loop back into this Worker (Cloudflare 1042).
     // On the market host the root path serves the market page. Fetch it as /otc:
     // asking for /otc.html makes the assets layer 307-redirect to the clean URL.
-    const assetPath = onOtcHost && url.pathname === '/' ? '/otc' : url.pathname;
+    const assetPath = onOtcHost && (url.pathname === '/' || url.pathname === '/market') ? '/otc' : url.pathname;
     const assetReq = new Request('https://assets.local' + assetPath + url.search, request);
     const res = await env.ASSETS.fetch(assetReq);
 

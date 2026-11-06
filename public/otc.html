@@ -61,7 +61,10 @@
     transition:color .15s,background .15s;
   }
   nav.site a:hover{color:var(--text);background:rgba(255,255,255,.05)}
-  nav.site a:first-child{color:var(--text);background:rgba(255,255,255,.055)}
+  nav.site a.on{color:var(--text);background:rgba(255,255,255,.055)}
+  .market-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:16px 0 0}
+  .market-head h1{font-size:22px;margin:0;letter-spacing:-.02em}
+  .market-head .note{color:var(--muted);font-size:12.5px}
   .btn-connect{margin-left:auto;padding:10px 18px !important;font-size:13px !important;display:inline-flex;align-items:center;gap:8px}
   .btn-connect .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(214,255,75,.15)}
   .contract-box summary span{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800}
@@ -417,35 +420,26 @@
   <header class="site">
     <a class="brand" href="https://squeek-holder-bot.chainn.workers.dev/"><img src="logo-otc-v6.png?v=7" alt="" width="44" height="44"> Squeek OTC</a>
     <nav class="site">
-      <a href="#listings">Market</a>
-      <a href="#bidsPanel">Bids</a>
-      <a href="#activity-title">Activity</a>
+      <a href="/" data-nav="home" class="on">Home</a>
+      <a href="/market" data-nav="market">Market</a>
+      <a href="/market#bidsPanel">Bids</a>
+      <a href="/market#activity-title">Activity</a>
       <a href="https://github.com/DinhTienhz/squeek-holder-bot" target="_blank" rel="noopener">GitHub</a>
     </nav>
     <button id="connect" class="primary btn-connect">Connect wallet</button>
   </header>
 
+  <div id="homeView">
   <section class="hero">
     <div class="eyebrow"><span class="pulse"></span> Live on Sepolia</div>
     <h1>The Squeek market,<br><em>settled on-chain.</em></h1>
     <p class="lead">Buy, sell and bid on Squeek NFTs. The NFT sits in escrow until the ETH arrives — one atomic transaction, no middleman, a flat 0.1% fee.</p>
     <div class="hero-cta">
-      <a class="primary btn-lg" href="#listings">Browse listings</a>
-      <a class="ghost btn-lg" href="#bidsPanel">Place a bid</a>
-    </div>
-    <div class="stats">
-      <div class="stat"><span>Listings</span><b id="statListings">—</b></div>
-      <div class="stat"><span>24h volume</span><b id="statVol24">—</b></div>
-      <div class="stat"><span>Total volume</span><b id="statVolAll">—</b></div>
-      <div class="stat"><span>Best bid</span><b id="statBestBid">—</b></div>
-      <div class="stat"><span>Open bids</span><b id="statBids">—</b></div>
+      <a class="primary btn-lg" href="/market">Browse listings</a>
+      <a class="ghost btn-lg" href="/market#bidsPanel">Place a bid</a>
     </div>
   </section>
 
-  <div id="netBanner" class="banner hidden">
-    <span>Your wallet is on the wrong network. This market runs on Sepolia.</span>
-    <button id="switchNet" type="button">Switch to Sepolia</button>
-  </div>
 
   <section class="panel" aria-labelledby="collections-title">
     <div class="panel-head">
@@ -456,6 +450,29 @@
     </div>
     <div class="collection-row" id="collectionRow"></div>
   </section>
+
+  <div class="how">
+    <div class="step"><div class="n">1</div><h3>List</h3><p>Approve the escrow and set a price. The Squeek waits inside the contract until it sells or you pull it back.</p></div>
+    <div class="step"><div class="n">2</div><h3>Buy</h3><p>The buyer pays the price plus the 0.1% fee; the NFT and the ETH move in the same transaction.</p></div>
+    <div class="step"><div class="n">3</div><h3>Bid</h3><p>Lock ETH at any price for the whole collection. The earliest bid at a level is served first, and any holder can accept — the seller pays the 0.1%.</p></div>
+    <div class="step"><div class="n">4</div><h3>Cancel anytime</h3><p>Sellers can withdraw a listed Squeek; bidders can cancel a bid and get their ETH back.</p></div>
+  </div>
+  </div>
+
+  <div id="marketView" class="hidden">
+  <div class="market-head"><h1>Market</h1><div class="note">Live listings, bids and sales for the selected collection.</div></div>
+    <div class="stats">
+      <div class="stat"><span>Listings</span><b id="statListings">—</b></div>
+      <div class="stat"><span>24h volume</span><b id="statVol24">—</b></div>
+      <div class="stat"><span>Total volume</span><b id="statVolAll">—</b></div>
+      <div class="stat"><span>Best bid</span><b id="statBestBid">—</b></div>
+      <div class="stat"><span>Open bids</span><b id="statBids">—</b></div>
+    </div>
+
+  <div id="netBanner" class="banner hidden">
+    <span>Your wallet is on the wrong network. This market runs on Sepolia.</span>
+    <button id="switchNet" type="button">Switch to Sepolia</button>
+  </div>
 
   <div class="market-layout">
   <div class="market-main">
@@ -591,12 +608,6 @@
 
   </aside>
   </div>
-
-  <div class="how">
-    <div class="step"><div class="n">1</div><h3>List</h3><p>Approve the escrow and set a price. The Squeek waits inside the contract until it sells or you pull it back.</p></div>
-    <div class="step"><div class="n">2</div><h3>Buy</h3><p>The buyer pays the price plus the 0.1% fee; the NFT and the ETH move in the same transaction.</p></div>
-    <div class="step"><div class="n">3</div><h3>Bid</h3><p>Lock ETH at any price for the whole collection. The earliest bid at a level is served first, and any holder can accept — the seller pays the 0.1%.</p></div>
-    <div class="step"><div class="n">4</div><h3>Cancel anytime</h3><p>Sellers can withdraw a listed Squeek; bidders can cancel a bid and get their ETH back.</p></div>
   </div>
 
   <footer>
@@ -2163,11 +2174,22 @@
   const bootMarket = marketIndex(initial);
   if (bootMarket >= 0) { activeMarket = bootMarket; collection = MARKETS[bootMarket].collection; }
   paintCollections();
+  const isMarket = /\/market\/?$/.test(location.pathname);
+  $('homeView').classList.toggle('hidden', isMarket);
+  $('marketView').classList.toggle('hidden', !isMarket);
+  document.querySelectorAll('nav.site a[data-nav]').forEach((a) => {
+    a.classList.toggle('on', a.dataset.nav === (isMarket ? 'market' : 'home'));
+  });
+
   if (initial) setEscrow(initial);
   else { paintAddress(); updateSellState(); }
-  refresh();
-  loadOwned();
-  setInterval(() => { if (escrow) loadActivity(); }, 60000);
+  if (isMarket) {
+    refresh();
+    loadOwned();
+    setInterval(() => { if (escrow) loadActivity(); }, 60000);
+  } else {
+    updateSellState();
+  }
 })();
 </script>
 </body>
