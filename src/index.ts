@@ -127,6 +127,7 @@ async function pollSettlements(): Promise<void> {
     if (st.status && st.status !== 'safe') continue;
     const lag = st.at ? Math.round((Date.now() - Date.parse(st.at)) / 1000) : null;
     log('settlement seen', st.first + '-' + st.last, lag === null ? '' : `${lag}s after block time`);
+
     for (const u of usersWith('block_alerts')) {
       const user = getUser(db, u.tg_id);
       if (!user) continue;
