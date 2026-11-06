@@ -333,10 +333,12 @@
     var s = Number(d.sqkStaked || 0) / 1e18;
     var nftLive = Number(d.nftLive || 0);
     var mined = Number(d.miningMinted || 0) / 1e18;
+    var liveSupply = Number(d.liveSupply || 0) / 1e18;
     var nftPct = nftLive > 0 ? (n / nftLive * 100).toFixed(1) + '%' : '—';
-    var sqkPct = mined > 0 ? (s / mined * 100).toFixed(1) + '%' : '—';
+    var sqkOfLive = liveSupply > 0 ? (s / liveSupply * 100).toFixed(1) + '%' : '—';
+    var sqkOfMined = mined > 0 ? (s / mined * 100).toFixed(1) + '%' : '—';
     set('live-nft-staked', n.toLocaleString('en-US') + ' / ' + nftLive.toLocaleString('en-US') + ' (' + nftPct + ')');
-    set('live-sqk-staked', Math.floor(s).toLocaleString('en-US') + ' / ' + Math.floor(mined).toLocaleString('en-US') + ' (' + sqkPct + ')');
+    set('live-sqk-staked', Math.floor(s).toLocaleString('en-US') + ' (' + sqkOfLive + ' supply · ' + sqkOfMined + ' mined)');
   }
   function staking() {
     fetch('/api/staking-totals', { headers: { accept: 'application/json' } })

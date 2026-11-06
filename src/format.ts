@@ -176,7 +176,8 @@ export function statusMsg(lang: Lang, s: {
   }
   if (stake) {
     stats.push(`🖼 <b>${pctOf(stake.nfts, stake.nftLive)}%</b> ${lang === 'en' ? 'staked' : 'đang stake'} · ${fmtInt(stake.nfts, lang)} / ${fmtInt(stake.nftLive, lang)} NFT`);
-    stats.push(`💰 <b>${pctOf(stake.sqk, stake.mined)}%</b> ${lang === 'en' ? 'staked' : 'đang stake'} · ${fmtInt(stake.sqk / 10n ** 18n, lang)} / ${fmtInt(stake.mined / 10n ** 18n, lang)} SQK`);
+    const liveSupp = s.liveSupply ?? stake.mined;
+    stats.push(`💰 <b>${pctOf(stake.sqk, liveSupp)}%</b> ${lang === 'en' ? 'of live supply staked' : 'live supply đang stake'} · ${fmtInt(stake.sqk / 10n ** 18n, lang)} SQK (${pctOf(stake.sqk, stake.mined)}% ${lang === 'en' ? 'of mined' : 'của đã đào'})`);
   }
   if (stats.length) lines.push('', ...stats);
   lines.push('', `<i>${scope ? `${scope} · ` : ''}${lang === 'en' ? 'updated' : 'cập nhật'} ${ageSec}s ${lang === 'en' ? 'ago' : 'trước'}</i>`);
