@@ -74,7 +74,12 @@
   .count{font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);
     border-radius:999px;padding:2px 9px;background:#0e0e15}
   .panel-head .note{color:var(--muted);font-size:12.5px}
-  .contract-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;font-size:12px}
+  .contract-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:7px;font-size:12px}
+  .contract-box summary{cursor:pointer;color:var(--accent-2);font-size:12px;list-style:none}
+  .contract-box summary::-webkit-details-marker{display:none}
+  .contract-box summary:before{content:"▸ ";color:var(--muted)}
+  .contract-box[open] summary:before{content:"▾ "}
+  .contract-body{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
   .contract-line .mono{color:var(--muted);max-width:100%;overflow-wrap:anywhere}
   .trust-badge{font-size:9px;font-weight:800;letter-spacing:.1em;color:#ff9c9c;border:1px solid rgba(255,128,128,.45);
     background:rgba(255,128,128,.08);border-radius:999px;padding:2px 7px}
@@ -268,10 +273,15 @@
       <div>
         <h2 id="listings-title">Listings <span class="count" id="count">—</span></h2>
         <div class="contract-line">
-          <span class="mono" id="addr">no escrow configured</span>
-          <span class="trust-badge hidden" id="trustBadge">UNVERIFIED</span>
-          <button class="linkbtn" id="copy" type="button">copy</button>
-          <a class="linkbtn hidden" id="scan" target="_blank" rel="noopener">Etherscan ↗</a>
+          <details id="contractBox" class="contract-box">
+            <summary>Contract</summary>
+            <div class="contract-body">
+              <span class="mono" id="addr">no escrow configured</span>
+              <span class="trust-badge hidden" id="trustBadge">UNVERIFIED</span>
+              <button class="linkbtn" id="copy" type="button">copy</button>
+              <a class="linkbtn hidden" id="scan" target="_blank" rel="noopener">Etherscan ↗</a>
+            </div>
+          </details>
           <button class="linkbtn" id="change" type="button">advanced</button>
         </div>
       </div>
@@ -634,6 +644,7 @@
     $('addrInput').value = escrow || '';
     $('scan').classList.toggle('hidden', !escrow);
     $('trustBadge').classList.toggle('hidden', !escrow || escrowOfficial);
+    $('contractBox').open = !!escrow && !escrowOfficial;
     if (escrow) $('scan').href = EXPLORER + '/address/' + escrow;
   }
 
