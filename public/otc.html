@@ -70,6 +70,19 @@
   .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);
     border-radius:var(--radius);padding:20px;margin:16px 0;position:relative}
   .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .collection-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,330px));gap:12px}
+  .collection-card{display:flex;gap:12px;align-items:center;text-align:left;padding:12px;border:1px solid var(--line);
+    border-radius:12px;background:#0c0d13;color:var(--text);cursor:pointer;font:inherit}
+  .collection-card:hover{border-color:#343648;background:#101119}
+  .collection-card.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .collection-card img{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none;background:#15161f}
+  .c-body{min-width:0}
+  .c-name{font-size:14px;font-weight:700}
+  .c-meta{font-size:11px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+  .c-foot{display:flex;gap:6px;align-items:center;margin-top:6px}
+  .c-badge{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-2);
+    border:1px solid #2c3a1f;background:#141a10;border-radius:5px;padding:2px 6px}
+  .collection-card.active .c-badge{color:#0a0a10;background:var(--accent);border-color:var(--accent)}
   .panel-head h2{margin:0;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
   .count{font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);
     border-radius:999px;padding:2px 9px;background:#0e0e15}
@@ -294,6 +307,16 @@
     <button id="switchNet" type="button">Switch to Sepolia</button>
   </div>
 
+  <section class="panel" aria-labelledby="collections-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="collections-title">Collections</h2>
+        <div class="note">NFT collections you can buy and sell here. Each one settles through its own escrow.</div>
+      </div>
+    </div>
+    <div class="collection-row" id="collectionRow"></div>
+  </section>
+
   <section class="panel" aria-labelledby="listings-title">
     <div class="panel-head">
       <div>
@@ -363,7 +386,7 @@
   <section class="panel" aria-labelledby="sell-title">
     <div class="panel-head">
       <div><h2 id="sell-title">Sell a Squeek</h2></div>
-      <div class="note">Squeek NFT only · 0% fee · you receive the full price</div>
+      <div class="note"><span id="sellCollection">Squeek</span> NFT only · 0% fee · you receive the full price</div>
     </div>
     <div class="sell-grid">
       <div>
@@ -436,7 +459,20 @@
 
 <script>
 (() => {
-  const NFT = '0xc4c7982657f00509548f3a3a41db7fa439a6856b';
+  // Supported collections. Each one is a separate escrow, deployed with that
+  // collection in the constructor; `escrow` must match DEFAULT_ESCROW or be
+  // added here deliberately.
+  const MARKETS = [
+    {
+      name: 'Squeek',
+      collection: '0xc4c7982657f00509548f3a3a41db7fa439a6856b',
+      escrow: '0x1907971489384306be9ec1fead1f3eec1045cbc6',
+      image: 'squeek-sample.svg',
+      tag: 'ERC-721 · Sepolia'
+    }
+  ];
+  let collection = MARKETS[0].collection;
+  let activeMarket = 0;
   const CHAIN = 11155111;
   const CHAIN_HEX = '0xaa36a7';
   const EXPLORER = 'https://sepolia.etherscan.io';
@@ -476,8 +512,7 @@
   const metaCache = new Map();
   const isOfficial = (v) => {
     const a = (v || '').toLowerCase();
-    const canonical = (DEFAULT_ESCROW || '').toLowerCase();
-    return !!a && !!canonical && a === canonical;
+    return !!a && MARKETS.some((m) => m.escrow.toLowerCase() === a);
   };
   const canTrade = () => !!escrow && (escrowOfficial || escrowAck);
 
@@ -643,7 +678,7 @@
   // ---------- metadata ----------
   async function tokenMeta(id) {
     if (metaCache.has(id)) return metaCache.get(id);
-    const uri = decodeStr(await call(NFT, SEL.tokenURI + pad(id)));
+    const uri = decodeStr(await call(collection, SEL.tokenURI + pad(id)));
     let meta = null;
     if (uri.startsWith('data:application/json;base64,')) meta = b64Json(uri);
     else if (uri.startsWith('data:application/json,')) meta = JSON.parse(decodeURIComponent(uri.slice(uri.indexOf(',') + 1)));
@@ -704,7 +739,7 @@
   async function tokenStats(id, owner) {
     let addr = owner;
     if (!addr) {
-      try { addr = hexAddr(await call(NFT, SEL.ownerOf + pad(id))); }
+      try { addr = hexAddr(await call(collection, SEL.ownerOf + pad(id))); }
       catch { return null; }
     }
     const map = await accountStats(addr);
@@ -1176,7 +1211,7 @@
     try {
       const [meta, ownerWord, stats] = await Promise.all([
         tokenMeta(id),
-        call(NFT, SEL.ownerOf + pad(id)),
+        call(collection, SEL.ownerOf + pad(id)),
         tokenStats(id).catch(() => null)
       ]);
       const owner = hexAddr(ownerWord);
@@ -1235,17 +1270,17 @@
     if (!/^\d+$/.test(id) || !price) return sellNote('Enter a token ID and a price.', 'bad');
     try {
       $('list').disabled = true;
-      const owner = hexAddr(await call(NFT, SEL.ownerOf + pad(id)));
+      const owner = hexAddr(await call(collection, SEL.ownerOf + pad(id)));
       if (owner.toLowerCase() !== account.toLowerCase()) throw new Error('You do not own Squeek #' + id);
       const h = (await call(escrow, SEL.listing + pad(id))).replace(/^0x/, '');
       if (hexAddr(h.slice(0, 64)) !== '0x0000000000000000000000000000000000000000') {
         throw new Error('Squeek #' + id + ' is already listed in this market');
       }
 
-      const approved = hexAddr(await call(NFT, SEL.getApproved + pad(id)));
+      const approved = hexAddr(await call(collection, SEL.getApproved + pad(id)));
       if (approved.toLowerCase() !== escrow.toLowerCase()) {
         sellNote('Step 1/2 — approve the escrow in your wallet…');
-        const ah = await rpc('eth_sendTransaction', [{ from: account, to: NFT, data: SEL.approve + addrWord(escrow) + pad(id) }]);
+        const ah = await rpc('eth_sendTransaction', [{ from: account, to: collection, data: SEL.approve + addrWord(escrow) + pad(id) }]);
         await receipt(ah);
       }
       sellNote('Step 2/2 — confirm the listing in your wallet…');
@@ -1272,17 +1307,58 @@
     updateSellState();
   }
 
+  function marketIndex(addr) {
+    const a = (addr || '').toLowerCase();
+    return MARKETS.findIndex((m) => m.escrow.toLowerCase() === a);
+  }
+
+  function paintCollections() {
+    const box = $('collectionRow');
+    if (!box) return;
+    box.innerHTML = '';
+    MARKETS.forEach((m, i) => {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'collection-card' + (i === activeMarket ? ' active' : '');
+      el.setAttribute('aria-pressed', String(i === activeMarket));
+      el.innerHTML = '<img src="' + m.image + '" alt="">' +
+        '<div class="c-body"><div class="c-name">' + escapeHtml(m.name) + '</div>' +
+        '<div class="c-meta">' + short(m.collection) + ' · ' + escapeHtml(m.tag || 'ERC-721') + '</div>' +
+        '<div class="c-foot"><span class="c-badge">' +
+        (i === activeMarket ? '✓ Selected' : 'Select') + '</span></div></div>';
+      el.onclick = () => selectMarket(i);
+      box.appendChild(el);
+    });
+  }
+
+  function selectMarket(i) {
+    const m = MARKETS[i];
+    if (!m) return;
+    activeMarket = i;
+    collection = m.collection;
+    metaCache.clear();
+    statsCache.clear();
+    paintCollections();
+    $('sell-title').textContent = 'Sell ' + m.name;
+    $('sellCollection').textContent = m.name;
+    setEscrow(m.escrow, { persist: true });
+    refresh();
+  }
+
   async function load(v) {
     if (!/^0x[0-9a-fA-F]{40}$/.test(v)) return say('Invalid contract address.', 'bad');
     try {
       const code = await rpc('eth_getCode', [v, 'latest']);
       if (!code || code === '0x') throw new Error('No contract at that address on Sepolia');
+      const idx = marketIndex(v);
+      const expected = idx >= 0 ? MARKETS[idx].collection : collection;
       const nft = hexAddr(await call(v, SEL.nft));
-      if (nft.toLowerCase() !== NFT.toLowerCase()) throw new Error('That contract trades a different NFT');
+      if (nft.toLowerCase() !== expected.toLowerCase()) throw new Error('That contract trades a different NFT');
+      if (idx >= 0) { activeMarket = idx; collection = expected; paintCollections(); }
       const official = isOfficial(v);
       if (!official) {
-        const ok = confirm('This is NOT the official Squeek escrow.\n\n' + v +
-          '\n\nApproving a Squeek or sending ETH to an unknown contract can lose it. Only continue if you trust this contract.');
+        const ok = confirm('This is NOT an official escrow for this collection.\n\n' + v +
+          '\n\nApproving an NFT or sending ETH to an unknown contract can lose it. Only continue if you trust this contract.');
         if (!ok) return say('Market not loaded.', 'bad');
       }
       setEscrow(v, { ack: !official, persist: official });
@@ -1375,6 +1451,11 @@
     localStorage.removeItem('otc.address');
   }
   if (!initial && DEFAULT_ESCROW) initial = DEFAULT_ESCROW;
+  const bootMarket = marketIndex(initial);
+  if (bootMarket >= 0) { activeMarket = bootMarket; collection = MARKETS[bootMarket].collection; }
+  paintCollections();
+  $('sell-title').textContent = 'Sell ' + MARKETS[activeMarket].name;
+  $('sellCollection').textContent = MARKETS[activeMarket].name;
   if (initial) setEscrow(initial);
   else { paintAddress(); updateSellState(); }
   refresh();
