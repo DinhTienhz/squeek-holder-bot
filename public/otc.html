@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Squeek OTC — escrowed NFT trades</title>
+<style>
+  :root{--bg:#0b0b10;--panel:#121218;--line:#242432;--text:#e9e9f2;--muted:#9a9aae;--accent:#c9f24d;--accent2:#7de2d1;--bad:#ff8080}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+  a{color:var(--accent2)}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 18px 80px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+  h1{font-size:22px;margin:0}
+  .sub{color:var(--muted);font-size:13px}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#1a1a24;color:var(--text);padding:9px 14px;border-radius:10px}
+  button:hover{background:#22222e}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#101014;font-weight:700}
+  button.ghost{background:transparent}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  label{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+  input{width:100%;background:#0d0d13;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:inherit}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .item{background:#0f0f16;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .item b{font-size:18px}
+  .price{color:var(--accent);font-weight:700}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted);word-break:break-all}
+  .status{font-size:13px;color:var(--muted);min-height:20px;margin-top:8px}
+  .ok{color:var(--accent2)} .bad{color:var(--bad)}
+  .hidden{display:none}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:640px){.split{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Squeek OTC</h1>
+      <div class="sub">Escrowed Squeek NFT trades on Sepolia · 0% fee</div>
+    </div>
+    <button id="connect" class="primary">Connect wallet</button>
+  </header>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <label>Escrow contract</label>
+        <div class="mono" id="addr">not set</div>
+      </div>
+      <div class="row">
+        <button id="load" class="ghost">Load</button>
+        <button id="deploy" class="primary">Deploy escrow</button>
+      </div>
+    </div>
+    <input id="addrInput" placeholder="0x… escrow address" style="margin-top:10px">
+    <div class="status" id="status">Connect a wallet to load or deploy.</div>
+  </div>
+
+  <div class="card">
+    <label for="tokenId">List a Squeek</label>
+    <div class="split">
+      <input id="tokenId" placeholder="Token ID (e.g. 1234)" inputmode="numeric">
+      <input id="price" placeholder="Price in ETH (e.g. 0.05)" inputmode="decimal">
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="list" class="primary" disabled>Approve &amp; list</button>
+      <span class="status" id="listStatus"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><label style="margin:0">Listings</label></div>
+      <button id="refresh" class="ghost">Refresh</button>
+    </div>
+    <div class="grid" id="listings" style="margin-top:12px"></div>
+    <div class="status" id="marketStatus">—</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const NFT = '0xc4c7982657f00509548f3a3a41db7fa439a6856b';
+  const CHAIN = 11155111;
+  const BYTECODE = '0x60a060405234801561000f575f80fd5b50604051610d96380380610d9683398101604081905261002e9161007f565b6001600160a01b03811661006e5760405162461bcd60e51b81526020600482015260036024820152621b999d60ea1b604482015260640160405180910390fd5b6001600160a01b03166080526100ac565b5f6020828403121561008f575f80fd5b81516001600160a01b03811681146100a5575f80fd5b9392505050565b608051610cb76100df5f395f818160f80152818161041d0152818161059d015281816106ed01526108bf0152610cb75ff3fe608060405260043610610079575f3560e01c806350fd73671161004c57806350fd7367146101325780638033d58114610151578063d96a094a14610170578063de74e57b14610183575f80fd5b806310c4e8b01461007d57806340e58ee5146100a85780634331ed1f146100c957806347ccca02146100e7575b5f80fd5b348015610088575f80fd5b506100916101f0565b60405161009f929190610b03565b60405180910390f35b3480156100b3575f80fd5b506100c76100c2366004610b99565b61033f565b005b3480156100d4575f80fd5b506001545b60405190815260200161009f565b3480156100f2575f80fd5b5061011a7f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b03909116815260200161009f565b34801561013d575f80fd5b506100c761014c366004610bb0565b6104b6565b34801561015c575f80fd5b506100d961016b366004610b99565b610789565b6100c761017e366004610b99565b6107a8565b34801561018e575f80fd5b506101c961019d366004610b99565b5f602081905290815260409020546001600160a01b03811690600160a01b90046001600160601b031682565b604080516001600160a01b0390931683526001600160601b0390911660208301520161009f565b606080600180548060200260200160405190810160405280929190818152602001828054801561023d57602002820191905f5260205f20905b815481526020019060010190808311610229575b5050600154939550505067ffffffffffffffff821115905061026157610261610bd0565b6040519080825280602002602001820160405280156102a557816020015b604080518082019091525f808252602082015281526020019060019003908161027f5790505b5090505f5b60015481101561033a575f80600183815481106102c9576102c9610be4565b5f918252602080832090910154835282810193909352604091820190208151808301909252546001600160a01b03811682526001600160601b03600160a01b9091041691810191909152825183908390811061032757610327610be4565b60209081029190910101526001016102aa565b509091565b60035460ff161561036b5760405162461bcd60e51b815260040161036290610bf8565b60405180910390fd5b60038054600160ff199091161790555f81815260208181526040918290208251808401909352546001600160a01b038116808452600160a01b9091046001600160601b03169183019190915233146103f25760405162461bcd60e51b815260206004820152600a6024820152693737ba1039b2b63632b960b11b6044820152606401610362565b6103fb82610a08565b6040516323b872dd60e01b8152306004820152336024820152604481018390527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316906323b872dd906064015f604051808303815f87803b158015610466575f80fd5b505af1158015610478573d5f803e3d5ffd5b50506040513392508491507f26deca31ff8139a06c52453ce8985d34f7648a6d9af1d283c4063d052c355a0f905f90a350506003805460ff19169055565b60035460ff16156104d95760405162461bcd60e51b815260040161036290610bf8565b6003805460ff1916600117905580158015906104fc57506001600160601b038111155b6105305760405162461bcd60e51b8152602060048201526005602482015264707269636560d81b6044820152606401610362565b5f828152602081905260409020546001600160a01b03161561057d5760405162461bcd60e51b81526020600482015260066024820152651b1a5cdd195960d21b6044820152606401610362565b6040516331a9108f60e11b81526004810183905233906001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001690636352211e90602401602060405180830381865afa1580156105e2573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906106069190610c1b565b6001600160a01b0316146106485760405162461bcd60e51b81526020600482015260096024820152683737ba1037bbb732b960b91b6044820152606401610362565b604080518082018252338082526001600160601b0384811660208085019182525f88815280825286812095519251909316600160a01b026001600160a01b03928316179094556001805480820182557fb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf601889055546002909452908490209290925591516323b872dd60e01b81526004810192909252306024830152604482018490527f000000000000000000000000000000000000000000000000000000000000000016906323b872dd906064015f604051808303815f87803b15801561072e575f80fd5b505af1158015610740573d5f803e3d5ffd5b50506040518381523392508491507f50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc083439060200160405180910390a350506003805460ff19169055565b60018181548110610798575f80fd5b5f91825260209091200154905081565b60035460ff16156107cb5760405162461bcd60e51b815260040161036290610bf8565b60038054600160ff199091161790555f81815260208181526040918290208251808401909352546001600160a01b038116808452600160a01b9091046001600160601b0316918301919091526108505760405162461bcd60e51b815260206004820152600a6024820152691b9bdd081b1a5cdd195960b21b6044820152606401610362565b80602001516001600160601b031634146108945760405162461bcd60e51b8152602060048201526005602482015264707269636560d81b6044820152606401610362565b61089d82610a08565b6040516323b872dd60e01b8152306004820152336024820152604481018390527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316906323b872dd906064015f604051808303815f87803b158015610908575f80fd5b505af115801561091a573d5f803e3d5ffd5b505050505f815f01516001600160a01b0316346040515f6040518083038185875af1925050503d805f811461096a576040519150601f19603f3d011682016040523d82523d5f602084013e61096f565b606091505b50509050806109a65760405162461bcd60e51b815260206004820152600360248201526270617960e81b6044820152606401610362565b81516020808401516040516001600160601b0390911681526001600160a01b0390921691339186917f23f50d55776d8003622a982ade45a6c7f083116c8dbbcd980f59942f440badb1910160405180910390a450506003805460ff1916905550565b5f8181526002602052604081205490819003610a505760405162461bcd60e51b81526020600482015260076024820152666d697373696e6760c81b6044820152606401610362565b600180545f9190610a62908290610c48565b81548110610a7257610a72610be4565b905f5260205f20015490508060018084610a8c9190610c48565b81548110610a9c57610a9c610be4565b5f9182526020808320909101929092558281526002909152604090208290556001805480610acc57610acc610c6d565b5f828152602080822083015f1990810183905590920190925593815260028452604080822082905593819052928320929092555050565b604080825283518282018190525f91906020906060850190828801855b82811015610b3c57815184529284019290840190600101610b20565b505050848103828601528551808252868301918301905f5b81811015610b8b57835180516001600160a01b031684528501516001600160601b0316858401529284019291850191600101610b54565b509098975050505050505050565b5f60208284031215610ba9575f80fd5b5035919050565b5f8060408385031215610bc1575f80fd5b50508035926020909101359150565b634e487b7160e01b5f52604160045260245ffd5b634e487b7160e01b5f52603260045260245ffd5b6020808252600990820152681c99595b9d1c985b9d60ba1b604082015260600190565b5f60208284031215610c2b575f80fd5b81516001600160a01b0381168114610c41575f80fd5b9392505050565b81810381811115610c6757634e487b7160e01b5f52601160045260245ffd5b92915050565b634e487b7160e01b5f52603160045260245ffdfea2646970667358221220fe96684e5a66504841c7252dddf11cfcad0db647b8ccdf398e741765961b3cdb64736f6c63430008180033';
+  const SEL = { list:'0x50fd7367', buy:'0xd96a094a', cancel:'0x40e58ee5', all:'0x10c4e8b0',
+                ownerOf:'0x6352211e', getApproved:'0x081812fc', approve:'0x095ea7b3' };
+
+  let account = null, escrow = null;
+  const $ = (id) => document.getElementById(id);
+  const say = (msg, cls='') => { $('status').className = 'status ' + cls; $('status').textContent = msg; };
+  const sayList = (msg, cls='') => { $('listStatus').className = 'status ' + cls; $('listStatus').textContent = msg; };
+  const sayMarket = (msg, cls='') => { $('marketStatus').className = 'status ' + cls; $('marketStatus').textContent = msg; };
+
+  const pad = (v) => BigInt(v).toString(16).padStart(64, '0');
+  const addrWord = (a) => a.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  const hexAddr = (w) => '0x' + w.slice(-40);
+
+  function provider() {
+    if (!window.ethereum) throw new Error('No EVM wallet found. Open in MetaMask.');
+    return window.ethereum;
+  }
+  async function rpc(method, params) { return provider().request({ method, params }); }
+  async function connect() {
+    const p = provider();
+    const acc = await p.request({ method: 'eth_requestAccounts' });
+    const chain = await p.request({ method: 'eth_chainId' });
+    if (parseInt(chain, 16) !== CHAIN) {
+      try { await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0xaa36a7' }] }); }
+      catch { throw new Error('Switch MetaMask to Sepolia first.'); }
+    }
+    account = acc[0];
+    $('connect').textContent = account.slice(0,6) + '…' + account.slice(-4);
+    $('list').disabled = !escrow;
+    say('Connected. Load an escrow address or deploy one.', 'ok');
+    await refresh();
+  }
+  async function call(to, data) { return rpc('eth_call', [{ to, data }, 'latest']); }
+  async function receipt(hash) {
+    for (let i = 0; i < 90; i++) {
+      const r = await rpc('eth_getTransactionReceipt', [hash]);
+      if (r) return r;
+      await new Promise(res => setTimeout(res, 2000));
+    }
+    throw new Error('timed out waiting for ' + hash);
+  }
+
+  function decodeAll(hex) {
+    const h = hex.replace(/^0x/, '');
+    const word = (i) => h.slice(i * 64, (i + 1) * 64);
+    const num = (w) => BigInt('0x' + w);
+    const off1 = Number(num(word(0))) / 32;
+    const off2 = Number(num(word(1))) / 32;
+    const n1 = Number(num(word(off1)));
+    const ids = [];
+    for (let i = 0; i < n1; i++) ids.push(num(word(off1 + 1 + i)).toString());
+    const n2 = Number(num(word(off2)));
+    const rows = [];
+    for (let i = 0; i < n2; i++) {
+      rows.push({ seller: hexAddr(word(off2 + 1 + i * 2)), price: num(word(off2 + 2 + i * 2)) });
+    }
+    return ids.map((id, i) => ({ id, ...rows[i] }));
+  }
+
+  async function refresh() {
+    if (!escrow) return;
+    try {
+      const data = await call(escrow, SEL.all);
+      const rows = decodeAll(data);
+      const box = $('listings');
+      box.innerHTML = '';
+      if (!rows.length) sayMarket('No listings yet.');
+      else sayMarket(rows.length + ' listing' + (rows.length === 1 ? '' : 's'));
+      for (const r of rows) {
+        const mine = account && r.seller.toLowerCase() === account.toLowerCase();
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = '<div class="mono">Squeek #' + r.id + '</div>' +
+          '<div class="price">' + (Number(r.price) / 1e18).toFixed(4) + ' ETH</div>' +
+          '<div class="mono">seller ' + r.seller.slice(0,6) + '…' + r.seller.slice(-4) + '</div>';
+        const btn = document.createElement('button');
+        btn.textContent = mine ? 'Cancel' : 'Buy';
+        btn.style.marginTop = '8px';
+        btn.onclick = () => mine ? cancel(r.id) : buy(r);
+        el.appendChild(btn);
+        box.appendChild(el);
+      }
+    } catch (e) {
+      sayMarket('read failed: ' + (e.message || e), 'bad');
+    }
+  }
+
+  async function deploy() {
+    try {
+      const data = BYTECODE + addrWord(NFT);
+      say('Confirm deployment in your wallet…');
+      const hash = await rpc('eth_sendTransaction', [{ from: account, data }]);
+      say('Deploying… ' + hash);
+      const r = await receipt(hash);
+      if (!r.contractAddress) throw new Error('no contract address in receipt');
+      escrow = r.contractAddress;
+      localStorage.setItem('otc.address', escrow);
+      $('addr').textContent = escrow;
+      $('addrInput').value = escrow;
+      $('list').disabled = false;
+      say('Deployed at ' + escrow, 'ok');
+      await refresh();
+    } catch (e) { say(e.message || String(e), 'bad'); }
+  }
+
+  async function approveAndList() {
+    const id = $('tokenId').value.trim();
+    const priceEth = $('price').value.trim();
+    if (!/^\d+$/.test(id) || !/^\d*\.?\d+$/.test(priceEth)) { sayList('Enter a token ID and a price.', 'bad'); return; }
+    const price = BigInt(Math.round(Number(priceEth) * 1e6)) * 10n ** 12n; // 6 decimals precision
+    if (price <= 0n) { sayList('Price must be > 0.', 'bad'); return; }
+    try {
+      $('list').disabled = true;
+      const owner = hexAddr((await call(NFT, SEL.ownerOf + pad(id))).slice(-64));
+      if (owner.toLowerCase() !== account.toLowerCase()) throw new Error('You do not own Squeek #' + id);
+
+      const approved = hexAddr((await call(NFT, SEL.getApproved + pad(id))).slice(-64));
+      if (approved.toLowerCase() !== escrow.toLowerCase()) {
+        sayList('Approve the escrow in your wallet…');
+        const ah = await rpc('eth_sendTransaction', [{ from: account, to: NFT, data: SEL.approve + addrWord(escrow) + pad(id) }]);
+        await receipt(ah);
+      }
+      sayList('List in your wallet…');
+      const lh = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.list + pad(id) + pad(price) }]);
+      await receipt(lh);
+      sayList('Listed Squeek #' + id, 'ok');
+      $('tokenId').value = ''; $('price').value = '';
+      await refresh();
+    } catch (e) { sayList(e.message || String(e), 'bad'); }
+    finally { $('list').disabled = !escrow; }
+  }
+
+  async function buy(r) {
+    try {
+      sayMarket('Confirm purchase in your wallet…');
+      const hash = await rpc('eth_sendTransaction', [{
+        from: account, to: escrow, value: '0x' + r.price.toString(16), data: SEL.buy + pad(r.id)
+      }]);
+      await receipt(hash);
+      sayMarket('Bought Squeek #' + r.id, 'ok');
+      await refresh();
+    } catch (e) { sayMarket(e.message || String(e), 'bad'); }
+  }
+
+  async function cancel(id) {
+    try {
+      const hash = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.cancel + pad(id) }]);
+      await receipt(hash);
+      sayMarket('Cancelled #' + id, 'ok');
+      await refresh();
+    } catch (e) { sayMarket(e.message || String(e), 'bad'); }
+  }
+
+  function load(v) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(v)) { say('Invalid contract address.', 'bad'); return; }
+    escrow = v;
+    localStorage.setItem('otc.address', v);
+    $('addr').textContent = v;
+    $('addrInput').value = v;
+    $('list').disabled = !account;
+    say('Loaded ' + v, 'ok');
+    refresh();
+  }
+
+  $('connect').onclick = () => connect().catch(e => say(e.message || String(e), 'bad'));
+  $('deploy').onclick = () => { if (!account) return say('Connect a wallet first.', 'bad'); deploy(); };
+  $('load').onclick = () => load($('addrInput').value.trim());
+  $('list').onclick = approveAndList;
+  $('refresh').onclick = refresh;
+
+  const params = new URLSearchParams(location.search);
+  const saved = params.get('c') || localStorage.getItem('otc.address') || '';
+  if (saved) load(saved);
+})();
+</script>
+</body>
+</html>
