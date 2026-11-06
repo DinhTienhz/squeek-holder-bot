@@ -383,7 +383,10 @@
     .wrap{padding:0 16px 60px}
     .hero{padding:36px 0 24px}
     .stats{grid-template-columns:repeat(2,1fr)}
-    nav.site{display:none}
+    header.site{flex-wrap:wrap;row-gap:8px}
+    nav.site{order:3;flex:1 0 100%;margin:2px 0 0;gap:4px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+    nav.site a{font-size:12px;padding:6px 10px;white-space:nowrap}
+    nav.site::-webkit-scrollbar{display:none}
     .sell-grid{grid-template-columns:1fr}
     .preview{max-width:300px;width:100%;margin:0 auto}
     .im-grid{grid-template-columns:1fr}
