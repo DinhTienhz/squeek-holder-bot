@@ -7,7 +7,7 @@
 Bot Telegram đa người dùng cho holder [Squeekchain](https://squeekchain.com) (Sepolia testnet).
 Ai biết username bot đều có thể `/start` và dùng — không cần mời.
 
-**Bot:** [@SqueekHolder_Bot](https://t.me/SqueekHolder_Bot) · **Landing page:** <https://squeek-holder-bot.chainn.workers.dev/>
+**Bot:** [@SqueekHolder_Bot](https://t.me/SqueekHolder_Bot) · **Landing page:** <https://squeek-holder-bot.chainn.workers.dev/> · **OTC market:** <https://squeeksotc.bid/otc>
 
 ## 8 chức năng
 

@@ -29,7 +29,7 @@ const SECURITY_HEADERS = {
 const OTC_HOSTS = new Set(['squeeksotc.bid', 'www.squeeksotc.bid']);
 // Set to 'https://squeekotc.bid' once that domain resolves, to send /otc on the
 // old host to the market. Empty keeps both hosts working during the move.
-const OTC_ORIGIN = '';
+const OTC_ORIGIN = 'https://squeeksotc.bid';
 
 const OTC_NOT_FOUND = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
