@@ -4,6 +4,8 @@
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![node](https://img.shields.io/badge/node-%E2%89%A524-brightgreen.svg)](package.json)
 
+squeekchain-project: bf69c43c-739e-4242-b75f-09e9059029f5
+
 One repo, two products for [Squeekchain](https://squeekchain.com) on Sepolia:
 
 | Product | What it does | Live |
