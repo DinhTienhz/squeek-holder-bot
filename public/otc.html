@@ -385,8 +385,8 @@
 
   <section class="panel" aria-labelledby="sell-title">
     <div class="panel-head">
-      <div><h2 id="sell-title">Sell a Squeek</h2></div>
-      <div class="note"><span id="sellCollection">Squeek</span> NFT only · 0% fee · you receive the full price</div>
+      <div><h2 id="sell-title">Sell</h2></div>
+      <div class="note">NFT only · 0% fee · you receive the full price</div>
     </div>
     <div class="sell-grid">
       <div>
@@ -1339,8 +1339,6 @@
     metaCache.clear();
     statsCache.clear();
     paintCollections();
-    $('sell-title').textContent = 'Sell ' + m.name;
-    $('sellCollection').textContent = m.name;
     setEscrow(m.escrow, { persist: true });
     refresh();
   }
@@ -1454,8 +1452,6 @@
   const bootMarket = marketIndex(initial);
   if (bootMarket >= 0) { activeMarket = bootMarket; collection = MARKETS[bootMarket].collection; }
   paintCollections();
-  $('sell-title').textContent = 'Sell ' + MARKETS[activeMarket].name;
-  $('sellCollection').textContent = MARKETS[activeMarket].name;
   if (initial) setEscrow(initial);
   else { paintAddress(); updateSellState(); }
   refresh();
