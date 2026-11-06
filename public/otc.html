@@ -262,12 +262,12 @@
 
   /* ---------- activity ---------- */
   .activity{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.18);container-type:inline-size}
-  .act-head{display:grid;grid-template-columns:88px minmax(0,1fr) 92px 58px 16px 12px;
+  .act-head{display:grid;grid-template-columns:88px minmax(0,1fr) 92px minmax(0,1fr) 58px 16px 12px;
     gap:9px;padding:9px 13px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
     font-weight:800;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;
   }
   .act-head span{overflow:hidden;text-overflow:ellipsis}
-  .act-row{display:grid;grid-template-columns:88px minmax(0,1fr) 92px 58px 16px 12px;
+  .act-row{display:grid;grid-template-columns:88px minmax(0,1fr) 92px minmax(0,1fr) 58px 16px 12px;
     gap:9px;align-items:center;padding:11px 13px;border-top:1px solid rgba(255,255,255,.05);font-size:12.5px;cursor:pointer}
   .act-row:first-child{border-top:0}
   .act-row:hover,.act-row.open{background:rgba(255,255,255,.035)}
@@ -282,7 +282,7 @@
   .act-price{font-variant-numeric:tabular-nums;font-weight:750}
   .act-price.none{color:var(--dim);font-weight:500}
   .act-time{color:var(--muted);font-size:11.5px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .act-actor{color:var(--dim);font-size:10.5px;font-family:var(--mono);margin-left:6px;white-space:nowrap}
+  .act-actor{color:var(--dim);font-size:11px;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .act-link{color:var(--dim);text-align:center}
   .act-link:hover{color:var(--accent-2)}
   .act-more{color:var(--dim);font-size:10px;text-align:center;transition:transform .15s}
@@ -393,7 +393,8 @@
     .act-badge{grid-column:1;grid-row:1/span 2;align-self:center}
     .act-id{grid-column:2;grid-row:1}
     .act-price{grid-column:3;grid-row:1;text-align:right;white-space:nowrap}
-    .act-time{grid-column:2/-1;grid-row:2;text-align:left;font-size:10.5px}
+    .act-actor{grid-column:2;grid-row:2;font-size:10.5px}
+    .act-time{grid-column:3;grid-row:2;text-align:right;font-size:10.5px}
     .act-link,.act-more{display:none}
   }
   @media (max-width:760px){
@@ -1363,7 +1364,7 @@
     empty.classList.add('hidden');
     box.classList.remove('hidden');
     box.innerHTML = '<div class="act-head"><span>Event</span><span>Item</span><span>Price</span>' +
-      '<span>When</span><span></span><span></span></div>';
+      '<span>Actor</span><span>When</span><span></span><span></span></div>';
     for (const e of list) {
       const row = actRow(e);
       box.appendChild(row);
@@ -1386,9 +1387,9 @@
     const title = e.time ? new Date(e.time).toLocaleString() : '';
     el.innerHTML =
       '<span class="act-badge ' + e.kind + '">' + label + '</span>' +
-      '<span class="act-id" title="' + actorAddr + '">' + (e.id ? 'Squeek #' + e.id : 'Bid #' + e.bidId) +
-        '<span class="act-actor">' + actor + '</span></span>' +
+      '<span class="act-id">' + (e.id ? 'Squeek #' + e.id : 'Bid #' + e.bidId) + '</span>' +
       '<span class="act-price' + (e.price == null ? ' none' : '') + '">' + price + '</span>' +
+      '<span class="act-actor" title="' + actorAddr + '">' + actor + '</span>' +
       '<span class="act-time" title="' + title + '">' + ago(e.time) + '</span>' +
       '<a class="act-link" href="' + EXPLORER + '/tx/' + e.tx + '" target="_blank" rel="noopener" aria-label="View transaction on Etherscan">↗</a>' +
       '<span class="act-more" aria-hidden="true">▸</span>';
