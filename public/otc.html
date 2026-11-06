@@ -80,6 +80,7 @@
   .contract-box summary:hover,.contract-box[open] summary{color:var(--accent-2)}
   .contract-box summary svg{display:block}
   .contract-body{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .contract-note{flex-basis:100%;color:var(--muted);font-size:11.5px;line-height:1.5;max-width:72ch}
   .contract-line .mono{color:var(--muted);max-width:100%;overflow-wrap:anywhere}
   .trust-badge{font-size:9px;font-weight:800;letter-spacing:.1em;color:#ff9c9c;border:1px solid rgba(255,128,128,.45);
     background:rgba(255,128,128,.08);border-radius:999px;padding:2px 7px}
@@ -274,7 +275,7 @@
         <h2 id="listings-title">Listings <span class="count" id="count">—</span></h2>
         <div class="contract-line">
           <details id="contractBox" class="contract-box">
-            <summary aria-label="Contract address" title="Contract address">
+            <summary aria-label="Escrow contract — what is this?" title="Escrow contract — what is this?">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 5"/>
@@ -287,6 +288,7 @@
               <button class="linkbtn" id="copy" type="button">copy</button>
               <a class="linkbtn hidden" id="scan" target="_blank" rel="noopener">Etherscan ↗</a>
             </div>
+            <div class="contract-note" id="contractNote">The escrow contract for this market: it holds listed Squeeks and pays the seller when one is bought. Approvals and payments only ever go to this address.</div>
           </details>
           <button class="linkbtn hidden" id="change" type="button">advanced</button>
         </div>
