@@ -86,7 +86,7 @@
   .hero .lead{color:var(--muted);font-size:16.5px;max-width:620px;line-height:1.6;margin:0}
   .hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin:26px 0 0}
   .btn-lg{padding:13px 22px !important;font-size:14px !important}
-  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:34px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin-top:34px}
   .stat{
     border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;
     background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
@@ -406,7 +406,7 @@
     .act-badge{grid-column:1;grid-row:1/span 2;align-self:center}
     .act-id{grid-column:2;grid-row:1}
     .act-price{grid-column:3;grid-row:1;text-align:right}
-    .act-time{grid-column:2/-1;grid-row:2;text-align:left;font-size:10.5px}
+    .act-time{grid-column:3;grid-row:2;text-align:right;font-size:10.5px}
     .act-link{display:none}
     .act-more{display:none}
   }
@@ -435,6 +435,8 @@
     </div>
     <div class="stats">
       <div class="stat"><span>Listings</span><b id="statListings">—</b></div>
+      <div class="stat"><span>24h volume</span><b id="statVol24">—</b></div>
+      <div class="stat"><span>Total volume</span><b id="statVolAll">—</b></div>
       <div class="stat"><span>Best bid</span><b id="statBestBid">—</b></div>
       <div class="stat"><span>Open bids</span><b id="statBids">—</b></div>
       <div class="stat"><span>Fee</span><b>0.1%</b></div>
@@ -533,17 +535,17 @@
     </div>
     <div class="sell-grid">
       <div>
-        <div class="field-row">
-          <div class="field">
-            <label for="tokenId">Token ID</label>
-            <input id="tokenId" placeholder="e.g. 4821" inputmode="numeric" autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="price">Price (ETH)</label>
-            <input id="price" placeholder="e.g. 0.05" inputmode="decimal" autocomplete="off">
-          </div>
+        <div class="owned-bar">
+          <div class="bid-k">Your Squeeks</div>
+          <button id="ownedRefresh" class="ghost" type="button">Refresh</button>
         </div>
-        <div class="calc" id="calc">Enter a token ID and a price.</div>
+        <div id="ownedGrid" class="owned-grid"></div>
+        <div id="ownedEmpty" class="owned-none">Connect a wallet to see the Squeeks you own.</div>
+        <div class="field" style="margin-top:10px">
+          <label for="price">Price (ETH)</label>
+          <input id="price" placeholder="e.g. 0.05" inputmode="decimal" autocomplete="off">
+        </div>
+        <div class="calc" id="calc">Pick a Squeek and enter a price.</div>
         <button id="list" class="primary wide" type="button" disabled>Approve &amp; list</button>
         <div class="step-note" id="listStatus"></div>
         <div id="bidBox" class="bid-box hidden">
@@ -650,6 +652,7 @@
   ];
   let collection = MARKETS[0].collection;
   let activeMarket = 0;
+  let selectedId = null;
   const CHAIN = 11155111;
   const CHAIN_HEX = '0xaa36a7';
   const EXPLORER = 'https://sepolia.etherscan.io';
@@ -737,7 +740,7 @@
     try { p.removeAllListeners && p.removeAllListeners(); } catch {}
     p.on('accountsChanged', (accs) => {
       account = accs && accs[0] ? accs[0] : null;
-      paintAccount(); render(); updateSellState(); paintNetwork();
+      paintAccount(); render(); updateSellState(); paintNetwork(); loadOwned();
     });
     p.on('chainChanged', () => { paintNetwork(); refresh(); });
   }
@@ -764,6 +767,7 @@
     await detectBids();
     await updateSellState();
     await paintBids();
+    await loadOwned();
   }
 
   function renderWalletList() {
@@ -841,6 +845,7 @@
     render();
     updateSellState();
     paintNetwork();
+    loadOwned();
   }
 
   function paintAccount() {
@@ -1034,6 +1039,7 @@
 
   async function refresh() {
     loadActivity();
+    loadVolume();
     if (!escrow) {
       rows = [];
       $('count').textContent = '—';
@@ -1091,7 +1097,7 @@
     b.className = 'primary';
     b.textContent = 'Start a listing';
     b.onclick = () => {
-      $('tokenId').focus();
+      loadOwned();
       $('sell-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
     el.appendChild(b);
@@ -1196,6 +1202,125 @@
   function closeItem() {
     $('itemModal').classList.add('hidden');
     if ($('walletModal').classList.contains('hidden')) document.body.style.overflow = '';
+  }
+
+  // ---------- your tokens ----------
+  const OWNED_LIMIT = 48;
+
+  async function loadOwned() {
+    const grid = $('ownedGrid');
+    const empty = $('ownedEmpty');
+    if (!escrow || !account) {
+      selectedId = null;
+      grid.innerHTML = '';
+      empty.textContent = escrow ? 'Connect a wallet to see the Squeeks you own.' : 'No market configured.';
+      empty.classList.remove('hidden');
+      updateSellState();
+      return;
+    }
+    empty.classList.add('hidden');
+    grid.innerHTML = '<div class="owned-loading">Reading your wallet…</div>';
+    try {
+      const map = await accountStats(account);
+      const ids = [...map.keys()].slice(0, OWNED_LIMIT);
+      const checks = await Promise.all(ids.map(async (id) => {
+        try {
+          const owner = hexAddr(await call(collection, SEL.ownerOf + pad(id)));
+          return owner.toLowerCase() === account.toLowerCase() ? id : null;
+        } catch { return null; }
+      }));
+      const mine = checks.filter(Boolean);
+      grid.innerHTML = '';
+      if (!mine.length) {
+        empty.textContent = 'No Squeeks from this collection in this wallet.';
+        empty.classList.remove('hidden');
+        if (selectedId) selectedId = null;
+        paintOwnedSelection();
+        updateSellState();
+        return;
+      }
+      for (const id of mine) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'owned-card';
+        card.dataset.id = id;
+        card.setAttribute('aria-pressed', 'false');
+        card.innerHTML = '<div class="owned-ph">#' + id + '</div><b>#' + id + '</b><span>' +
+          (statLine(map.get(id)) || '—') + '</span>';
+        card.onclick = () => selectToken(id);
+        grid.appendChild(card);
+        tokenMeta(id).then((m) => {
+          if (!m || !m.image) return;
+          const im = document.createElement('img');
+          im.src = m.image; im.alt = m.name; im.loading = 'lazy';
+          const ph = card.querySelector('.owned-ph');
+          if (ph) ph.replaceWith(im);
+        }).catch(() => {});
+      }
+      if (selectedId && !mine.includes(selectedId)) selectedId = null;
+      paintOwnedSelection();
+      updateSellState();
+    } catch {
+      grid.innerHTML = '';
+      empty.textContent = 'Could not read this wallet right now — try Refresh.';
+      empty.classList.remove('hidden');
+    }
+  }
+
+  function paintOwnedSelection() {
+    document.querySelectorAll('.owned-card').forEach((c) => {
+      const on = c.dataset.id === selectedId;
+      c.classList.toggle('on', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function selectToken(id) {
+    selectedId = String(id);
+    paintOwnedSelection();
+    updateSellState();
+  }
+
+  // ---------- volume ----------
+  let volCache = { key: '', at: 0, total: 0n, day: 0n };
+
+  async function sumSold(from, to) {
+    let sum = 0n;
+    for (let start = from; start <= to; start += 45000) {
+      const end = Math.min(start + 44999, to);
+      const logs = await rpc('eth_getLogs', [{
+        address: escrow, fromBlock: '0x' + start.toString(16), toBlock: '0x' + end.toString(16),
+        topics: [TOPIC.sold]
+      }]);
+      for (const l of logs || []) {
+        const w = (l.data || '').replace(/^0x/, '').slice(0, 64);
+        if (w) sum += BigInt('0x' + w);
+      }
+    }
+    return sum;
+  }
+
+  async function loadVolume() {
+    if (!escrow) return;
+    try {
+      const m = MARKETS[marketIndex(escrow)] || MARKETS[activeMarket];
+      const latest = Number(BigInt(await rpc('eth_blockNumber', [])));
+      const key = escrow.toLowerCase() + ':' + (latest >> 5);
+      if (volCache.key === key && Date.now() - volCache.at < 120000) {
+        paintVolume(volCache.total, volCache.day);
+        return;
+      }
+      const from = Math.max(0, (m && m.fromBlock) || latest - 300000);
+      const dayFrom = Math.max(from, latest - 7300);
+      const [total, day] = await Promise.all([sumSold(from, latest), sumSold(dayFrom, latest)]);
+      volCache = { key, at: Date.now(), total, day };
+      paintVolume(total, day);
+    } catch { /* keep the placeholders */ }
+  }
+
+  function paintVolume(total, day) {
+    $('statVol24').textContent = day > 0n ? fmtEth(day) + ' ETH' : '0 ETH';
+    $('statVolAll').textContent = total > 0n ? fmtEth(total) + ' ETH' : '0 ETH';
   }
 
   // ---------- activity ----------
@@ -1491,13 +1616,14 @@
   }
 
   async function updateSellState() {
-    const id = $('tokenId').value.trim();
+    const id = selectedId || '';
     const price = toWei($('price').value.trim());
     const btn = $('list');
     const calc = $('calc');
-    if (price == null || price === 0n) calc.textContent = 'Enter a token ID and a price.';
+    if (!id) calc.textContent = 'Pick a Squeek, then enter a price.';
+    else if (price == null || price === 0n) calc.textContent = 'Enter a price for #' + id + '.';
     else calc.innerHTML = 'You receive <b>' + fmtEth(price) + ' ETH</b> · the buyer pays the 0.1% fee.';
-    btn.disabled = !canTrade() || !account || !/^\d+$/.test(id) || !price || price === 0n;
+    btn.disabled = !canTrade() || !account || !id || !price || price === 0n;
     if (!escrow) sellNote('No escrow configured for this market yet.');
     else if (!account) { if (!$('listStatus').textContent) sellNote('Connect a wallet to list a Squeek.'); }
     else if ($('listStatus').textContent === 'Connect a wallet to list a Squeek.') sellNote('');
@@ -1598,9 +1724,10 @@
 
   async function approveAndList() {
     if (!canTrade()) return sellNote('Unverified market — trading is disabled.', 'bad');
-    const id = $('tokenId').value.trim();
+    const id = selectedId;
     const price = toWei($('price').value.trim());
-    if (!/^\d+$/.test(id) || !price) return sellNote('Enter a token ID and a price.', 'bad');
+    if (!id) return sellNote('Pick a Squeek first.', 'bad');
+    if (!price) return sellNote('Enter a price.', 'bad');
     try {
       $('list').disabled = true;
       const owner = hexAddr(await call(collection, SEL.ownerOf + pad(id)));
@@ -1621,8 +1748,9 @@
       await receipt(lh);
       sellNote('Listed Squeek #' + id + '. It is now in escrow.', 'ok');
       say('Listed Squeek #' + id + ' for ' + fmtEth(price) + ' ETH.', 'ok', EXPLORER + '/tx/' + lh);
-      $('tokenId').value = ''; $('price').value = '';
+      selectedId = null; $('price').value = '';
       await refresh();
+      await loadOwned();
       await updateSellState();
     } catch (e) { sellNote(e.message || String(e), 'bad'); }
     finally { $('list').disabled = false; }
@@ -1870,8 +1998,9 @@
       await receipt(bh);
       sellNote('');
       say('Sold #' + tokenId + ' for ' + fmtEth(price) + ' ETH · 0.1% fee.', 'ok', EXPLORER + '/tx/' + bh);
-      $('tokenId').value = ''; $('price').value = '';
+      selectedId = null; $('price').value = '';
       await refresh();
+      await loadOwned();
       await updateSellState();
       await paintBids();
     } catch (e) {
@@ -1924,7 +2053,9 @@
     statsCache.clear();
     paintCollections();
     setEscrow(m.escrow, { persist: true });
+    selectedId = null;
     refresh();
+    loadOwned();
   }
 
   async function load(v) {
@@ -1992,13 +2123,8 @@
     };
   });
 
-  let previewTimer = null;
-  $('tokenId').addEventListener('input', () => {
-    clearTimeout(previewTimer);
-    updateSellState();
-    previewTimer = setTimeout(updateSellState, 450);
-  });
   $('price').addEventListener('input', updateSellState);
+  $('ownedRefresh').onclick = () => { statsCache.clear(); loadOwned(); };
 
   // EIP-6963: discover every installed EVM wallet instead of trusting window.ethereum.
   window.addEventListener('eip6963:announceProvider', (ev) => {
@@ -2041,6 +2167,7 @@
   if (initial) setEscrow(initial);
   else { paintAddress(); updateSellState(); }
   refresh();
+  loadOwned();
   setInterval(() => { if (escrow) loadActivity(); }, 60000);
 })();
 </script>
