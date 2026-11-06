@@ -2,6 +2,12 @@ name = "squeek-holder-bot"
 main = "src/worker.js"
 compatibility_date = "2026-11-01"
 
+# Custom domains (zone squeekotc.bid is registered in the same Cloudflare account).
+routes = [
+  { pattern = "squeekotc.bid", custom_domain = true },
+  { pattern = "www.squeekotc.bid", custom_domain = true }
+]
+
 # Static site: everything in ./public is served at the root.
 [assets]
 directory = "./public"
