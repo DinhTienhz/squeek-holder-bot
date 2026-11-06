@@ -24,6 +24,30 @@ const SECURITY_HEADERS = {
   ].join('; '),
 };
 
+// OTC runs on its own domain; everything else (landing + bot pages) stays on the
+// workers.dev host until a second domain is attached.
+const OTC_HOSTS = new Set(['squeekotc.bid', 'www.squeekotc.bid']);
+// Set to 'https://squeekotc.bid' once that domain resolves, to send /otc on the
+// old host to the market. Empty keeps both hosts working during the move.
+const OTC_ORIGIN = '';
+
+const OTC_NOT_FOUND = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>404 — Squeek OTC</title>
+<style>
+ body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0b10;color:#e9e9f2;
+      font:16px/1.6 ui-sans-serif,system-ui,sans-serif}
+ .box{text-align:center;padding:32px}
+ h1{font-size:54px;margin:0 0 8px;color:#c9f24d}
+ a{color:#7de2d1;text-decoration:none}
+</style></head>
+<body><div class="box"><h1>404</h1><p>Nothing here. Go to the <a href="/otc">OTC market</a>.</p></div></body></html>`;
+
+function isAssetPath(path) {
+  return isImage(path) || /\.(css|js|map|woff2?|txt)$/i.test(path);
+}
+
 const NOT_FOUND = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -82,6 +106,25 @@ async function readStakingTotals() {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const onOtcHost = OTC_HOSTS.has(url.hostname);
+
+    if (onOtcHost) {
+      // The market host only serves the market: / redirects there, other pages 404.
+      if (url.pathname === '/' || url.pathname === '/index.html') {
+        return Response.redirect(url.origin + '/otc', 302);
+      }
+      if (url.pathname === '/api/staking-totals') {
+        return new Response('Not found', { status: 404, headers: SECURITY_HEADERS });
+      }
+      if (!/^\/otc(\.html)?$/.test(url.pathname) && !isAssetPath(url.pathname)) {
+        return new Response(OTC_NOT_FOUND, {
+          status: 404,
+          headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
+        });
+      }
+    } else if (OTC_ORIGIN && /^\/otc(\.html)?$/.test(url.pathname)) {
+      return Response.redirect(OTC_ORIGIN + '/otc', 302);
+    }
 
     if (url.pathname === '/api/staking-totals') {
       try {
