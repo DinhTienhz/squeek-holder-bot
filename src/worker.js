@@ -26,7 +26,7 @@ const SECURITY_HEADERS = {
 
 // OTC runs on its own domain; everything else (landing + bot pages) stays on the
 // workers.dev host until a second domain is attached.
-const OTC_HOSTS = new Set(['squeekotc.bid', 'www.squeekotc.bid']);
+const OTC_HOSTS = new Set(['squeeksotc.bid', 'www.squeeksotc.bid']);
 // Set to 'https://squeekotc.bid' once that domain resolves, to send /otc on the
 // old host to the market. Empty keeps both hosts working during the move.
 const OTC_ORIGIN = '';
