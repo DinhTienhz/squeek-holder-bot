@@ -609,6 +609,8 @@
     if (price == null || price === 0n) calc.textContent = 'Enter a token ID and a price.';
     else calc.innerHTML = 'You receive <b>' + fmtEth(price) + ' ETH</b> · 0% fee · buyer pays the exact price.';
     btn.disabled = !escrow || !account || !/^\d+$/.test(id) || !price || price === 0n;
+    if (!escrow) sellNote('No escrow configured for this market yet.');
+    else if (!account && !$('listStatus').textContent) sellNote('Connect a wallet to list a Squeek.');
 
     if (!/^\d+$/.test(id) || !escrow) {
       $('previewImg').innerHTML = '<div class="ph">Token preview</div>';
@@ -776,7 +778,7 @@
   const params = new URLSearchParams(location.search);
   const initial = params.get('c') || DEFAULT_ESCROW || localStorage.getItem('otc.address') || '';
   if (initial) setEscrow(initial);
-  else paintAddress();
+  else { paintAddress(); updateSellState(); }
   refresh();
 })();
 </script>
