@@ -658,8 +658,12 @@
       $('listings').innerHTML = '';
       $('empty').classList.add('hidden');
       $('count').textContent = '—';
-      setMarketNotice('<span class="ico">⚠️</span><div><b>Could not read this escrow.</b> ' +
-        escapeHtml(e.message || String(e)) + ' — check the address and that you are on Sepolia.</div>');
+      const msg = e.message || String(e);
+      const noWallet = /No EVM wallet/i.test(msg);
+      setMarketNotice(noWallet
+        ? '<span class="ico">🔌</span><div><b>Connect a wallet to load this market.</b> Listings are read directly from Sepolia through your wallet.</div>'
+        : '<span class="ico">⚠️</span><div><b>Could not read this escrow.</b> ' +
+          escapeHtml(msg) + ' — check the address and that you are on Sepolia.</div>');
     } finally {
       $('refresh').disabled = false;
     }
@@ -832,7 +836,10 @@
       $('actNote').textContent = 'Every listing, sale and delisting in this market · last 60 events';
     } catch (e) {
       actEvents = [];
-      renderActivity('Could not read market activity: ' + (e.message || String(e)));
+      const msg = e.message || String(e);
+      renderActivity(/No EVM wallet/i.test(msg)
+        ? 'Connect a wallet to see market activity.'
+        : 'Could not read market activity: ' + msg);
       $('actNote').textContent = 'Every listing, sale and delisting in this market.';
     } finally { actLoading = false; }
   }
