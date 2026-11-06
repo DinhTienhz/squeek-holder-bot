@@ -236,6 +236,8 @@
     border-radius:9px;padding:8px 10px;background:#0c0d13}
   .my-bid .grow{flex:1;min-width:0}
   .my-bid .amt{color:var(--accent-2);font-weight:700;white-space:nowrap}
+  .mine-tag{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0a0a10;background:var(--accent);border-radius:4px;padding:1px 5px}
+  .mine-tag.queue{background:#2a2c3d;color:var(--accent-2)}
   .my-bid .ghost{padding:5px 10px;font-size:11.5px}
   label{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.09em;
     font-weight:700;margin:0 0 6px}
@@ -386,6 +388,7 @@
               <a class="linkbtn hidden" id="scan" target="_blank" rel="noopener">Etherscan ↗</a>
             </div>
             <div class="contract-note" id="contractNote">The escrow contract for this market: it holds listed Squeeks and pays the seller when one is bought. Approvals and payments only ever go to this address.</div>
+            <div class="contract-note hidden" id="feeNote"></div>
           </details>
           <button class="linkbtn hidden" id="change" type="button">advanced</button>
         </div>
@@ -408,9 +411,28 @@
     <div class="grid" id="listings"></div>
     <div class="empty hidden" id="empty">
       <div class="big">🛒</div>
-      <div><b>No Squeeks listed yet.</b></div>
-      <div>Be the first — list one in the panel below.</div>
+      <div><b id="emptyTitle">No Squeeks listed yet.</b></div>
+      <div id="emptySub">Be the first — list one in the panel below.</div>
     </div>
+  </section>
+
+  <section class="panel" id="bidsPanel" aria-labelledby="bids-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="bids-title">Bids</h2>
+        <div class="note">Park ETH on a token you want. The owner accepts and the NFT and ETH swap in one transaction.</div>
+      </div>
+    </div>
+    <div class="bid-row">
+      <div class="field">
+        <label for="bidAmount">Bid (ETH)</label>
+        <input id="bidAmount" placeholder="e.g. 0.08" inputmode="decimal" autocomplete="off">
+      </div>
+      <button id="placeBid" class="primary" type="button" disabled>Place bid</button>
+    </div>
+    <div class="calc" id="bidNote">Bids are for the whole collection. Your ETH stays in escrow until a seller accepts or you cancel.</div>
+    <div class="bid-book" id="bidBook"></div>
+    <div class="my-bids" id="myBids"></div>
   </section>
 
   <section class="panel" aria-labelledby="sell-title">
@@ -450,24 +472,7 @@
     </div>
   </section>
 
-  <section class="panel hidden" id="bidsPanel" aria-labelledby="bids-title">
-    <div class="panel-head">
-      <div>
-        <h2 id="bids-title">Bids</h2>
-        <div class="note">Park ETH on a token you want. The owner accepts and the NFT and ETH swap in one transaction.</div>
-      </div>
-    </div>
-    <div class="bid-row">
-      <div class="field">
-        <label for="bidAmount">Bid (ETH)</label>
-        <input id="bidAmount" placeholder="e.g. 0.08" inputmode="decimal" autocomplete="off">
-      </div>
-      <button id="placeBid" class="primary" type="button" disabled>Place bid</button>
-    </div>
-    <div class="calc" id="bidNote">Bids are for the whole collection. Your ETH stays in escrow until a seller accepts or you cancel.</div>
-    <div class="bid-book" id="bidBook"></div>
-    <div class="my-bids" id="myBids"></div>
-  </section>
+
 
   </div>
 
@@ -567,7 +572,7 @@
     placeBid: '0xecfc7ecc', cancelBid: '0x9703ef35', acceptBid: '0x02e9d5e4',
     bids: '0x4423c5f1', myBidIds: '0x4477cf92', levelCount: '0x651a2b4c',
     levels: '0xb2596a67', activeAt: '0x15d6f71a', headBid: '0x073b4f37',
-    feeBps: '0xbf333f2c', isApprovedForAll: '0xe985e9c5'
+    feeBps: '0xbf333f2c', feeTo: '0x017e7e58', isApprovedForAll: '0xe985e9c5'
   };
   const TOPIC = {
     listed: '0x50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc08343',
@@ -951,6 +956,7 @@
       : rows;
     $('count').textContent = escrow ? String(list.length) : '—';
     $('empty').classList.toggle('hidden', !!list.length || !escrow || filter === 'mine');
+    if (!$('empty').classList.contains('hidden')) paintEmptyHint();
     if (escrow && !escrowOfficial) {
       setMarketNotice('<span class="ico">⚠️</span><div><b>Unverified market.</b> This contract is not the official Squeek escrow — you loaded it manually for this session. Check the address before approving a Squeek or sending ETH.</div>');
     } else if (filter !== 'mine') setMarketNotice('');
@@ -989,7 +995,7 @@
       '</div>';
     const btn = document.createElement('button');
     btn.className = mine ? 'ghost' : 'buy';
-    btn.textContent = mine ? 'Cancel listing' : 'Buy now';
+    btn.textContent = mine ? 'Cancel listing' : 'Buy · ' + fmtEth(r.price + feeOf(r.price)) + ' ETH';
     btn.onclick = () => mine ? cancel(r) : buy(r);
     el.querySelector('.card-body').appendChild(btn);
 
@@ -1436,7 +1442,7 @@
                 const txt = document.createElement('div');
                 txt.className = 'grow';
                 txt.innerHTML = '<b>' + fmtEth(l.p) + ' ETH</b> <span>' + l.c.toString() +
-                  (l.c === 1n ? ' bid' : ' bids') + '</span>';
+                  (l.c === 1n ? ' bid' : ' bids') + ' · you get ' + fmtEth(l.p - feeOf(l.p)) + '</span>';
                 const b = document.createElement('button');
                 b.type = 'button'; b.className = 'primary'; b.textContent = 'Accept';
                 b.onclick = () => acceptBidAt(id, l.p);
@@ -1518,7 +1524,22 @@
       try {
         await call(escrow, SEL.feeBps);
         bidsSupported = true;
-      } catch { /* escrow without collection bids */ }
+        try {
+          const feeTo = hexAddr(await call(escrow, SEL.feeTo));
+          $('feeNote').textContent = '0.1% fee on every sale — paid to ' + short(feeTo) + '.';
+          $('feeNote').classList.remove('hidden');
+        } catch { /* fee view missing */ }
+      } catch (e) {
+        if (/No EVM wallet/i.test(e.message || String(e))) {
+          // Without a wallet we cannot read the book, but the panel should still exist.
+          $('bidsPanel').classList.remove('hidden');
+          $('bidBook').innerHTML = '<div class="calc">Connect a wallet to load the bid book.</div>';
+          $('myBids').innerHTML = '';
+          $('bidLevels').innerHTML = '';
+          $('feeNote').classList.add('hidden');
+          return;
+        }
+      }
     }
     $('bidsPanel').classList.toggle('hidden', !bidsSupported);
     if (!bidsSupported) {
@@ -1526,6 +1547,7 @@
       $('bidBook').innerHTML = '';
       $('myBids').innerHTML = '';
       $('bidLevels').innerHTML = '';
+      $('feeNote').classList.add('hidden');
     }
   }
   function bidNote(msg) { $('bidNote').textContent = msg; }
@@ -1580,6 +1602,24 @@
     await Promise.all([paintBook(), paintMyBids()]);
   }
 
+  async function paintEmptyHint() {
+    if (!bidsSupported || !escrow) return;
+    try {
+      const n = Number(await call(escrow, SEL.levelCount));
+      let best = 0n, count = 0n;
+      for (let i = 0; i < Math.min(n, 24); i++) {
+        const p = BigInt(await call(escrow, SEL.levels + pad(i)));
+        const c = BigInt(await call(escrow, SEL.activeAt + pad(p)));
+        if (c > 0n && p > best) { best = p; count = c; }
+      }
+      if (best > 0n) {
+        $('emptyTitle').textContent = count.toString() + (count === 1n ? ' bid' : ' bids') +
+          ' waiting at ' + fmtEth(best) + ' ETH';
+        $('emptySub').textContent = 'No listings yet — list a Squeek to sell into the bids.';
+      }
+    } catch { /* ignore */ }
+  }
+
   async function paintBook() {
     const box = $('bidBook');
     if (!box) return;
@@ -1597,6 +1637,16 @@
         const head = (await call(escrow, SEL.headBid + pad(l.price))).replace(/^0x/, '');
         l.buyer = hexAddr(head.slice(64, 128));
       }
+      const myPrices = new Set();
+      if (account) {
+        try {
+          const ids = decodeUintArray(await call(escrow, SEL.myBidIds + addrWord(account)));
+          for (const id of ids.slice(-20)) {
+            const b = await decodeBid(id);
+            if (b.active) myPrices.add(b.price.toString());
+          }
+        } catch { /* ignore */ }
+      }
       box.innerHTML = '';
       if (!levels.length) {
         box.innerHTML = '<div class="calc">No bids yet — be the first.</div>';
@@ -1607,8 +1657,12 @@
         row.className = 'my-bid';
         const txt = document.createElement('div');
         txt.className = 'grow';
+        const first = account && l.buyer && l.buyer.toLowerCase() === account.toLowerCase();
+        const queued = myPrices.has(l.price.toString());
         txt.innerHTML = '<b class="amt">' + fmtEth(l.price) + ' ETH</b> · ' + l.count.toString() +
-          (l.count === 1n ? ' bid' : ' bids') + ' · first ' + short(l.buyer);
+          (l.count === 1n ? ' bid' : ' bids') + ' · first ' + short(l.buyer) +
+          (first ? ' <span class="mine-tag">you are first</span>'
+            : queued ? ' <span class="mine-tag queue">you are in queue</span>' : '');
         row.appendChild(txt);
         box.appendChild(row);
       }
