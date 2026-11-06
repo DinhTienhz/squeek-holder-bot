@@ -138,10 +138,11 @@
     padding:11px 12px;font:inherit;outline:none;transition:.15s}
   input:focus{border-color:#4a4b60;box-shadow:0 0 0 3px rgba(201,242,77,.06)}
   .field{margin-bottom:14px}
-  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .calc{font-size:12.5px;color:var(--muted);margin:-4px 0 14px;min-height:19px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:560px}
+  .calc{font-size:12.5px;color:var(--muted);margin:-4px 0 14px;min-height:19px;max-width:560px}
   .calc b{color:var(--accent)}
-  .step-note{font-size:12.5px;color:var(--muted);margin-top:10px;min-height:20px}
+  .step-note{font-size:12.5px;color:var(--muted);margin-top:10px;min-height:20px;max-width:560px}
+  .sell-grid .wide{max-width:280px}
   .step-note.ok{color:var(--accent-2)}
   .step-note.bad{color:var(--bad)}
 
@@ -180,7 +181,9 @@
     .sell-grid{grid-template-columns:1fr}
     .preview{max-width:280px;width:100%;margin:0 auto}
     .hero{padding-top:32px}
-    .field-row{grid-template-columns:1fr}
+    .field-row{grid-template-columns:1fr;max-width:none}
+    .calc,.step-note{max-width:none}
+    .sell-grid .wide{max-width:100%}
   }
 </style>
 </head>
