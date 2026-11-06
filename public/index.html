@@ -92,14 +92,63 @@
   .bar{height:6px;background:#20202c;border-radius:99px;overflow:hidden;margin-top:12px}
   .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .6s ease}
   .live-note{color:var(--muted);font-size:12px;margin-top:10px}
-  .otc-spot{position:relative;margin:26px 0;padding:28px;border:1px solid rgba(201,242,77,.35);
-    border-radius:18px;background:linear-gradient(135deg,rgba(201,242,77,.12),rgba(125,226,209,.05) 60%,transparent);overflow:hidden}
-  .otc-spot:before{content:"";position:absolute;inset:-40% 40% 40% -20%;background:radial-gradient(circle,rgba(201,242,77,.18),transparent 60%);pointer-events:none}
-  .otc-eyebrow{color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-  .otc-spot h2{margin:8px 0 8px;font-size:clamp(22px,3vw,30px);line-height:1.2}
-  .otc-spot p{margin:0;color:var(--muted);max-width:580px}
-  .otc-points{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 20px}
-  .otc-points span{background:#0e0e14;border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px}
+  .otc-spot{position:relative;margin:34px 0 10px;padding:30px;border:1px solid rgba(201,242,77,.26);
+    border-radius:20px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);
+    gap:34px;align-items:center;
+    background:radial-gradient(720px 260px at 88% -10%,rgba(201,242,77,.10),transparent 62%),
+      linear-gradient(158deg,#15161e 0%,#101016 62%,#0e0e14 100%)}
+  .otc-spot:before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(440px 240px at 4% 112%,rgba(125,226,209,.09),transparent 70%)}
+  .otc-copy{position:relative;z-index:1}
+  .otc-eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-size:11px;
+    font-weight:800;letter-spacing:.15em;text-transform:uppercase;border:1px solid rgba(201,242,77,.3);
+    background:rgba(201,242,77,.07);padding:6px 11px;border-radius:999px}
+  .otc-pulse{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+  .otc-spot h2{margin:14px 0 10px;font-size:clamp(24px,3.2vw,34px);line-height:1.12;letter-spacing:-.02em}
+  .otc-spot h2 em{font-style:normal;color:var(--accent)}
+  .otc-lead{margin:0;color:var(--muted);font-size:15px;max-width:52ch}
+  .otc-list{list-style:none;margin:18px 0 22px;padding:0;display:grid;gap:9px}
+  .otc-list li{display:flex;gap:10px;font-size:13.5px;color:var(--muted);line-height:1.5}
+  .otc-list b{color:var(--text);font-weight:600}
+  .otc-tick{flex:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(201,242,77,.12);color:var(--accent);font-size:10px;font-weight:800;margin-top:1px}
+  .otc-cta{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .otc-visual{position:relative;z-index:1;display:flex;justify-content:center}
+  .otc-ticket{width:100%;max-width:352px;background:linear-gradient(180deg,#1a1b25,#12131a);
+    border:1px solid #2c2d3c;border-radius:16px;padding:11px;
+    box-shadow:0 26px 60px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.02) inset;
+    transform:rotate(-1.4deg);transition:transform .35s ease}
+  .otc-spot:hover .otc-ticket{transform:rotate(0) translateY(-3px)}
+  .otc-thumb{position:relative;border-radius:11px;overflow:hidden;aspect-ratio:1/1;background:#0c0c12;
+    border:1px solid #262736}
+  .otc-thumb img{width:100%;height:100%;display:block;object-fit:cover}
+  .otc-tag{position:absolute;top:10px;left:10px;background:rgba(11,11,16,.82);
+    border:1px solid rgba(201,242,77,.36);color:var(--accent);font-size:9px;font-weight:800;
+    letter-spacing:.12em;padding:4px 8px;border-radius:999px;backdrop-filter:blur(6px)}
+  .otc-ticket-body{padding:11px 5px 3px}
+  .otc-ticket-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .otc-id{font-size:13px;font-weight:700;letter-spacing:.02em}
+  .otc-id span{color:var(--muted);font-weight:500}
+  .otc-price{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:2px 0 8px;font-variant-numeric:tabular-nums}
+  .otc-price small{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.1em;margin-left:3px}
+  .otc-line{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);
+    padding:6px 0;border-top:1px solid #22232f}
+  .otc-line b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+  .otc-lock{color:var(--accent-2)!important}
+  .otc-swap{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:9px;
+    padding:9px 10px;border:1px dashed #303142;border-radius:9px;background:#0d0e14;
+    font-size:10.5px;color:var(--muted);letter-spacing:.02em}
+  .otc-swap b{color:var(--text);font-weight:600}
+  .otc-arrow{color:var(--accent);font-size:14px;font-weight:700}
+  .otc-badge{position:absolute;right:-6px;bottom:-10px;background:#0f1017;border:1px solid rgba(125,226,209,.35);
+    color:var(--accent-2);font-size:10.5px;font-weight:700;padding:6px 10px;border-radius:999px;
+    box-shadow:0 10px 24px rgba(0,0,0,.45)}
+  @media (max-width:760px){
+    .otc-spot{grid-template-columns:1fr;gap:24px;padding:22px;margin-top:26px}
+    .otc-visual{order:2}
+    .otc-ticket{max-width:320px;transform:none}
+    .otc-badge{right:4px}
+  }
   .bar-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:18px 0 7px}
   .bar-row .live-note{margin:0}
   .bar-row .live-note b{color:var(--text);font-weight:600}
@@ -193,11 +242,39 @@
     </div>
 
     <section class="otc-spot" aria-labelledby="otc-title">
-      <div class="otc-eyebrow">New · OTC market</div>
-      <h2 id="otc-title">Trade Squeeks without trusting the seller.</h2>
-      <p>The NFT sits in escrow until the ETH arrives. One transaction swaps both — no middleman, no fee, no “send first”.</p>
-      <div class="otc-points"><span>🔒 Escrowed NFT</span><span>⚡ Atomic swap</span><span>0% fee</span><span>Sepolia</span></div>
-      <a class="btn btn-primary" href="/otc">Open OTC market →</a>
+      <div class="otc-copy">
+        <div class="otc-eyebrow"><span class="otc-pulse"></span> New · OTC market</div>
+        <h2 id="otc-title">Sell a Squeek without <em>trusting the buyer.</em></h2>
+        <p class="otc-lead">The NFT sits in escrow until the ETH arrives. One transaction swaps both — no middleman, no fee, no “send first”.</p>
+        <ul class="otc-list">
+          <li><span class="otc-tick">✓</span><span><b>Escrow first.</b> The Squeek leaves the seller’s wallet before the listing goes live.</span></li>
+          <li><span class="otc-tick">✓</span><span><b>Atomic settlement.</b> Payment and transfer land together, or neither happens.</span></li>
+          <li><span class="otc-tick">✓</span><span><b>0% fee, no admin.</b> No owner key can touch a listing or take a cut.</span></li>
+        </ul>
+        <div class="otc-cta">
+          <a class="btn btn-primary" href="/otc">Open the market →</a>
+          <span class="note">Sepolia · paid in ETH</span>
+        </div>
+      </div>
+      <div class="otc-visual" aria-hidden="true">
+        <div class="otc-ticket">
+          <div class="otc-thumb">
+            <img src="squeek-sample.svg" alt="Squeek #4821" loading="lazy" width="330" height="330">
+            <span class="otc-tag">IN ESCROW</span>
+          </div>
+          <div class="otc-ticket-body">
+            <div class="otc-ticket-top">
+              <div class="otc-id">Squeek <span>#4821</span></div>
+              <div class="otc-price">0.05<small>ETH</small></div>
+            </div>
+            <div class="otc-line"><span>Seller</span><b>0x7a3f…91c2</b></div>
+            <div class="otc-line"><span>Buyer pays</span><b>0.05 ETH</b></div>
+            <div class="otc-line"><span>Settlement</span><b class="otc-lock">🔒 single transaction</b></div>
+            <div class="otc-swap"><b>NFT → escrow</b><span class="otc-arrow">⇄</span><b>ETH → seller</b></div>
+          </div>
+        </div>
+        <div class="otc-badge">Settles atomically</div>
+      </div>
     </section>
 
     <section id="features">

@@ -3,262 +3,781 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Squeek OTC — escrowed NFT trades</title>
+<title>Squeek OTC — escrowed Squeek NFT trades</title>
+<meta name="description" content="Trade Squeek NFTs on Sepolia with escrow: the NFT is held by the contract until the ETH arrives. One atomic transaction, 0% fee, no admin.">
+<meta property="og:title" content="Squeek OTC — escrowed Squeek NFT trades">
+<meta property="og:description" content="The Squeek sits in escrow until the ETH arrives. One atomic transaction, 0% fee, no admin.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://squeek-holder-bot.chainn.workers.dev/otc">
+<meta property="og:image" content="https://squeek-holder-bot.chainn.workers.dev/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0b0b10">
+<link rel="canonical" href="https://squeek-holder-bot.chainn.workers.dev/otc">
+<link rel="icon" type="image/png" sizes="32x32" href="logo-mark-32.png?v=2">
 <style>
-  :root{--bg:#0b0b10;--panel:#121218;--line:#242432;--text:#e9e9f2;--muted:#9a9aae;--accent:#c9f24d;--accent2:#7de2d1;--bad:#ff8080}
+  :root{
+    --bg:#0b0b10;--panel:#14141c;--panel-2:#101017;--line:#262633;--line-2:#2f3040;
+    --text:#e9e9f2;--muted:#9a9ab0;--accent:#c9f24d;--accent-2:#7de2d1;--bad:#ff8080;--warn:#ffcf66;
+    --radius:16px;--max:1080px;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
-  a{color:var(--accent2)}
-  .wrap{max-width:960px;margin:0 auto;padding:28px 18px 80px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
-  h1{font-size:22px;margin:0}
-  .sub{color:var(--muted);font-size:13px}
-  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#1a1a24;color:var(--text);padding:9px 14px;border-radius:10px}
-  button:hover{background:#22222e}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(1100px 520px at 50% -220px,#1b1b28 0%,var(--bg) 62%);
+    color:var(--text);font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;min-height:100vh;
+  }
+  a{color:var(--accent-2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 20px 70px}
+  header.site{display:flex;align-items:center;gap:14px;padding:20px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--text);letter-spacing:.2px}
+  .brand img{width:32px;height:32px;display:block}
+  nav.site{display:flex;gap:18px;margin-left:auto;margin-right:6px}
+  nav.site a{color:var(--muted);font-size:14px}
+  nav.site a:hover{color:var(--text);text-decoration:none}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#1a1a24;color:var(--text);
+    padding:9px 14px;border-radius:10px;transition:.15s}
+  button:hover:not(:disabled){border-color:#3a3b4d;background:#22222e}
+  button:disabled{opacity:.45;cursor:not-allowed}
   button.primary{background:var(--accent);border-color:var(--accent);color:#101014;font-weight:700}
+  button.primary:hover:not(:disabled){filter:brightness(1.05);background:var(--accent)}
   button.ghost{background:transparent}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  label{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
-  input{width:100%;background:#0d0d13;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:inherit}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-  .item{background:#0f0f16;border:1px solid var(--line);border-radius:12px;padding:12px}
-  .item b{font-size:18px}
-  .price{color:var(--accent);font-weight:700}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted);word-break:break-all}
-  .status{font-size:13px;color:var(--muted);min-height:20px;margin-top:8px}
-  .ok{color:var(--accent2)} .bad{color:var(--bad)}
-  .hidden{display:none}
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media(max-width:640px){.split{grid-template-columns:1fr}}
+  button.wide{width:100%;padding:12px 16px}
+  .btn-connect{display:inline-flex;align-items:center;gap:8px}
+  .btn-connect .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(201,242,77,.12)}
+
+  .hero{padding:46px 0 28px;max-width:760px}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-size:11px;font-weight:800;
+    letter-spacing:.15em;text-transform:uppercase;border:1px solid rgba(201,242,77,.3);
+    background:rgba(201,242,77,.07);padding:6px 11px;border-radius:999px}
+  .pulse{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  h1{font-size:clamp(32px,5vw,50px);line-height:1.05;letter-spacing:-.025em;margin:16px 0 14px}
+  h1 em{font-style:normal;color:var(--accent)}
+  .lead{color:var(--muted);font-size:clamp(15px,1.7vw,17px);max-width:62ch;margin:0}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+  .chip{background:#101017;border:1px solid var(--line);border-radius:999px;padding:5px 11px;
+    font-size:12px;color:var(--muted)}
+  .chip b{color:var(--text);font-weight:600}
+
+  .banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    border:1px solid #6b4b1f;background:#1c1509;color:#ffdf9e;padding:12px 16px;border-radius:12px;
+    margin:0 0 16px;font-size:13.5px}
+  .banner button{background:#2a1f0c;border-color:#6b4b1f;color:#ffdf9e;padding:6px 12px;font-size:13px}
+
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px;margin:16px 0;position:relative}
+  .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .panel-head h2{margin:0;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  .count{font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);
+    border-radius:999px;padding:2px 9px;background:#0e0e15}
+  .panel-head .note{color:var(--muted);font-size:12.5px}
+  .contract-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;font-size:12px}
+  .contract-line .mono{color:var(--muted);max-width:100%;overflow-wrap:anywhere}
+  .linkbtn{background:none;border:none;color:var(--accent-2);padding:0;font-size:12px}
+  .linkbtn:hover{text-decoration:underline;background:none}
+  .filters{display:flex;align-items:center;gap:8px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0e0e15}
+  .seg button{border:0;border-radius:0;background:transparent;color:var(--muted);font-size:12.5px;padding:7px 12px}
+  .seg button.on{background:#242432;color:var(--text)}
+  .seg button:hover{background:#1c1c27}
+  .icon-btn{width:36px;height:36px;display:grid;place-items:center;padding:0;font-size:16px;color:var(--muted)}
+  .icon-btn:hover{color:var(--accent)}
+
+  .change{margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#0d0d14;
+    display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .change input{flex:1 1 320px;min-width:220px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+  .card-item{background:#0f0f16;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    display:flex;flex-direction:column;transition:.18s}
+  .card-item:hover{border-color:#3a3b4d;transform:translateY(-2px)}
+  .card-item.mine{border-color:rgba(201,242,77,.45)}
+  .thumb{position:relative;aspect-ratio:1/1;background:#0a0a10;border-bottom:1px solid var(--line);
+    display:grid;place-items:center;overflow:hidden}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .ph{font-size:28px;font-weight:800;color:#2c2d3c;letter-spacing:-.03em}
+  .thumb .skel{position:absolute;inset:0;background:linear-gradient(100deg,#111119 30%,#191924 50%,#111119 70%);
+    background-size:220% 100%;animation:shimmer 1.4s infinite}
+  @keyframes shimmer{0%{background-position:180% 0}100%{background-position:-40% 0}}
+  .thumb .badge{position:absolute;top:9px;left:9px;background:rgba(11,11,16,.85);border:1px solid rgba(201,242,77,.4);
+    color:var(--accent);font-size:9px;font-weight:800;letter-spacing:.1em;padding:4px 7px;border-radius:999px}
+  .card-body{padding:11px 12px 12px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .card-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .card-id{font-size:13px;font-weight:700}
+  .card-id span{color:var(--muted);font-weight:500}
+  .card-price{font-size:16px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .card-price small{font-size:10px;color:var(--muted);letter-spacing:.08em;margin-left:2px}
+  .card-seller{font-size:11px;color:var(--muted)}
+  .card-body button{margin-top:auto;padding:8px 10px;font-size:13px}
+  .card-body button.buy{background:var(--accent);border-color:var(--accent);color:#101014;font-weight:700}
+  .card-item.promo{background:linear-gradient(160deg,#13141c,#0e0e15);border-style:dashed;border-color:#343546;
+    grid-column:1/-1;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:14px;
+    text-align:left;padding:14px 18px;min-height:0}
+  .card-item.promo:hover{transform:none;border-color:rgba(201,242,77,.4)}
+  .promo .plus{width:34px;height:34px;border-radius:50%;border:1px solid rgba(201,242,77,.4);color:var(--accent);
+    display:grid;place-items:center;font-size:19px;font-weight:300;flex:none}
+  .promo b{display:block;font-size:13.5px;margin-bottom:2px}
+  .promo p{margin:0;color:var(--muted);font-size:11.5px;line-height:1.5}
+  .promo button{font-size:12px;padding:6px 12px;margin-left:auto;flex:none}
+  @media (max-width:520px){.card-item.promo{flex-wrap:wrap}.promo button{margin-left:48px}}
+
+  .empty{padding:26px 14px 8px;text-align:center;color:var(--muted);font-size:14px}
+  .empty .big{font-size:24px;margin-bottom:6px}
+  .notice{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid #3a3b4d;border-radius:12px;
+    background:#0e0e15;color:var(--muted);font-size:13.5px;margin-bottom:14px}
+  .notice b{color:var(--text)}
+  .notice .ico{font-size:18px;line-height:1}
+
+  .sell-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start}
+  label{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.09em;
+    font-weight:700;margin:0 0 6px}
+  input{width:100%;background:#0c0c12;border:1px solid var(--line);color:var(--text);border-radius:10px;
+    padding:11px 12px;font:inherit;outline:none;transition:.15s}
+  input:focus{border-color:#4a4b60;box-shadow:0 0 0 3px rgba(201,242,77,.06)}
+  .field{margin-bottom:14px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .calc{font-size:12.5px;color:var(--muted);margin:-4px 0 14px;min-height:19px}
+  .calc b{color:var(--accent)}
+  .step-note{font-size:12.5px;color:var(--muted);margin-top:10px;min-height:20px}
+  .step-note.ok{color:var(--accent-2)}
+  .step-note.bad{color:var(--bad)}
+
+  .preview{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#0f0f16}
+  .preview-img{aspect-ratio:1/1;background:#0a0a10;display:grid;place-items:center;border-bottom:1px solid var(--line)}
+  .preview-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .preview-img .ph{font-size:13px;color:#3a3b4d;text-align:center;padding:20px}
+  .preview-body{padding:10px 12px 12px}
+  .preview-name{font-size:13px;font-weight:700;margin-bottom:3px}
+  .traits{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .traits span{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+  .owner-line{font-size:11px;color:var(--muted);margin-top:6px;overflow-wrap:anywhere}
+  .owner-line.ok{color:var(--accent-2)}
+
+  .how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:26px 0 0}
+  .how .step{background:#101017;border:1px solid var(--line);border-radius:14px;padding:16px}
+  .how .n{width:24px;height:24px;border-radius:8px;background:#20202c;color:var(--accent);display:grid;
+    place-items:center;font-size:12px;font-weight:800;margin-bottom:9px}
+  .how h3{margin:0 0 4px;font-size:14px}
+  .how p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.55}
+
+  footer{border-top:1px solid var(--line);margin-top:34px;padding:20px 0 0;color:var(--muted);
+    font-size:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:50;max-width:min(560px,92vw);
+    background:#15161f;border:1px solid #343548;border-radius:12px;padding:11px 14px;font-size:13px;
+    box-shadow:0 18px 50px rgba(0,0,0,.55);display:flex;align-items:center;gap:10px}
+  .toast.ok{border-color:rgba(125,226,209,.45)}
+  .toast.bad{border-color:rgba(255,128,128,.5)}
+  .toast a{white-space:nowrap}
+  .hidden{display:none!important}
+
+  @media (max-width:720px){
+    nav.site{display:none}
+    header.site{justify-content:space-between}
+    .sell-grid{grid-template-columns:1fr}
+    .preview{max-width:280px;width:100%;margin:0 auto}
+    .hero{padding-top:32px}
+    .field-row{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div>
-      <h1>Squeek OTC</h1>
-      <div class="sub">Escrowed Squeek NFT trades on Sepolia · 0% fee</div>
-    </div>
-    <button id="connect" class="primary">Connect wallet</button>
+  <header class="site">
+    <a class="brand" href="/"><img src="logo-mark.png?v=2" alt="" width="32" height="32"> Squeek Holder</a>
+    <nav class="site">
+      <a href="/">Home</a>
+      <a href="https://t.me/SqueekHolder_Bot">Bot</a>
+      <a href="https://github.com/DinhTienhz/squeek-holder-bot">GitHub</a>
+    </nav>
+    <button id="connect" class="primary btn-connect">Connect wallet</button>
   </header>
 
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
+  <section class="hero">
+    <div class="eyebrow"><span class="pulse"></span> Squeekchain · Sepolia</div>
+    <h1>Buy and sell Squeeks <em>without trusting anyone.</em></h1>
+    <p class="lead">The Squeek sits in escrow until the ETH arrives. Payment and transfer settle in the same transaction — no middleman, no “send first”, no fee.</p>
+    <div class="chips">
+      <span class="chip">🔒 <b>NFT held by escrow</b></span>
+      <span class="chip">⚡ <b>Atomic swap</b></span>
+      <span class="chip">0% fee</span>
+      <span class="chip">No admin key</span>
+    </div>
+  </section>
+
+  <div id="netBanner" class="banner hidden">
+    <span>Your wallet is on the wrong network. This market runs on Sepolia.</span>
+    <button id="switchNet" type="button">Switch to Sepolia</button>
+  </div>
+
+  <section class="panel" aria-labelledby="listings-title">
+    <div class="panel-head">
       <div>
-        <label>Escrow contract</label>
-        <div class="mono" id="addr">not set</div>
+        <h2 id="listings-title">Listings <span class="count" id="count">—</span></h2>
+        <div class="contract-line">
+          <span class="mono" id="addr">no escrow configured</span>
+          <button class="linkbtn" id="copy" type="button">copy</button>
+          <a class="linkbtn hidden" id="scan" target="_blank" rel="noopener">Etherscan ↗</a>
+          <button class="linkbtn" id="change" type="button">advanced</button>
+        </div>
       </div>
-      <div class="row">
-        <button id="load" class="ghost">Load</button>
-        <button id="deploy" class="primary">Deploy escrow</button>
+      <div class="filters">
+        <div class="seg" role="group" aria-label="Filter listings">
+          <button data-f="all" class="on" type="button">All</button>
+          <button data-f="mine" type="button">Mine</button>
+        </div>
+        <button id="refresh" class="icon-btn" type="button" title="Refresh listings" aria-label="Refresh listings">↻</button>
       </div>
     </div>
-    <input id="addrInput" placeholder="0x… escrow address" style="margin-top:10px">
-    <div class="status" id="status">Connect a wallet to load or deploy.</div>
+
+    <div class="change hidden" id="changeBox">
+      <input id="addrInput" placeholder="0x… escrow contract address" autocomplete="off" spellcheck="false">
+      <button id="load" type="button">Load market</button>
+      <button id="deploy" class="ghost" type="button">Deploy new escrow</button>
+    </div>
+
+    <div id="marketNotice" class="notice hidden"></div>
+    <div class="grid" id="listings"></div>
+    <div class="empty hidden" id="empty">
+      <div class="big">🛒</div>
+      <div><b>No Squeeks listed yet.</b></div>
+      <div>Be the first — list one in the panel below.</div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="sell-title">
+    <div class="panel-head">
+      <div><h2 id="sell-title">Sell a Squeek</h2></div>
+      <div class="note">0% fee · you receive the full price</div>
+    </div>
+    <div class="sell-grid">
+      <div>
+        <div class="field-row">
+          <div class="field">
+            <label for="tokenId">Token ID</label>
+            <input id="tokenId" placeholder="e.g. 4821" inputmode="numeric" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="price">Price (ETH)</label>
+            <input id="price" placeholder="e.g. 0.05" inputmode="decimal" autocomplete="off">
+          </div>
+        </div>
+        <div class="calc" id="calc">Enter a token ID and a price.</div>
+        <button id="list" class="primary wide" type="button" disabled>Approve &amp; list</button>
+        <div class="step-note" id="listStatus"></div>
+      </div>
+      <div class="preview">
+        <div class="preview-img" id="previewImg"><div class="ph">Token preview</div></div>
+        <div class="preview-body">
+          <div class="preview-name" id="previewName">—</div>
+          <div class="traits" id="previewTraits"></div>
+          <div class="owner-line" id="ownerLine"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="how">
+    <div class="step"><div class="n">1</div><h3>List</h3><p>Approve the escrow for one token, then list it. The Squeek leaves your wallet and waits inside the contract.</p></div>
+    <div class="step"><div class="n">2</div><h3>Buy</h3><p>A buyer sends the exact price. The contract transfers the NFT and pays you in the same transaction.</p></div>
+    <div class="step"><div class="n">3</div><h3>Cancel anytime</h3><p>Change your mind? The seller can withdraw the Squeek with one transaction while it is still listed.</p></div>
   </div>
 
-  <div class="card">
-    <label for="tokenId">List a Squeek</label>
-    <div class="split">
-      <input id="tokenId" placeholder="Token ID (e.g. 1234)" inputmode="numeric">
-      <input id="price" placeholder="Price in ETH (e.g. 0.05)" inputmode="decimal">
-    </div>
-    <div class="row" style="margin-top:12px">
-      <button id="list" class="primary" disabled>Approve &amp; list</button>
-      <span class="status" id="listStatus"></span>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <div><label style="margin:0">Listings</label></div>
-      <button id="refresh" class="ghost">Refresh</button>
-    </div>
-    <div class="grid" id="listings" style="margin-top:12px"></div>
-    <div class="status" id="marketStatus">—</div>
-  </div>
+  <footer>
+    <div>Non-custodial · escrow has no owner and no fee · testnet only</div>
+    <div><a href="/">Squeek Holder</a> · <a href="https://t.me/SqueekHolder_Bot">@SqueekHolder_Bot</a></div>
+  </footer>
 </div>
+
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
 <script>
 (() => {
   const NFT = '0xc4c7982657f00509548f3a3a41db7fa439a6856b';
   const CHAIN = 11155111;
+  const CHAIN_HEX = '0xaa36a7';
+  const EXPLORER = 'https://sepolia.etherscan.io';
+  // Shared market address. Fill this in once the escrow is deployed so every
+  // visitor lands in the same market (?c= and localStorage still override).
+  const DEFAULT_ESCROW = '';
   const BYTECODE = '0x60a060405234801561000f575f80fd5b50604051610d96380380610d9683398101604081905261002e9161007f565b6001600160a01b03811661006e5760405162461bcd60e51b81526020600482015260036024820152621b999d60ea1b604482015260640160405180910390fd5b6001600160a01b03166080526100ac565b5f6020828403121561008f575f80fd5b81516001600160a01b03811681146100a5575f80fd5b9392505050565b608051610cb76100df5f395f818160f80152818161041d0152818161059d015281816106ed01526108bf0152610cb75ff3fe608060405260043610610079575f3560e01c806350fd73671161004c57806350fd7367146101325780638033d58114610151578063d96a094a14610170578063de74e57b14610183575f80fd5b806310c4e8b01461007d57806340e58ee5146100a85780634331ed1f146100c957806347ccca02146100e7575b5f80fd5b348015610088575f80fd5b506100916101f0565b60405161009f929190610b03565b60405180910390f35b3480156100b3575f80fd5b506100c76100c2366004610b99565b61033f565b005b3480156100d4575f80fd5b506001545b60405190815260200161009f565b3480156100f2575f80fd5b5061011a7f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b03909116815260200161009f565b34801561013d575f80fd5b506100c761014c366004610bb0565b6104b6565b34801561015c575f80fd5b506100d961016b366004610b99565b610789565b6100c761017e366004610b99565b6107a8565b34801561018e575f80fd5b506101c961019d366004610b99565b5f602081905290815260409020546001600160a01b03811690600160a01b90046001600160601b031682565b604080516001600160a01b0390931683526001600160601b0390911660208301520161009f565b606080600180548060200260200160405190810160405280929190818152602001828054801561023d57602002820191905f5260205f20905b815481526020019060010190808311610229575b5050600154939550505067ffffffffffffffff821115905061026157610261610bd0565b6040519080825280602002602001820160405280156102a557816020015b604080518082019091525f808252602082015281526020019060019003908161027f5790505b5090505f5b60015481101561033a575f80600183815481106102c9576102c9610be4565b5f918252602080832090910154835282810193909352604091820190208151808301909252546001600160a01b03811682526001600160601b03600160a01b9091041691810191909152825183908390811061032757610327610be4565b60209081029190910101526001016102aa565b509091565b60035460ff161561036b5760405162461bcd60e51b815260040161036290610bf8565b60405180910390fd5b60038054600160ff199091161790555f81815260208181526040918290208251808401909352546001600160a01b038116808452600160a01b9091046001600160601b03169183019190915233146103f25760405162461bcd60e51b815260206004820152600a6024820152693737ba1039b2b63632b960b11b6044820152606401610362565b6103fb82610a08565b6040516323b872dd60e01b8152306004820152336024820152604481018390527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316906323b872dd906064015f604051808303815f87803b158015610466575f80fd5b505af1158015610478573d5f803e3d5ffd5b50506040513392508491507f26deca31ff8139a06c52453ce8985d34f7648a6d9af1d283c4063d052c355a0f905f90a350506003805460ff19169055565b60035460ff16156104d95760405162461bcd60e51b815260040161036290610bf8565b6003805460ff1916600117905580158015906104fc57506001600160601b038111155b6105305760405162461bcd60e51b8152602060048201526005602482015264707269636560d81b6044820152606401610362565b5f828152602081905260409020546001600160a01b03161561057d5760405162461bcd60e51b81526020600482015260066024820152651b1a5cdd195960d21b6044820152606401610362565b6040516331a9108f60e11b81526004810183905233906001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001690636352211e90602401602060405180830381865afa1580156105e2573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906106069190610c1b565b6001600160a01b0316146106485760405162461bcd60e51b81526020600482015260096024820152683737ba1037bbb732b960b91b6044820152606401610362565b604080518082018252338082526001600160601b0384811660208085019182525f88815280825286812095519251909316600160a01b026001600160a01b03928316179094556001805480820182557fb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf601889055546002909452908490209290925591516323b872dd60e01b81526004810192909252306024830152604482018490527f000000000000000000000000000000000000000000000000000000000000000016906323b872dd906064015f604051808303815f87803b15801561072e575f80fd5b505af1158015610740573d5f803e3d5ffd5b50506040518381523392508491507f50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc083439060200160405180910390a350506003805460ff19169055565b60018181548110610798575f80fd5b5f91825260209091200154905081565b60035460ff16156107cb5760405162461bcd60e51b815260040161036290610bf8565b60038054600160ff199091161790555f81815260208181526040918290208251808401909352546001600160a01b038116808452600160a01b9091046001600160601b0316918301919091526108505760405162461bcd60e51b815260206004820152600a6024820152691b9bdd081b1a5cdd195960b21b6044820152606401610362565b80602001516001600160601b031634146108945760405162461bcd60e51b8152602060048201526005602482015264707269636560d81b6044820152606401610362565b61089d82610a08565b6040516323b872dd60e01b8152306004820152336024820152604481018390527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316906323b872dd906064015f604051808303815f87803b158015610908575f80fd5b505af115801561091a573d5f803e3d5ffd5b505050505f815f01516001600160a01b0316346040515f6040518083038185875af1925050503d805f811461096a576040519150601f19603f3d011682016040523d82523d5f602084013e61096f565b606091505b50509050806109a65760405162461bcd60e51b815260206004820152600360248201526270617960e81b6044820152606401610362565b81516020808401516040516001600160601b0390911681526001600160a01b0390921691339186917f23f50d55776d8003622a982ade45a6c7f083116c8dbbcd980f59942f440badb1910160405180910390a450506003805460ff1916905550565b5f8181526002602052604081205490819003610a505760405162461bcd60e51b81526020600482015260076024820152666d697373696e6760c81b6044820152606401610362565b600180545f9190610a62908290610c48565b81548110610a7257610a72610be4565b905f5260205f20015490508060018084610a8c9190610c48565b81548110610a9c57610a9c610be4565b5f9182526020808320909101929092558281526002909152604090208290556001805480610acc57610acc610c6d565b5f828152602080822083015f1990810183905590920190925593815260028452604080822082905593819052928320929092555050565b604080825283518282018190525f91906020906060850190828801855b82811015610b3c57815184529284019290840190600101610b20565b505050848103828601528551808252868301918301905f5b81811015610b8b57835180516001600160a01b031684528501516001600160601b0316858401529284019291850191600101610b54565b509098975050505050505050565b5f60208284031215610ba9575f80fd5b5035919050565b5f8060408385031215610bc1575f80fd5b50508035926020909101359150565b634e487b7160e01b5f52604160045260245ffd5b634e487b7160e01b5f52603260045260245ffd5b6020808252600990820152681c99595b9d1c985b9d60ba1b604082015260600190565b5f60208284031215610c2b575f80fd5b81516001600160a01b0381168114610c41575f80fd5b9392505050565b81810381811115610c6757634e487b7160e01b5f52601160045260245ffd5b92915050565b634e487b7160e01b5f52603160045260245ffdfea2646970667358221220fe96684e5a66504841c7252dddf11cfcad0db647b8ccdf398e741765961b3cdb64736f6c63430008180033';
-  const SEL = { list:'0x50fd7367', buy:'0xd96a094a', cancel:'0x40e58ee5', all:'0x10c4e8b0',
-                ownerOf:'0x6352211e', getApproved:'0x081812fc', approve:'0x095ea7b3' };
 
-  let account = null, escrow = null;
+  const SEL = {
+    list: '0x50fd7367', buy: '0xd96a094a', cancel: '0x40e58ee5', all: '0x10c4e8b0',
+    ownerOf: '0x6352211e', getApproved: '0x081812fc', approve: '0x095ea7b3',
+    tokenURI: '0xc87b56dd', nft: '0x47ccca02', listing: '0xde74e57b'
+  };
+
   const $ = (id) => document.getElementById(id);
-  const say = (msg, cls='') => { $('status').className = 'status ' + cls; $('status').textContent = msg; };
-  const sayList = (msg, cls='') => { $('listStatus').className = 'status ' + cls; $('listStatus').textContent = msg; };
-  const sayMarket = (msg, cls='') => { $('marketStatus').className = 'status ' + cls; $('marketStatus').textContent = msg; };
-
   const pad = (v) => BigInt(v).toString(16).padStart(64, '0');
   const addrWord = (a) => a.toLowerCase().replace(/^0x/, '').padStart(64, '0');
   const hexAddr = (w) => '0x' + w.slice(-40);
+  const short = (a) => a ? a.slice(0, 6) + '…' + a.slice(-4) : '';
+  const shortHash = (h) => h ? h.slice(0, 10) + '…' + h.slice(-6) : '';
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  function provider() {
-    if (!window.ethereum) throw new Error('No EVM wallet found. Open in MetaMask.');
+  let account = null;
+  let escrow = null;
+  let rows = [];
+  let filter = 'all';
+  const metaCache = new Map();
+
+  // ---------- wallet ----------
+  function wallet() {
+    if (!window.ethereum) throw new Error('No EVM wallet found. Open this page inside MetaMask or Rabby.');
     return window.ethereum;
   }
-  async function rpc(method, params) { return provider().request({ method, params }); }
+  async function rpc(method, params) { return wallet().request({ method, params }); }
+  async function call(to, data) { return rpc('eth_call', [{ to, data }, 'latest']); }
+
   async function connect() {
-    const p = provider();
+    const p = wallet();
     const acc = await p.request({ method: 'eth_requestAccounts' });
     const chain = await p.request({ method: 'eth_chainId' });
-    if (parseInt(chain, 16) !== CHAIN) {
-      try { await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0xaa36a7' }] }); }
-      catch { throw new Error('Switch MetaMask to Sepolia first.'); }
-    }
     account = acc[0];
-    $('connect').textContent = account.slice(0,6) + '…' + account.slice(-4);
-    $('list').disabled = !escrow;
-    say('Connected. Load an escrow address or deploy one.', 'ok');
-    await refresh();
-  }
-  async function call(to, data) { return rpc('eth_call', [{ to, data }, 'latest']); }
-  async function receipt(hash) {
-    for (let i = 0; i < 90; i++) {
-      const r = await rpc('eth_getTransactionReceipt', [hash]);
-      if (r) return r;
-      await new Promise(res => setTimeout(res, 2000));
+    if (parseInt(chain, 16) !== CHAIN) {
+      try { await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] }); }
+      catch { /* banner offers the retry */ }
     }
-    throw new Error('timed out waiting for ' + hash);
+    paintAccount();
+    await paintNetwork();
+    await refresh();
+    updateSellState();
   }
 
+  function disconnect() {
+    account = null;
+    paintAccount();
+    render();
+    updateSellState();
+    paintNetwork();
+  }
+
+  function paintAccount() {
+    const b = $('connect');
+    if (account) {
+      b.innerHTML = '<span class="dot"></span>' + short(account);
+      b.title = 'Click to disconnect';
+    } else {
+      b.textContent = 'Connect wallet';
+      b.title = 'Connect an EVM wallet';
+    }
+  }
+
+  async function paintNetwork() {
+    if (!account || !window.ethereum) { $('netBanner').classList.add('hidden'); return; }
+    try {
+      const chain = await rpc('eth_chainId', []);
+      $('netBanner').classList.toggle('hidden', parseInt(chain, 16) === CHAIN);
+    } catch { /* ignore */ }
+  }
+
+  // ---------- encoding / decoding ----------
+  function decodeStr(hex) {
+    const h = hex.replace(/^0x/, '');
+    const off = Number(BigInt('0x' + h.slice(0, 64))) * 2;
+    const len = Number(BigInt('0x' + h.slice(off, off + 64))) * 2;
+    const body = h.slice(off + 64, off + 64 + len);
+    const bytes = new Uint8Array((body.match(/../g) || []).map((x) => parseInt(x, 16)));
+    return new TextDecoder().decode(bytes);
+  }
+  function b64Json(uri) {
+    const bin = atob(uri.slice(uri.indexOf(',') + 1));
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+  function toWei(s) {
+    if (!/^\d*\.?\d*$/.test(s) || s === '' || s === '.') return null;
+    const [a, b = ''] = s.split('.');
+    if (b.length > 18) return null;
+    return BigInt(a || '0') * 10n ** 18n + BigInt((b + '0'.repeat(18)).slice(0, 18));
+  }
+  function fmtEth(w) {
+    const s = w.toString().padStart(19, '0');
+    const i = s.slice(0, -18).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const f = s.slice(-18).replace(/0+$/, '');
+    return i + (f ? '.' + f : '');
+  }
   function decodeAll(hex) {
     const h = hex.replace(/^0x/, '');
     const word = (i) => h.slice(i * 64, (i + 1) * 64);
     const num = (w) => BigInt('0x' + w);
     const off1 = Number(num(word(0))) / 32;
     const off2 = Number(num(word(1))) / 32;
-    const n1 = Number(num(word(off1)));
     const ids = [];
-    for (let i = 0; i < n1; i++) ids.push(num(word(off1 + 1 + i)).toString());
-    const n2 = Number(num(word(off2)));
-    const rows = [];
-    for (let i = 0; i < n2; i++) {
-      rows.push({ seller: hexAddr(word(off2 + 1 + i * 2)), price: num(word(off2 + 2 + i * 2)) });
+    for (let i = 0; i < Number(num(word(off1))); i++) ids.push(num(word(off1 + 1 + i)).toString());
+    const out = [];
+    for (let i = 0; i < Number(num(word(off2))); i++) {
+      out.push({ seller: hexAddr(word(off2 + 1 + i * 2)), price: num(word(off2 + 2 + i * 2)) });
     }
-    return ids.map((id, i) => ({ id, ...rows[i] }));
+    return ids.map((id, i) => ({ id, ...out[i] }));
+  }
+
+  // ---------- metadata ----------
+  async function tokenMeta(id) {
+    if (metaCache.has(id)) return metaCache.get(id);
+    const uri = decodeStr(await call(NFT, SEL.tokenURI + pad(id)));
+    let meta = null;
+    if (uri.startsWith('data:application/json;base64,')) meta = b64Json(uri);
+    else if (uri.startsWith('data:application/json,')) meta = JSON.parse(decodeURIComponent(uri.slice(uri.indexOf(',') + 1)));
+    const out = {
+      name: (meta && meta.name) || ('Squeek #' + id),
+      image: (meta && meta.image) || '',
+      traits: (meta && Array.isArray(meta.attributes) ? meta.attributes : []).slice(0, 3)
+        .map((a) => a.value).filter(Boolean)
+    };
+    metaCache.set(id, out);
+    return out;
+  }
+
+  // ---------- listings ----------
+  function say(msg, kind, href) {
+    const t = $('toast');
+    t.className = 'toast ' + (kind || '');
+    t.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = msg;
+    t.appendChild(span);
+    if (href) {
+      const a = document.createElement('a');
+      a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Etherscan ↗';
+      t.appendChild(a);
+    }
+    t.classList.remove('hidden');
+    clearTimeout(say._t);
+    say._t = setTimeout(() => t.classList.add('hidden'), href ? 14000 : 6000);
+  }
+
+  function setMarketNotice(html) {
+    const n = $('marketNotice');
+    if (!html) { n.classList.add('hidden'); n.innerHTML = ''; return; }
+    n.innerHTML = html;
+    n.classList.remove('hidden');
+  }
+
+  function paintAddress() {
+    $('addr').textContent = escrow || 'no escrow configured';
+    $('addrInput').value = escrow || '';
+    $('scan').classList.toggle('hidden', !escrow);
+    if (escrow) $('scan').href = EXPLORER + '/address/' + escrow;
   }
 
   async function refresh() {
-    if (!escrow) return;
+    if (!escrow) {
+      rows = [];
+      $('count').textContent = '—';
+      $('listings').innerHTML = '';
+      $('empty').classList.add('hidden');
+      setMarketNotice('<span class="ico">⚠️</span><div><b>No escrow configured in this browser.</b> ' +
+        'If you deployed a market, open <b>advanced</b> and paste its address. The shared Sepolia address will be published here once it is live.</div>');
+      return;
+    }
     try {
+      $('refresh').disabled = true;
       const data = await call(escrow, SEL.all);
-      const rows = decodeAll(data);
-      const box = $('listings');
-      box.innerHTML = '';
-      if (!rows.length) sayMarket('No listings yet.');
-      else sayMarket(rows.length + ' listing' + (rows.length === 1 ? '' : 's'));
-      for (const r of rows) {
-        const mine = account && r.seller.toLowerCase() === account.toLowerCase();
-        const el = document.createElement('div');
-        el.className = 'item';
-        el.innerHTML = '<div class="mono">Squeek #' + r.id + '</div>' +
-          '<div class="price">' + (Number(r.price) / 1e18).toFixed(4) + ' ETH</div>' +
-          '<div class="mono">seller ' + r.seller.slice(0,6) + '…' + r.seller.slice(-4) + '</div>';
-        const btn = document.createElement('button');
-        btn.textContent = mine ? 'Cancel' : 'Buy';
-        btn.style.marginTop = '8px';
-        btn.onclick = () => mine ? cancel(r.id) : buy(r);
-        el.appendChild(btn);
-        box.appendChild(el);
-      }
+      rows = decodeAll(data).reverse();
+      render();
     } catch (e) {
-      sayMarket('read failed: ' + (e.message || e), 'bad');
+      rows = [];
+      $('listings').innerHTML = '';
+      $('empty').classList.add('hidden');
+      $('count').textContent = '—';
+      setMarketNotice('<span class="ico">⚠️</span><div><b>Could not read this escrow.</b> ' +
+        escapeHtml(e.message || String(e)) + ' — check the address and that you are on Sepolia.</div>');
+    } finally {
+      $('refresh').disabled = false;
     }
   }
 
-  async function deploy() {
+  function render() {
+    const box = $('listings');
+    box.innerHTML = '';
+    const list = (filter === 'mine' && account)
+      ? rows.filter((r) => r.seller.toLowerCase() === account.toLowerCase())
+      : rows;
+    $('count').textContent = escrow ? String(list.length) : '—';
+    $('empty').classList.toggle('hidden', !!list.length || !escrow || filter === 'mine');
+    if (filter !== 'mine') setMarketNotice('');
+    else if (!list.length && escrow) setMarketNotice('<span class="ico">👤</span><div>You have no Squeeks listed in this market.</div>');
+    for (const r of list) box.appendChild(card(r));
+    if (escrow) box.appendChild(promo());
+  }
+
+  function promo() {
+    const el = document.createElement('article');
+    el.className = 'card-item promo';
+    el.innerHTML = '<div class="plus">+</div><div><b>List your Squeek</b>' +
+      '<p>Escrow it, name your price, get paid in ETH.</p></div>';
+    const b = document.createElement('button');
+    b.textContent = 'Start a listing';
+    b.onclick = () => {
+      $('tokenId').focus();
+      $('sell-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    el.appendChild(b);
+    return el;
+  }
+
+  function card(r) {
+    const mine = account && r.seller.toLowerCase() === account.toLowerCase();
+    const el = document.createElement('article');
+    el.className = 'card-item' + (mine ? ' mine' : '');
+    el.innerHTML =
+      '<div class="thumb"><div class="skel"></div><div class="ph hidden">#' + r.id + '</div>' +
+        (mine ? '<span class="badge">YOURS</span>' : '') + '</div>' +
+      '<div class="card-body">' +
+        '<div class="card-top"><div class="card-id">Squeek <span>#' + r.id + '</span></div>' +
+          '<div class="card-price">' + fmtEth(r.price) + '<small>ETH</small></div></div>' +
+        '<div class="card-seller">seller ' + short(r.seller) + (mine ? ' · you' : '') + '</div>' +
+      '</div>';
+    const btn = document.createElement('button');
+    btn.className = mine ? 'ghost' : 'buy';
+    btn.textContent = mine ? 'Cancel listing' : 'Buy now';
+    btn.onclick = () => mine ? cancel(r) : buy(r);
+    el.querySelector('.card-body').appendChild(btn);
+
+    const thumb = el.querySelector('.thumb');
+    tokenMeta(r.id).then((m) => {
+      const skel = thumb.querySelector('.skel');
+      if (m.image) {
+        const img = document.createElement('img');
+        img.src = m.image; img.alt = m.name; img.loading = 'lazy'; img.decoding = 'async';
+        thumb.prepend(img);
+      } else {
+        thumb.querySelector('.ph').classList.remove('hidden');
+      }
+      if (skel) skel.remove();
+    }).catch(() => {
+      const skel = thumb.querySelector('.skel');
+      if (skel) skel.remove();
+      thumb.querySelector('.ph').classList.remove('hidden');
+    });
+    return el;
+  }
+
+  // ---------- actions ----------
+  async function receipt(hash) {
+    for (let i = 0; i < 120; i++) {
+      const r = await rpc('eth_getTransactionReceipt', [hash]);
+      if (r) {
+        if (r.status && parseInt(r.status, 16) === 0) throw new Error('Transaction reverted');
+        return r;
+      }
+      await new Promise((res) => setTimeout(res, 2000));
+    }
+    throw new Error('Timed out waiting for the transaction');
+  }
+
+  async function buy(r) {
+    if (!account) return say('Connect a wallet first.', 'bad');
     try {
-      const data = BYTECODE + addrWord(NFT);
-      say('Confirm deployment in your wallet…');
-      const hash = await rpc('eth_sendTransaction', [{ from: account, data }]);
-      say('Deploying… ' + hash);
-      const r = await receipt(hash);
-      if (!r.contractAddress) throw new Error('no contract address in receipt');
-      escrow = r.contractAddress;
-      localStorage.setItem('otc.address', escrow);
-      $('addr').textContent = escrow;
-      $('addrInput').value = escrow;
-      $('list').disabled = false;
-      say('Deployed at ' + escrow, 'ok');
+      say('Confirm ' + fmtEth(r.price) + ' ETH in your wallet…');
+      const hash = await rpc('eth_sendTransaction', [{
+        from: account, to: escrow, value: '0x' + r.price.toString(16), data: SEL.buy + pad(r.id)
+      }]);
+      say('Buying Squeek #' + r.id + '… ' + shortHash(hash));
+      await receipt(hash);
+      say('Bought Squeek #' + r.id + ' — it is in your wallet.', 'ok', EXPLORER + '/tx/' + hash);
       await refresh();
     } catch (e) { say(e.message || String(e), 'bad'); }
   }
 
+  async function cancel(r) {
+    try {
+      say('Confirm cancelling #' + r.id + ' in your wallet…');
+      const hash = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.cancel + pad(r.id) }]);
+      await receipt(hash);
+      say('Cancelled #' + r.id + ' — the Squeek returned to you.', 'ok', EXPLORER + '/tx/' + hash);
+      await refresh();
+    } catch (e) { say(e.message || String(e), 'bad'); }
+  }
+
+  function sellNote(msg, kind) {
+    const n = $('listStatus');
+    n.className = 'step-note ' + (kind || '');
+    n.textContent = msg || '';
+  }
+
+  async function updateSellState() {
+    const id = $('tokenId').value.trim();
+    const price = toWei($('price').value.trim());
+    const btn = $('list');
+    const calc = $('calc');
+    if (price == null || price === 0n) calc.textContent = 'Enter a token ID and a price.';
+    else calc.innerHTML = 'You receive <b>' + fmtEth(price) + ' ETH</b> · 0% fee · buyer pays the exact price.';
+    btn.disabled = !escrow || !account || !/^\d+$/.test(id) || !price || price === 0n;
+
+    if (!/^\d+$/.test(id) || !escrow) {
+      $('previewImg').innerHTML = '<div class="ph">Token preview</div>';
+      $('previewName').textContent = '—';
+      $('previewTraits').innerHTML = '';
+      $('ownerLine').textContent = '';
+      return;
+    }
+    try {
+      const [meta, ownerWord] = await Promise.all([
+        tokenMeta(id),
+        call(NFT, SEL.ownerOf + pad(id))
+      ]);
+      const owner = hexAddr(ownerWord);
+      $('previewImg').innerHTML = meta.image
+        ? '<img src="' + meta.image + '" alt="' + escapeHtml(meta.name) + '">'
+        : '<div class="ph">#' + id + '</div>';
+      $('previewName').textContent = meta.name;
+      $('previewTraits').innerHTML = meta.traits.map((t) => '<span>' + escapeHtml(String(t)) + '</span>').join('');
+      const mine = account && owner.toLowerCase() === account.toLowerCase();
+      $('ownerLine').className = 'owner-line' + (mine ? ' ok' : '');
+      if (account && !mine) {
+        $('ownerLine').textContent = 'Owner ' + short(owner) + ' — not your wallet';
+        btn.disabled = true;
+        sellNote('This Squeek is not in the connected wallet.', 'bad');
+      } else if (mine && escrow) {
+        let listed = false, listedPrice = 0n;
+        try {
+          const h = (await call(escrow, SEL.listing + pad(id))).replace(/^0x/, '');
+          const seller = hexAddr(h.slice(0, 64));
+          listedPrice = BigInt('0x' + (h.slice(64, 128) || '0'));
+          listed = seller !== '0x0000000000000000000000000000000000000000';
+        } catch { /* treat as not listed */ }
+        if (listed) {
+          $('ownerLine').textContent = 'Already listed for ' + fmtEth(listedPrice) + ' ETH in this market';
+          btn.disabled = true;
+          sellNote('Cancel the existing listing before listing it again.', 'bad');
+        } else {
+          $('ownerLine').textContent = 'Owned by you · ready to list';
+          sellNote('');
+        }
+      } else {
+        $('ownerLine').textContent = mine ? 'Owned by you · ready to list' : 'Owner ' + short(owner);
+        sellNote('');
+      }
+    } catch (e) {
+      $('previewImg').innerHTML = '<div class="ph">#' + id + '</div>';
+      $('previewName').textContent = 'Squeek #' + id;
+      $('previewTraits').innerHTML = '';
+      $('ownerLine').textContent = 'Could not read this token — check the ID.';
+      btn.disabled = true;
+    }
+  }
+
   async function approveAndList() {
     const id = $('tokenId').value.trim();
-    const priceEth = $('price').value.trim();
-    if (!/^\d+$/.test(id) || !/^\d*\.?\d+$/.test(priceEth)) { sayList('Enter a token ID and a price.', 'bad'); return; }
-    const price = BigInt(Math.round(Number(priceEth) * 1e6)) * 10n ** 12n; // 6 decimals precision
-    if (price <= 0n) { sayList('Price must be > 0.', 'bad'); return; }
+    const price = toWei($('price').value.trim());
+    if (!/^\d+$/.test(id) || !price) return sellNote('Enter a token ID and a price.', 'bad');
     try {
       $('list').disabled = true;
-      const owner = hexAddr((await call(NFT, SEL.ownerOf + pad(id))).slice(-64));
+      const owner = hexAddr(await call(NFT, SEL.ownerOf + pad(id)));
       if (owner.toLowerCase() !== account.toLowerCase()) throw new Error('You do not own Squeek #' + id);
+      const h = (await call(escrow, SEL.listing + pad(id))).replace(/^0x/, '');
+      if (hexAddr(h.slice(0, 64)) !== '0x0000000000000000000000000000000000000000') {
+        throw new Error('Squeek #' + id + ' is already listed in this market');
+      }
 
-      const approved = hexAddr((await call(NFT, SEL.getApproved + pad(id))).slice(-64));
+      const approved = hexAddr(await call(NFT, SEL.getApproved + pad(id)));
       if (approved.toLowerCase() !== escrow.toLowerCase()) {
-        sayList('Approve the escrow in your wallet…');
+        sellNote('Step 1/2 — approve the escrow in your wallet…');
         const ah = await rpc('eth_sendTransaction', [{ from: account, to: NFT, data: SEL.approve + addrWord(escrow) + pad(id) }]);
         await receipt(ah);
       }
-      sayList('List in your wallet…');
+      sellNote('Step 2/2 — confirm the listing in your wallet…');
       const lh = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.list + pad(id) + pad(price) }]);
       await receipt(lh);
-      sayList('Listed Squeek #' + id, 'ok');
+      sellNote('Listed Squeek #' + id + '. It is now in escrow.', 'ok');
+      say('Listed Squeek #' + id + ' for ' + fmtEth(price) + ' ETH.', 'ok', EXPLORER + '/tx/' + lh);
       $('tokenId').value = ''; $('price').value = '';
       await refresh();
-    } catch (e) { sayList(e.message || String(e), 'bad'); }
-    finally { $('list').disabled = !escrow; }
+      await updateSellState();
+    } catch (e) { sellNote(e.message || String(e), 'bad'); }
+    finally { $('list').disabled = false; }
   }
 
-  async function buy(r) {
+  async function deploy() {
+    if (!account) return say('Connect a wallet first.', 'bad');
     try {
-      sayMarket('Confirm purchase in your wallet…');
-      const hash = await rpc('eth_sendTransaction', [{
-        from: account, to: escrow, value: '0x' + r.price.toString(16), data: SEL.buy + pad(r.id)
-      }]);
-      await receipt(hash);
-      sayMarket('Bought Squeek #' + r.id, 'ok');
+      say('Confirm the escrow deployment in your wallet…');
+      const hash = await rpc('eth_sendTransaction', [{ from: account, data: BYTECODE + addrWord(NFT) }]);
+      say('Deploying escrow… ' + shortHash(hash));
+      const r = await receipt(hash);
+      if (!r.contractAddress) throw new Error('No contract address in the receipt');
+      setEscrow(r.contractAddress);
+      say('Escrow deployed. Share the ?c= link so others join this market.', 'ok', EXPLORER + '/tx/' + hash);
       await refresh();
-    } catch (e) { sayMarket(e.message || String(e), 'bad'); }
+    } catch (e) { say(e.message || String(e), 'bad'); }
   }
 
-  async function cancel(id) {
-    try {
-      const hash = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.cancel + pad(id) }]);
-      await receipt(hash);
-      sayMarket('Cancelled #' + id, 'ok');
-      await refresh();
-    } catch (e) { sayMarket(e.message || String(e), 'bad'); }
-  }
-
-  function load(v) {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(v)) { say('Invalid contract address.', 'bad'); return; }
+  // ---------- escrow loading ----------
+  function setEscrow(v) {
     escrow = v;
-    localStorage.setItem('otc.address', v);
-    $('addr').textContent = v;
-    $('addrInput').value = v;
-    $('list').disabled = !account;
-    say('Loaded ' + v, 'ok');
-    refresh();
+    if (v) localStorage.setItem('otc.address', v); else localStorage.removeItem('otc.address');
+    paintAddress();
+    updateSellState();
   }
 
-  $('connect').onclick = () => connect().catch(e => say(e.message || String(e), 'bad'));
-  $('deploy').onclick = () => { if (!account) return say('Connect a wallet first.', 'bad'); deploy(); };
+  async function load(v) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(v)) return say('Invalid contract address.', 'bad');
+    try {
+      const code = await rpc('eth_getCode', [v, 'latest']);
+      if (!code || code === '0x') throw new Error('No contract at that address on Sepolia');
+      const nft = hexAddr(await call(v, SEL.nft));
+      if (nft.toLowerCase() !== NFT.toLowerCase()) throw new Error('That contract trades a different NFT');
+      setEscrow(v);
+      say('Market loaded.', 'ok');
+      await refresh();
+    } catch (e) { say(e.message || String(e), 'bad'); }
+  }
+
+  // ---------- wiring ----------
+  $('connect').onclick = () => account ? disconnect() : connect().catch((e) => say(e.message || String(e), 'bad'));
+  $('switchNet').onclick = () => rpc('wallet_switchEthereumChain', [{ chainId: CHAIN_HEX }])
+    .then(paintNetwork).catch((e) => say(e.message || String(e), 'bad'));
+  $('change').onclick = () => $('changeBox').classList.toggle('hidden');
   $('load').onclick = () => load($('addrInput').value.trim());
+  $('deploy').onclick = deploy;
   $('list').onclick = approveAndList;
   $('refresh').onclick = refresh;
+  $('copy').onclick = () => {
+    if (!escrow) return say('No escrow to copy.', 'bad');
+    navigator.clipboard.writeText(escrow).then(() => say('Escrow address copied.', 'ok'));
+  };
+  $('addrInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') load($('addrInput').value.trim()); });
+  document.querySelectorAll('.seg button').forEach((b) => {
+    b.onclick = () => {
+      filter = b.dataset.f;
+      document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('on', x === b));
+      render();
+    };
+  });
+
+  let previewTimer = null;
+  $('tokenId').addEventListener('input', () => {
+    clearTimeout(previewTimer);
+    updateSellState();
+    previewTimer = setTimeout(updateSellState, 450);
+  });
+  $('price').addEventListener('input', updateSellState);
+
+  if (window.ethereum) {
+    if (window.ethereum.on) {
+      window.ethereum.on('accountsChanged', (accs) => {
+        account = accs && accs[0] ? accs[0] : null;
+        paintAccount(); render(); updateSellState(); paintNetwork();
+      });
+      window.ethereum.on('chainChanged', () => { paintNetwork(); refresh(); });
+    }
+    window.ethereum.request({ method: 'eth_accounts' }).then((accs) => {
+      if (accs && accs[0]) { account = accs[0]; paintAccount(); }
+      paintNetwork();
+    }).catch(() => {});
+  }
 
   const params = new URLSearchParams(location.search);
-  const saved = params.get('c') || localStorage.getItem('otc.address') || '';
-  if (saved) load(saved);
+  const initial = params.get('c') || DEFAULT_ESCROW || localStorage.getItem('otc.address') || '';
+  if (initial) setEscrow(initial);
+  else paintAddress();
+  refresh();
 })();
 </script>
 </body>
