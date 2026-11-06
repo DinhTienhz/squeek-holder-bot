@@ -131,6 +131,37 @@
   .notice b{color:var(--text)}
   .notice .ico{font-size:18px;line-height:1}
 
+  .activity{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0d0d14}
+  .act-head{display:grid;grid-template-columns:92px minmax(0,1.1fr) 130px minmax(0,1fr) 104px 24px;
+    gap:12px;align-items:center;padding:8px 13px;border-bottom:1px solid var(--line);
+    font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:#6d6e85;background:#0b0b11}
+  .act-row{display:grid;grid-template-columns:92px minmax(0,1.1fr) 130px minmax(0,1fr) 104px 24px;
+    gap:12px;align-items:center;padding:11px 13px;border-top:1px solid #1f202b;font-size:12.5px}
+  .act-row:first-child{border-top:0}
+  .act-row:hover{background:#12131a}
+  .act-badge{font-size:9.5px;font-weight:800;letter-spacing:.1em;border:1px solid var(--line);
+    border-radius:999px;padding:3px 8px;text-align:center;white-space:nowrap}
+  .act-badge.listed{color:var(--accent);border-color:rgba(201,242,77,.35);background:rgba(201,242,77,.07)}
+  .act-badge.sold{color:var(--accent-2);border-color:rgba(125,226,209,.4);background:rgba(125,226,209,.07)}
+  .act-badge.cancelled{color:#ff9c9c;border-color:rgba(255,128,128,.3);background:rgba(255,128,128,.06)}
+  .act-id{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .act-price{font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
+  .act-price.none{color:var(--muted)}
+  .act-actor{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .act-time{color:var(--muted);font-size:11.5px;text-align:right;white-space:nowrap}
+  .act-link{color:var(--muted);text-align:right;font-size:13px}
+  .act-link:hover{color:var(--accent-2);text-decoration:none}
+  @media (max-width:760px){
+    .act-head{display:none}
+    .act-row{grid-template-columns:80px minmax(0,1fr) auto;row-gap:3px;padding:10px 11px}
+    .act-badge{grid-column:1;grid-row:1/span 2;align-self:center}
+    .act-id{grid-column:2;grid-row:1}
+    .act-price{grid-column:2;grid-row:2;font-size:11.5px}
+    .act-actor{display:none}
+    .act-time{grid-column:3;grid-row:1;text-align:right;font-size:11px}
+    .act-link{grid-column:3;grid-row:2;align-self:center}
+  }
+
   .sell-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start;max-width:900px;margin:0 auto}
   label{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.09em;
     font-weight:700;margin:0 0 6px}
@@ -251,6 +282,25 @@
     </div>
   </section>
 
+  <section class="panel" aria-labelledby="activity-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="activity-title">Activity <span class="count" id="actCount">—</span></h2>
+        <div class="note" id="actNote">Every listing, sale and delisting in this market.</div>
+      </div>
+      <div class="filters">
+        <div class="seg" id="actFilters" role="group" aria-label="Filter activity">
+          <button data-a="all" class="on" type="button">All</button>
+          <button data-a="listed" type="button">Listed</button>
+          <button data-a="sold" type="button">Sold</button>
+          <button data-a="cancelled" type="button">Delisted</button>
+        </div>
+      </div>
+    </div>
+    <div id="activity" class="activity hidden"></div>
+    <div class="empty" id="actEmpty">Configure a market to see its activity.</div>
+  </section>
+
   <section class="panel" aria-labelledby="sell-title">
     <div class="panel-head">
       <div><h2 id="sell-title">Sell a Squeek</h2></div>
@@ -313,6 +363,11 @@
     ownerOf: '0x6352211e', getApproved: '0x081812fc', approve: '0x095ea7b3',
     tokenURI: '0xc87b56dd', nft: '0x47ccca02', listing: '0xde74e57b'
   };
+  const TOPIC = {
+    listed: '0x50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc08343',
+    sold: '0x23f50d55776d8003622a982ade45a6c7f083116c8dbbcd980f59942f440badb1',
+    cancelled: '0x26deca31ff8139a06c52453ce8985d34f7648a6d9af1d283c4063d052c355a0f'
+  };
 
   const $ = (id) => document.getElementById(id);
   const pad = (v) => BigInt(v).toString(16).padStart(64, '0');
@@ -326,6 +381,9 @@
   let escrow = null;
   let rows = [];
   let filter = 'all';
+  let actEvents = [];
+  let actFilter = 'all';
+  let actLoading = false;
   const metaCache = new Map();
 
   // ---------- wallet ----------
@@ -469,6 +527,7 @@
   }
 
   async function refresh() {
+    loadActivity();
     if (!escrow) {
       rows = [];
       $('count').textContent = '—';
@@ -558,6 +617,158 @@
       if (skel) skel.remove();
       thumb.querySelector('.ph').classList.remove('hidden');
     });
+    return el;
+  }
+
+  // ---------- activity ----------
+  async function deployBlock(addr) {
+    const key = 'otc.deploy.' + addr.toLowerCase();
+    const saved = localStorage.getItem(key);
+    if (saved) return Number(saved);
+    const latest = Number(BigInt(await rpc('eth_blockNumber', [])));
+    const head = await rpc('eth_getCode', [addr, 'latest']);
+    if (!head || head === '0x') return latest;
+    let lo = 0, hi = latest;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      let code;
+      try { code = await rpc('eth_getCode', [addr, '0x' + mid.toString(16)]); }
+      catch { return Math.max(0, latest - 50000); }
+      if (code && code !== '0x') hi = mid; else lo = mid + 1;
+    }
+    localStorage.setItem(key, String(lo));
+    return lo;
+  }
+
+  async function logsRange(addr, from, to) {
+    try {
+      return await rpc('eth_getLogs', [{
+        address: addr, fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16),
+        topics: [[TOPIC.listed, TOPIC.sold, TOPIC.cancelled]]
+      }]);
+    } catch (e) {
+      if (to - from < 2000) throw e;
+      const mid = Math.floor((from + to) / 2);
+      return (await logsRange(addr, from, mid)).concat(await logsRange(addr, mid + 1, to));
+    }
+  }
+
+  async function logsSince(addr, from, to) {
+    const CHUNK = 45000;
+    let out = [];
+    for (let start = from; start <= to; start += CHUNK) {
+      out = out.concat(await logsRange(addr, start, Math.min(to, start + CHUNK - 1)));
+    }
+    return out;
+  }
+
+  function decodeLogs(logs) {
+    const price = (data) => (data && data !== '0x' ? BigInt(data) : null);
+    return logs.map((l) => {
+      const kind = l.topics[0] === TOPIC.listed ? 'listed'
+        : l.topics[0] === TOPIC.sold ? 'sold' : 'cancelled';
+      const e = {
+        kind, id: BigInt(l.topics[1]).toString(),
+        seller: kind === 'sold' ? hexAddr(l.topics[3].slice(2)) : hexAddr(l.topics[2].slice(2)),
+        tx: l.transactionHash,
+        block: Number(BigInt(l.blockNumber)),
+        index: Number(BigInt(l.logIndex)),
+        price: kind === 'cancelled' ? null : price(l.data)
+      };
+      if (kind === 'sold') e.buyer = hexAddr(l.topics[2].slice(2));
+      return e;
+    });
+  }
+
+  async function stampTimes(events) {
+    const blocks = [...new Set(events.map((e) => e.block))];
+    const times = new Map();
+    for (const b of blocks) {
+      try {
+        const blk = await rpc('eth_getBlockByNumber', ['0x' + b.toString(16), false]);
+        if (blk) times.set(b, Number(BigInt(blk.timestamp)) * 1000);
+      } catch { /* keep 0 */ }
+    }
+    for (const e of events) e.time = times.get(e.block) || 0;
+  }
+
+  function ago(ts) {
+    if (!ts) return '—';
+    const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (s < 45) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    if (s < 604800) return Math.floor(s / 86400) + 'd ago';
+    return new Date(ts).toLocaleDateString();
+  }
+
+  async function loadActivity() {
+    if (!escrow) { actEvents = []; renderActivity(); return; }
+    if (actLoading) return;
+    actLoading = true;
+    $('actNote').textContent = 'Reading market logs…';
+    try {
+      const from = await deployBlock(escrow);
+      const latest = Number(BigInt(await rpc('eth_blockNumber', [])));
+      const logs = await logsSince(escrow, from, latest);
+      actEvents = decodeLogs(logs)
+        .sort((a, b) => (b.block - a.block) || (b.index - a.index))
+        .slice(0, 60);
+      await stampTimes(actEvents);
+      renderActivity();
+      $('actNote').textContent = 'Every listing, sale and delisting in this market · last 60 events';
+    } catch (e) {
+      actEvents = [];
+      renderActivity('Could not read market activity: ' + (e.message || String(e)));
+      $('actNote').textContent = 'Every listing, sale and delisting in this market.';
+    } finally { actLoading = false; }
+  }
+
+  function renderActivity(error) {
+    const box = $('activity'), empty = $('actEmpty'), count = $('actCount');
+    const list = actFilter === 'all' ? actEvents : actEvents.filter((e) => e.kind === actFilter);
+    count.textContent = escrow ? String(list.length) : '—';
+    if (error) {
+      box.classList.add('hidden');
+      empty.classList.remove('hidden');
+      empty.textContent = error;
+      return;
+    }
+    if (!escrow) {
+      box.classList.add('hidden');
+      empty.classList.remove('hidden');
+      empty.textContent = 'Configure a market to see its activity.';
+      return;
+    }
+    if (!list.length) {
+      box.classList.add('hidden');
+      empty.classList.remove('hidden');
+      empty.textContent = actFilter === 'all'
+        ? 'No activity yet — listings, sales and delistings will appear here.'
+        : 'Nothing matches this filter yet.';
+      return;
+    }
+    empty.classList.add('hidden');
+    box.classList.remove('hidden');
+    box.innerHTML = '<div class="act-head"><span>Event</span><span>Item</span><span>Price</span>' +
+      '<span>Actor</span><span>When</span><span></span></div>';
+    for (const e of list) box.appendChild(actRow(e));
+  }
+
+  function actRow(e) {
+    const el = document.createElement('div');
+    el.className = 'act-row';
+    const label = e.kind === 'listed' ? 'LISTED' : e.kind === 'sold' ? 'SOLD' : 'DELISTED';
+    const actor = e.kind === 'sold' ? 'buyer ' + short(e.buyer) : 'seller ' + short(e.seller);
+    const price = e.price != null ? fmtEth(e.price) + ' ETH' : '—';
+    const title = e.time ? new Date(e.time).toLocaleString() : '';
+    el.innerHTML =
+      '<span class="act-badge ' + e.kind + '">' + label + '</span>' +
+      '<span class="act-id">Squeek #' + e.id + '</span>' +
+      '<span class="act-price' + (e.price == null ? ' none' : '') + '">' + price + '</span>' +
+      '<span class="act-actor" title="' + e.seller + '">' + actor + '</span>' +
+      '<span class="act-time" title="' + title + '">' + ago(e.time) + '</span>' +
+      '<a class="act-link" href="' + EXPLORER + '/tx/' + e.tx + '" target="_blank" rel="noopener" aria-label="View transaction on Etherscan">↗</a>';
     return el;
   }
 
@@ -708,6 +919,7 @@
       const r = await receipt(hash);
       if (!r.contractAddress) throw new Error('No contract address in the receipt');
       setEscrow(r.contractAddress);
+      try { localStorage.setItem('otc.deploy.' + r.contractAddress.toLowerCase(), String(Number(BigInt(r.blockNumber)))); } catch {}
       say('Escrow deployed. Share the ?c= link so others join this market.', 'ok', EXPLORER + '/tx/' + hash);
       await refresh();
     } catch (e) { say(e.message || String(e), 'bad'); }
@@ -755,6 +967,13 @@
       render();
     };
   });
+  document.querySelectorAll('#actFilters button').forEach((b) => {
+    b.onclick = () => {
+      actFilter = b.dataset.a;
+      document.querySelectorAll('#actFilters button').forEach((x) => x.classList.toggle('on', x === b));
+      renderActivity();
+    };
+  });
 
   let previewTimer = null;
   $('tokenId').addEventListener('input', () => {
@@ -783,6 +1002,7 @@
   if (initial) setEscrow(initial);
   else { paintAddress(); updateSellState(); }
   refresh();
+  setInterval(() => { if (escrow) loadActivity(); }, 60000);
 })();
 </script>
 </body>
