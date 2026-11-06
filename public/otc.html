@@ -206,6 +206,20 @@
   .toast a{white-space:nowrap}
   .hidden{display:none!important}
 
+  .modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;
+    background:rgba(6,6,10,.72);backdrop-filter:blur(3px)}
+  .modal-card{width:100%;max-width:400px;background:#12131a;border:1px solid #2f3040;border-radius:16px;
+    padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.65)}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+  .modal-head b{font-size:15px}
+  .modal-sub{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .wallet-opt{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:#0e0e15;
+    border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+  .wallet-opt:hover{border-color:rgba(201,242,77,.45);background:#15161f}
+  .wallet-opt img{width:26px;height:26px;border-radius:6px;object-fit:contain}
+  .wallet-opt .nm{font-weight:600;font-size:14px}
+  .modal-foot{color:var(--muted);font-size:11.5px;line-height:1.5;margin-top:8px}
+
   @media (max-width:720px){
     nav.site{display:none}
     header.site{justify-content:space-between}
@@ -347,6 +361,20 @@
 
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
+<div id="walletModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="wmTitle">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <b id="wmTitle">Choose a wallet</b>
+        <div class="modal-sub">Sepolia · EVM wallets</div>
+      </div>
+      <button id="wmClose" class="icon-btn" type="button" aria-label="Close">✕</button>
+    </div>
+    <div id="walletList"></div>
+    <div class="modal-foot" id="wmFoot"></div>
+  </div>
+</div>
+
 <script>
 (() => {
   const NFT = '0xc4c7982657f00509548f3a3a41db7fa439a6856b';
@@ -387,18 +415,44 @@
   const metaCache = new Map();
 
   // ---------- wallet ----------
-  function wallet() {
-    if (!window.ethereum) throw new Error('No EVM wallet found. Open this page inside MetaMask or Rabby.');
-    return window.ethereum;
+  const wallets = new Map();   // EIP-6963 announcements (uuid -> {info, provider})
+  let picked = null;           // provider chosen in this session
+
+  function activeProvider() {
+    if (picked) return picked;
+    if (wallets.size === 1) return [...wallets.values()][0].provider;
+    if (wallets.size === 0 && window.ethereum) return window.ethereum;
+    return null;
   }
-  async function rpc(method, params) { return wallet().request({ method, params }); }
+  async function rpc(method, params) {
+    const p = activeProvider();
+    if (!p) throw new Error('No EVM wallet found. Open this page inside MetaMask or Rabby.');
+    return p.request({ method, params });
+  }
   async function call(to, data) { return rpc('eth_call', [{ to, data }, 'latest']); }
 
-  async function connect() {
-    const p = wallet();
+  function bindProvider(p) {
+    if (!p || !p.on) return;
+    try { p.removeAllListeners && p.removeAllListeners(); } catch {}
+    p.on('accountsChanged', (accs) => {
+      account = accs && accs[0] ? accs[0] : null;
+      paintAccount(); render(); updateSellState(); paintNetwork();
+    });
+    p.on('chainChanged', () => { paintNetwork(); refresh(); });
+  }
+
+  async function connect(provider) {
+    const p = provider || activeProvider();
+    if (!p) {
+      openWalletModal(true);
+      throw new Error('No EVM wallet found. Install MetaMask or open this page in a wallet browser.');
+    }
+    picked = p;
+    bindProvider(p);
     const acc = await p.request({ method: 'eth_requestAccounts' });
     const chain = await p.request({ method: 'eth_chainId' });
     account = acc[0];
+    closeWalletModal();
     if (parseInt(chain, 16) !== CHAIN) {
       try { await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] }); }
       catch { /* banner offers the retry */ }
@@ -409,8 +463,50 @@
     updateSellState();
   }
 
+  function renderWalletList() {
+    const box = $('walletList');
+    box.innerHTML = '';
+    const list = [...wallets.values()];
+    if (!list.length && window.ethereum) {
+      list.push({ info: { name: 'Browser wallet', rdns: 'injected' }, provider: window.ethereum });
+    }
+    if (!list.length) {
+      $('wmFoot').innerHTML = 'No EVM wallet detected. Install <a href="https://metamask.io/download/" target="_blank" rel="noopener">MetaMask</a>, or open this page inside your wallet app, then reload.';
+      return;
+    }
+    $('wmFoot').innerHTML = 'Backpack appears here only if it exposes an EVM provider.';
+    for (const w of list) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'wallet-opt';
+      b.title = (w.info && w.info.rdns) || '';
+      const icon = document.createElement('img');
+      icon.alt = '';
+      icon.src = (w.info && w.info.icon) || 'logo-mark-32.png?v=2';
+      const nm = document.createElement('div');
+      nm.className = 'nm';
+      nm.textContent = (w.info && w.info.name) || 'Wallet';
+      b.appendChild(icon); b.appendChild(nm);
+      b.onclick = () => connect(w.provider).catch((e) => say(e.message || String(e), 'bad'));
+      box.appendChild(b);
+    }
+  }
+
+  function openWalletModal(noWallets) {
+    renderWalletList();
+    $('wmTitle').textContent = noWallets ? 'Wallet needed' : 'Choose a wallet';
+    $('walletModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeWalletModal() {
+    $('walletModal').classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+
   function disconnect() {
     account = null;
+    picked = null;
     paintAccount();
     render();
     updateSellState();
@@ -947,7 +1043,18 @@
   }
 
   // ---------- wiring ----------
-  $('connect').onclick = () => account ? disconnect() : connect().catch((e) => say(e.message || String(e), 'bad'));
+  $('connect').onclick = () => {
+    if (account) return disconnect();
+    const list = [...wallets.values()];
+    if (list.length > 1) return openWalletModal(false);
+    connect(list.length ? list[0].provider : (window.ethereum || null))
+      .catch((e) => say(e.message || String(e), 'bad'));
+  };
+  $('wmClose').onclick = closeWalletModal;
+  $('walletModal').onclick = (e) => { if (e.target === $('walletModal')) closeWalletModal(); };
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeWalletModal();
+  });
   $('switchNet').onclick = () => rpc('wallet_switchEthereumChain', [{ chainId: CHAIN_HEX }])
     .then(paintNetwork).catch((e) => say(e.message || String(e), 'bad'));
   $('change').onclick = () => $('changeBox').classList.toggle('hidden');
@@ -983,15 +1090,19 @@
   });
   $('price').addEventListener('input', updateSellState);
 
-  if (window.ethereum) {
-    if (window.ethereum.on) {
-      window.ethereum.on('accountsChanged', (accs) => {
-        account = accs && accs[0] ? accs[0] : null;
-        paintAccount(); render(); updateSellState(); paintNetwork();
-      });
-      window.ethereum.on('chainChanged', () => { paintNetwork(); refresh(); });
-    }
-    window.ethereum.request({ method: 'eth_accounts' }).then((accs) => {
+  // EIP-6963: discover every installed EVM wallet instead of trusting window.ethereum.
+  window.addEventListener('eip6963:announceProvider', (ev) => {
+    const d = ev.detail;
+    if (!d || !d.info || !d.provider) return;
+    wallets.set(d.info.uuid || d.info.rdns || d.info.name, d);
+    if (!$('walletModal').classList.contains('hidden')) renderWalletList();
+  });
+  try { window.dispatchEvent(new Event('eip6963:requestProvider')); } catch {}
+
+  const auto = activeProvider();
+  if (auto) {
+    bindProvider(auto);
+    auto.request({ method: 'eth_accounts' }).then((accs) => {
       if (accs && accs[0]) { account = accs[0]; paintAccount(); }
       paintNetwork();
     }).catch(() => {});
