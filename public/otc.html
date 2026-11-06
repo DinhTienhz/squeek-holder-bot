@@ -261,14 +261,16 @@
   .modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;
     background:rgba(6,6,10,.72);backdrop-filter:blur(3px)}
   .modal-card{width:100%;max-width:400px;background:#12131a;border:1px solid #2f3040;border-radius:16px;
-    padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.65)}
+    padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.65);max-height:88vh;overflow:auto}
   .modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
   .modal-head b{font-size:15px}
   .modal-sub{color:var(--muted);font-size:11.5px;margin-top:2px}
-  .wallet-opt{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:#0e0e15;
+  .wallet-opt{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:#0e0e15;text-decoration:none;color:var(--text);
     border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
   .wallet-opt:hover{border-color:rgba(201,242,77,.45);background:#15161f}
   .wallet-opt img{width:26px;height:26px;border-radius:6px;object-fit:contain}
+  .wm-arrow{margin-left:auto;color:var(--muted);font-size:12px}
+  .wm-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:10px}
   .wallet-opt .nm{font-weight:600;font-size:14px}
   .modal-foot{color:var(--muted);font-size:11.5px;line-height:1.5;margin-top:8px}
   .item-card{max-width:560px}
@@ -603,7 +605,32 @@
       list.push({ info: { name: 'Browser wallet', rdns: 'injected' }, provider: window.ethereum });
     }
     if (!list.length) {
-      $('wmFoot').innerHTML = 'No EVM wallet detected. Install <a href="https://metamask.io/download/" target="_blank" rel="noopener">MetaMask</a>, or open this page inside your wallet app, then reload.';
+      const here = location.host + location.pathname + location.search;
+      const targets = [
+        ['Open in MetaMask', 'https://metamask.app.link/dapp/' + here],
+        ['Open in Coinbase Wallet', 'https://go.cb-w.com/dapp?cb_url=' + encodeURIComponent(location.href)],
+        ['Open in Trust Wallet', 'https://link.trustwallet.com/open_url?coin_id=60&url=' + encodeURIComponent(location.href)]
+      ];
+      box.innerHTML = '';
+      for (const [label, href] of targets) {
+        const a = document.createElement('a');
+        a.className = 'wallet-opt';
+        a.href = href;
+        const nm = document.createElement('div');
+        nm.className = 'nm';
+        nm.textContent = label;
+        const arrow = document.createElement('span');
+        arrow.className = 'wm-arrow';
+        arrow.textContent = '↗';
+        a.appendChild(nm);
+        a.appendChild(arrow);
+        box.appendChild(a);
+      }
+      const note = document.createElement('div');
+      note.className = 'wm-note';
+      note.textContent = 'Mobile browsers do not inject wallets. Open this page inside one of the apps above, then tap Connect wallet again. On desktop, install the MetaMask extension and reload.';
+      box.appendChild(note);
+      $('wmFoot').textContent = 'The page opens in the wallet’s own browser; nothing is signed until you approve it.';
       return;
     }
     $('wmFoot').innerHTML = 'Backpack appears here only if it exposes an EVM provider.';
