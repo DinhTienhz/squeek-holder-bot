@@ -1036,7 +1036,7 @@
       localStorage.setItem('otc.ownMarket', r.contractAddress.toLowerCase());
       setEscrow(r.contractAddress, { official: true });
       try { localStorage.setItem('otc.deploy.' + r.contractAddress.toLowerCase(), String(Number(BigInt(r.blockNumber)))); } catch {}
-      say('Escrow deployed. Share the ?c= link so others join this market.', 'ok', EXPLORER + '/tx/' + hash);
+      say('Escrow deployed in this browser. Set DEFAULT_ESCROW to this address to publish it.', 'ok', EXPLORER + '/tx/' + hash);
       await refresh();
     } catch (e) { say(e.message || String(e), 'bad'); }
   }
