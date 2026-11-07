@@ -122,13 +122,15 @@ test('ladderPowerGain: 2×L1 (1000) → 1×L2 (2200)', () => {
 });
 
 
-test('isHamsterRunning: ACTIVE is running, IDLE is not', () => {
-  assert.equal(isHamsterRunning('ACTIVE', 0), true);
+test('isHamsterRunning: motion comes from rpm or a real work delta, not coreStatus', () => {
+  assert.equal(isHamsterRunning('ACTIVE', 0), false);     // parked sensor still reports ACTIVE
   assert.equal(isHamsterRunning('SPINNING', 0), true);
   assert.equal(isHamsterRunning('IDLE', 0), false);
-  assert.equal(isHamsterRunning('IDLE', 4200), true);   // sensor lags: rpm wins
+  assert.equal(isHamsterRunning('IDLE', 4200), true);     // sensor lags: rpm wins
   assert.equal(isHamsterRunning('MAINTENANCE', 1200), true);
-  assert.equal(isHamsterRunning('IDLE', 0, 9), true);      // work counter moved
+  assert.equal(isHamsterRunning('IDLE', 0, 9), true);     // work counter moved
+  assert.equal(isHamsterRunning('IDLE', 0, 1), false);    // single unit is noise
+  assert.equal(isHamsterRunning('ACTIVE', 0, 2), false);
   assert.equal(isHamsterRunning('IDLE', 0, 0), false);
   assert.equal(isHamsterRunning('MAINTENANCE', 0), false);
 });

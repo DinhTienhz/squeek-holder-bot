@@ -58,12 +58,17 @@ export function claimAlertDue(
  * Treat any unknown non-idle state as running only when the wheel is turning.
  */
 export function isHamsterRunning(coreStatus: string, rpmMilli = 0, workDelta = 0): boolean {
-  // The sensor keeps coreStatus at IDLE while the wheel is already turning, so
-  // rpm and the work counter are the trustworthy signals; status is a fallback.
-  if (Number(rpmMilli) > 0 || Number(workDelta) > 0) return true;
+  // coreStatus is a sensor state, not motion: it stays ACTIVE while the wheel is
+  // parked (rpm 0, speed 0). Trust rpm, and require a meaningful work delta so a
+  // single stray counter unit cannot fake a spin.
+  if (Number(rpmMilli) > 0) return true;
+  if (Number(workDelta) >= WORK_UNITS_PER_SPIN) return true;
   const s = String(coreStatus || '').toUpperCase();
-  return ['SPINNING', 'ACTIVE', 'RUNNING', 'SPIN'].includes(s);
+  return ['SPINNING', 'SPIN'].includes(s);
 }
+
+/** A real block costs ~8.2 work units; below this a delta is sensor noise. */
+export const WORK_UNITS_PER_SPIN = 5;
 
 /** Alert khi trạng thái bánh xe đổi (ACTIVE ↔ IDLE). */
 export function evaluateHamster(prev: string | null, next: Status, nowMs = Date.now()): Alert | null {
