@@ -1160,7 +1160,8 @@
     if (b.length > 18) return null;
     return BigInt(a || '0') * 10n ** 18n + BigInt((b + '0'.repeat(18)).slice(0, 18));
   }
-  function feeOf(price) { return (price * 10n) / 10000n; }
+  let feeBps = 10n;
+  function feeOf(price) { return (price * feeBps) / 10000n; }
   function fmtEth(w) {
     const s = w.toString().padStart(19, '0');
     const i = s.slice(0, -18).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -2005,11 +2006,12 @@
     bidsSupported = false;
     if (escrow) {
       try {
-        await call(escrow, SEL.feeBps);
+        feeBps = BigInt(await call(escrow, SEL.feeBps));
         bidsSupported = true;
         try {
           const feeTo = hexAddr(await call(escrow, SEL.feeTo));
-          $('feeNote').textContent = '0.1% fee on every sale — paid to ' + short(feeTo) + '.';
+          $('feeNote').textContent = (Number(feeBps) / 100).toFixed(2).replace(/\.?0+$/, '') +
+            '% fee on every sale — paid to ' + short(feeTo) + '.';
           $('feeNote').classList.remove('hidden');
         } catch { /* fee view missing */ }
       } catch (e) {
