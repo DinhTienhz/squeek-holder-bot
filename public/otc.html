@@ -372,12 +372,17 @@
   footer{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--dim);font-size:11.5px;
     padding:26px 2px 0;border-top:1px solid var(--line);margin-top:26px}
   footer a{color:var(--muted)}
-  .how{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:20px 0 6px}
-  .step{border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(255,255,255,.02)}
-  .step .n{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:900;
-    color:#0a0a10;background:var(--accent);margin-bottom:9px}
-  .step h3{margin:0 0 4px;font-size:13.5px;letter-spacing:-.01em}
-  .step p{margin:0;color:var(--muted);font-size:11.5px;line-height:1.5}
+    .how-section{margin:44px 0 10px;text-align:center}
+  .how-title{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+  .how-sub{color:var(--muted);font-size:14px;margin:0 0 26px}
+  .how-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;text-align:left}
+  .how-card{background:rgba(26,31,46,.5);border:1px solid var(--line);border-radius:16px;padding:26px;
+    display:flex;flex-direction:column;gap:10px;transition:border-color .2s,transform .2s,box-shadow .2s}
+  .how-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 14px 40px rgba(99,102,241,.18)}
+  .how-ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px;
+    background:linear-gradient(135deg,#d4af37,#e8d652);box-shadow:0 6px 16px rgba(212,175,55,.28)}
+  .how-card h3{margin:2px 0 0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .how-card p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.65}
 
   /* ---------- responsive ---------- */
   @media (max-width:1100px){
@@ -396,7 +401,7 @@
     .sell-grid{grid-template-columns:1fr}
     .im-grid{grid-template-columns:1fr}
     .im-img{max-width:240px;margin:0 auto}
-    .how{grid-template-columns:1fr}
+    .how-grid{grid-template-columns:1fr}
     .panel{padding:16px}
   }
   /* Narrow sidebar: two-line rows instead of a cramped table. */
@@ -569,12 +574,32 @@
     <div class="owned-none hidden" id="collectionEmpty">No collections match that search.</div>
   </section>
 
-  <div class="how">
-    <div class="step"><div class="n">1</div><h3>List</h3><p>Approve the escrow and set a price. The Squeek waits inside the contract until it sells or you pull it back.</p></div>
-    <div class="step"><div class="n">2</div><h3>Buy</h3><p>The buyer pays the price plus the 0.1% fee; the NFT and the ETH move in the same transaction.</p></div>
-    <div class="step"><div class="n">3</div><h3>Bid</h3><p>Lock ETH at any price for the whole collection. The earliest bid at a level is served first, and any holder can accept — the seller pays the 0.1%.</p></div>
-    <div class="step"><div class="n">4</div><h3>Cancel anytime</h3><p>Sellers can withdraw a listed Squeek; bidders can cancel a bid and get their ETH back.</p></div>
-  </div>
+  <section class="how-section">
+    <h2 class="how-title">How it works</h2>
+    <p class="how-sub">Simple, transparent, and secure trading on-chain</p>
+    <div class="how-grid">
+      <article class="how-card">
+        <div class="how-ico">📋</div>
+        <h3>List</h3>
+        <p>Approve the escrow and set a price. The Squeek waits inside the contract until it sells or you pull it back.</p>
+      </article>
+      <article class="how-card">
+        <div class="how-ico">🛒</div>
+        <h3>Buy</h3>
+        <p>The buyer pays the price plus the 0.1% fee; the NFT and the ETH move in the same transaction.</p>
+      </article>
+      <article class="how-card">
+        <div class="how-ico">💰</div>
+        <h3>Bid</h3>
+        <p>Lock ETH at any price for the whole collection. The earliest bid at a level is served first, and any holder can accept — the seller pays the 0.1%.</p>
+      </article>
+      <article class="how-card">
+        <div class="how-ico">↩️</div>
+        <h3>Cancel anytime</h3>
+        <p>Sellers can withdraw a listed Squeek. Bidders can cancel a bid and get their ETH back.</p>
+      </article>
+    </div>
+  </section>
   </div>
 
   <div id="marketView" class="hidden">
