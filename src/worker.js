@@ -120,6 +120,7 @@ export default {
       if (url.pathname === '/api/staking-totals') {
         return new Response('Not found', { status: 404, headers: SECURITY_HEADERS });
       }
+      if (url.pathname === '/preview/') return Response.redirect(url.origin + '/preview' + url.search, 301);
       const isPreview = url.pathname === '/preview' || url.pathname.startsWith('/preview/');
       if (url.pathname !== '/' && url.pathname !== '/market' && !isPreview && !isAssetPath(url.pathname)) {
         return new Response(OTC_NOT_FOUND, {
@@ -152,7 +153,7 @@ export default {
     let assetPath = url.pathname;
     if (onOtcHost) {
       if (url.pathname === '/' || url.pathname === '/market') assetPath = '/otc';
-      else if (url.pathname === '/preview' || url.pathname === '/preview/') assetPath = '/preview/index';
+      else if (url.pathname === '/preview') assetPath = '/preview/index';
       else if (url.pathname === '/preview/market.html') assetPath = '/preview/market';
     }
     const assetReq = new Request('https://assets.local' + assetPath + url.search, request);

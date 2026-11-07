@@ -57,7 +57,7 @@ test('otc host: the landing page does not exist there', async () => {
 });
 
 test('otc host: the static previews are served', async () => {
-  assert.equal((await get('https://squeeksotc.bid/preview/')).status, 200);
+  assert.equal((await get('https://squeeksotc.bid/preview')).status, 200);
   assert.equal((await get('https://squeeksotc.bid/preview/market')).status, 200);
   assert.equal((await get('https://squeeksotc.bid/preview/market.html')).status, 200);
 });
