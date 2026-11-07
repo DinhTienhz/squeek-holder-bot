@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS sent (
   PRIMARY KEY (tg_id, key)
 );
 CREATE INDEX IF NOT EXISTS sent_at ON sent (at);
+CREATE INDEX IF NOT EXISTS wallets_tg ON wallets (tg_id);
+CREATE INDEX IF NOT EXISTS wallets_addr ON wallets (address);
 CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL

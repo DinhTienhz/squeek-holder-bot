@@ -149,15 +149,20 @@ async function pollWallets(): Promise<void> {
     if (!byAddress.has(k)) byAddress.set(k, []);
     byAddress.get(k)!.push(w.tg_id);
   }
+  // One read of the users table per cycle instead of one query per wallet.
+  const users = new Map<string, ReturnType<typeof getUser>>();
+  for (const row of db.prepare('SELECT * FROM users').all() as { tg_id: string }[]) {
+    users.set(row.tg_id, getUser(db, row.tg_id));
+  }
 
-  // Tối đa 3 địa chỉ cùng lúc: đủ nhanh, không dồn API.
   const entries = [...byAddress.entries()];
-  for (let i = 0; i < entries.length; i += 3) {
-    await Promise.all(entries.slice(i, i + 3).map(([address, watchers]) => pollWallet(address, watchers)));
+  const n = Math.max(1, cfg.walletConcurrency);
+  for (let i = 0; i < entries.length; i += n) {
+    await Promise.all(entries.slice(i, i + n).map(([address, watchers]) => pollWallet(address, watchers, users)));
   }
 }
 
-async function pollWallet(address: string, watchers: string[]): Promise<void> {
+async function pollWallet(address: string, watchers: string[], userCache?: Map<string, ReturnType<typeof getUser>>): Promise<void> {
   let acct;
   try {
     acct = await api.account(address);
@@ -168,7 +173,7 @@ async function pollWallet(address: string, watchers: string[]): Promise<void> {
 
   const prev = prevAccounts.get(address) ?? null;
   for (const tgId of watchers) {
-    const u = getUser(db, tgId);
+    const u = userCache ? userCache.get(tgId) : getUser(db, tgId);
     if (!u || !u.alerts || u.blocked) continue;
     const threshold = BigInt(u.threshold);
     const memoKey = `claimalert:${tgId}:${address.toLowerCase()}`;
@@ -201,7 +206,7 @@ async function pollWallet(address: string, watchers: string[]): Promise<void> {
     if (!fresh.length) return;
 
     for (const tgId of watchers) {
-      const user = getUser(db, tgId);
+      const user = userCache ? userCache.get(tgId) : getUser(db, tgId);
       // Tôn trọng /alerts off, /activity off và lệnh ban.
       if (!user || !user.alerts || user.blocked || !user.activity_alerts) continue;
       if (fresh.length === 1) {

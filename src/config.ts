@@ -8,6 +8,7 @@ export type Config = {
   adminIds: Set<string>;
   pollStatusMs: number;
   pollWalletMs: number;
+  walletConcurrency: number;
   maxWallets: number;
   defaultThresholdSqk: bigint;
   dryRun: boolean;
@@ -41,6 +42,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     adminIds: new Set((env.ADMIN_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean)),
     pollStatusMs: num(env.POLL_STATUS_MS, 15_000),
     pollWalletMs: num(env.POLL_WALLET_MS, 45_000),
+    walletConcurrency: num(env.WALLET_CONCURRENCY, 3),
     maxWallets: num(env.MAX_WALLETS, 5),
     // 0.5 SQK = 5e17 base units (18 decimals)
     defaultThresholdSqk: sqkToBaseUnits(env.DEFAULT_THRESHOLD_SQK ?? '0.5'),
