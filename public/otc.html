@@ -437,7 +437,8 @@
     body.is-market #listingsPanel{grid-area:listings}
     body.is-market #sellPanel{grid-area:sell}
     body.is-market #bidsPanel{grid-area:bids}
-    body.is-market aside.market-side{grid-area:activity}
+    body.is-market aside.market-side{grid-area:activity;display:flex;min-height:0}
+    body.is-market aside.market-side .panel{flex:1;min-height:0}
     body.is-market .panel{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:14px;margin:0;position:static}
     body.is-market .panel-head{flex:none;margin-bottom:8px}
     body.is-market .panel-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:4px;padding-bottom:4px}
