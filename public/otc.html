@@ -84,7 +84,7 @@
     border-radius:10px;text-decoration:none;white-space:nowrap}
   .btn-alerts:hover{color:var(--text);border-color:rgba(99,102,241,.55);background:rgba(99,102,241,.08)}
   .btn-alerts + .btn-connect{margin-left:8px}
-  @media (max-width:640px){.btn-alerts{display:none}}
+  @media (max-width:640px){.btn-alerts{padding:9px 11px}.btn-alerts .alerts-txt{display:none}}
   .btn-connect .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
   .contract-box summary span{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800}
 
@@ -571,7 +571,7 @@
       <a href="/" data-nav="home" class="on">Home</a>
       <a href="/market" data-nav="market">Market</a>
     </nav>
-    <a class="btn-alerts" href="https://t.me/SqueekHolder_Bot?start=market" target="_blank" rel="noopener" title="Get Squeek Market alerts on Telegram">🔔 Alerts</a>
+    <a class="btn-alerts" href="https://t.me/SqueekHolder_Bot?start=market" target="_blank" rel="noopener" title="Get Squeek Market alerts on Telegram"><span aria-hidden="true">🔔</span><span class="alerts-txt"> Alerts</span></a>
     <button id="connect" class="primary btn-connect">Connect wallet</button>
   </header>
 
