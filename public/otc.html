@@ -124,8 +124,8 @@
     padding:12px 18px;color:var(--text);font:inherit;font-size:13.5px;text-align:center;transition:border-color .15s,box-shadow .15s;
   }
   .collection-search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.18)}
-  .collection-scroll{max-height:min(48vh,440px);overflow-y:auto;overflow-x:hidden;padding:2px 4px 2px 2px}
-  .collection-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,260px));justify-content:center;gap:16px}
+  .collection-scroll{display:flex;align-items:center;min-height:340px;max-height:min(62vh,620px);overflow-y:auto;overflow-x:hidden;padding:6px 4px 6px 2px}
+  .collection-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,260px));justify-content:center;gap:16px;width:100%}
   .collection-card{
     display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid var(--line);
     border-radius:14px;background:rgba(26,31,46,.45);color:var(--text);cursor:pointer;font:inherit;
