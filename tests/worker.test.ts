@@ -129,3 +129,17 @@ test('the synthetic asset origin never leaks to the client', async () => {
   assert.equal(r.headers.get('location'), null);
   assert.equal(r.headers.get('x-secret'), null);
 });
+
+test('asset failures become a generic 502', async () => {
+  const env2 = { ASSETS: { fetch: async () => { throw new Error('boom'); } } };
+  const r = await worker.fetch(new Request('https://squeeksotc.bid/market'), env2);
+  assert.equal(r.status, 502);
+  assert.doesNotMatch(await r.text(), /boom/);
+});
+
+test('redirects carry the security header set', async () => {
+  const r = await get('https://squeeksotc.bid/otc');
+  assert.equal(r.status, 301);
+  assert.match(r.headers.get('strict-transport-security') || '', /max-age/);
+  assert.equal(r.headers.get('cross-origin-opener-policy'), 'same-origin');
+});

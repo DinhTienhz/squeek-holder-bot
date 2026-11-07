@@ -13,6 +13,8 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=()',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Resource-Policy': 'same-origin',
   'Content-Security-Policy': [
     "default-src 'self'",
     "img-src 'self' data:",
@@ -44,6 +46,13 @@ const OTC_NOT_FOUND = `<!doctype html>
  a{color:#7de2d1;text-decoration:none}
 </style></head>
 <body><div class="box"><h1>404</h1><p>Nothing here. Back to the <a href="/">market</a>.</p></div></body></html>`;
+
+function redirect(location, status = 302) {
+  return new Response(null, {
+    status,
+    headers: { location, 'cache-control': 'no-store', ...SECURITY_HEADERS },
+  });
+}
 
 function isAssetPath(path) {
   return isImage(path) || /\.(css|js|map|woff2?|txt)$/i.test(path);
@@ -123,18 +132,18 @@ export default {
       // The market lives at the root of its own domain; /otc is kept as a redirect
       // so old links (and the bot host) keep working.
       if (/^\/otc(\.html)?$/.test(url.pathname)) {
-        return Response.redirect(url.origin + '/market' + url.search, 301);
+        return redirect(url.origin + '/market' + url.search, 301);
       }
       if (url.pathname === '/index.html') {
-        return Response.redirect(url.origin + '/', 301);
+        return redirect(url.origin + '/', 301);
       }
       if (url.pathname === '/api/staking-totals') {
         return new Response('Not found', { status: 404, headers: SECURITY_HEADERS });
       }
       if (url.pathname === '/preview' || url.pathname === '/preview/') {
-        return Response.redirect(url.origin + '/preview/home' + url.search, 302);
+        return redirect(url.origin + '/preview/home' + url.search, 302);
       }
-      const isPreview = url.pathname === '/preview' || url.pathname.startsWith('/preview/');
+      const isPreview = url.pathname.startsWith('/preview/');
       if (url.pathname !== '/' && url.pathname !== '/market' && !isPreview && !isAssetPath(url.pathname)) {
         return new Response(OTC_NOT_FOUND, {
           status: 404,
@@ -142,7 +151,7 @@ export default {
         });
       }
     } else if (OTC_ORIGIN && /^\/otc(\.html)?$/.test(url.pathname)) {
-      return Response.redirect(OTC_ORIGIN + '/market', 302);
+      return redirect(OTC_ORIGIN + '/market', 302);
     }
 
     if (url.pathname === '/api/staking-totals') {
@@ -183,7 +192,21 @@ export default {
       else if (url.pathname === '/preview/market.html') assetPath = '/preview/market';
     }
     const assetReq = new Request('https://assets.local' + assetPath + url.search, request);
-    const res = await env.ASSETS.fetch(assetReq);
+    let res;
+    try {
+      res = await env.ASSETS.fetch(assetReq);
+    } catch {
+      return new Response('Bad gateway', {
+        status: 502,
+        headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
+      });
+    }
+    if (res.status >= 500) {
+      return new Response('Bad gateway', {
+        status: 502,
+        headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
+      });
+    }
 
     if (res.status === 404 && !isImage(url.pathname)) {
       return new Response(NOT_FOUND, {
