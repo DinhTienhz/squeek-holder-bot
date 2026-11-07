@@ -493,6 +493,7 @@
       background:linear-gradient(90deg,rgba(214,255,75,.6),rgba(214,255,75,0) 70%)}
     body.is-market #bidsPanel::before{background:linear-gradient(90deg,rgba(134,232,211,.55),rgba(134,232,211,0) 70%)}
     body.is-market aside.market-side .panel::before{background:linear-gradient(90deg,rgba(170,180,255,.5),rgba(170,180,255,0) 70%)}
+    body.is-market #sellPanel::before{background:linear-gradient(90deg,rgba(255,209,102,.5),rgba(255,209,102,0) 70%)}
     body.is-market .panel-head h2{font-size:15.5px;letter-spacing:-.015em}
     body.is-market .panel-head .note,.head-tools .note{font-size:11px}
     body.is-market .stat{position:relative;overflow:hidden}
@@ -1359,8 +1360,12 @@
         card.className = 'owned-card';
         card.dataset.id = id;
         card.setAttribute('aria-pressed', 'false');
+        const st = map.get(id);
+        const bits = [];
+        if (st && st.level != null) bits.push('L' + st.level);
+        if (st && st.power != null) bits.push(Number(st.power).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 }));
         card.innerHTML = '<div class="owned-ph">#' + id + '</div><b>#' + id + '</b><span>' +
-          (statLine(map.get(id)) || '—') + '</span>';
+          (bits.join(' · ') || '—') + '</span>';
         card.onclick = () => selectToken(id);
         grid.appendChild(card);
         tokenMeta(id).then((m) => {
@@ -1561,7 +1566,7 @@
     if (!escrow) { actEvents = []; renderActivity(); return; }
     if (actLoading) return;
     actLoading = true;
-    $('actNote').textContent = 'Reading market logs…';
+    if (!actEvents.length) $('actNote').textContent = 'Reading market logs…';
     try {
       const latest = Number(BigInt(await rpc('eth_blockNumber', [])));
       const from = Math.max(await deployBlock(escrow), latest - 500000);
