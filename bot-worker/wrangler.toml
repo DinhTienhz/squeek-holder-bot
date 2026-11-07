@@ -1,0 +1,23 @@
+name = "squeek-bot"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "squeek-bot"
+database_id = "90d20858-ef44-4c5a-8e73-c69d8a075185"
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+API_BASE = "https://api.squeekchain.com/v1"
+MAX_WALLETS = "5"
+WALLET_BATCH = "8"
+DIGEST_HOUR = "9"
+WALLET_CONCURRENCY = "4"
+
+[observability]
+enabled = true
