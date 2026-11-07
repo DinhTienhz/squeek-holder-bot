@@ -50,8 +50,9 @@ Asia/Ho_Chi_Minh, pruning at minute 0.
 
 ## Squeek Market alerts
 
-`/market on|off` toggles alerts for the Sepolia escrow (`Listed`, `BidPlaced`, `Sold`,
-`BidAccepted`). Every second minute the cron scans up to 300 new blocks with `eth_getLogs`,
+`/market on|off` toggles every alert for the Sepolia escrow (`Listed`, `BidPlaced`, `Sold`,
+`BidAccepted`) and `/market list|bid|sold on|off` toggles one kind at a time. A bare
+`/market list|bid|sold` shows that kind's state. Every second minute the cron scans up to 300 new blocks with `eth_getLogs`,
 decodes the events locally (`src/market.ts`) and sends one message per event and user:
 
 - what happened (`New listing` / `New bid` / `Sold`), token or bid id, price in ETH
