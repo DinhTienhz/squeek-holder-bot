@@ -891,6 +891,17 @@
   function allowWallet() {
     try { localStorage.removeItem(WALLET_KEY + '.off'); } catch {}
   }
+  function refreshAll() {
+    statsCache.clear();
+    paintCollections();
+    refresh();
+    loadOwned();
+    loadActivity();
+    loadVolume();
+    render();
+    updateSellState();
+  }
+
   // Silent reconnect: only eth_accounts (never opens the wallet UI).
   async function restoreWallet() {
     if (account || restoreBusy) return;
@@ -913,9 +924,8 @@
         bindProvider(p);
         account = accs[0];
         rememberWallet(p);
-        paintAccount(); paintNetwork(); render(); updateSellState();
-        loadOwned();
-        if (document.body.classList.contains('is-market')) refresh();
+        paintAccount(); paintNetwork();
+        refreshAll();
       }
     } catch { /* wallet locked or not authorised: stay disconnected */ }
     restoreBusy = false;
@@ -954,9 +964,10 @@
     p.on('accountsChanged', (accs) => {
       account = accs && accs[0] ? accs[0] : null;
       if (!account) forgetWallet();
-      paintAccount(); render(); updateSellState(); paintNetwork(); loadOwned();
+      paintAccount(); paintNetwork();
+      refreshAll();
     });
-    p.on('chainChanged', () => { paintNetwork(); refresh(); });
+    p.on('chainChanged', () => { paintNetwork(); refreshAll(); });
   }
 
   async function connect(provider) {
@@ -2405,6 +2416,14 @@
 
   if (initial) setEscrow(initial);
   else { paintAddress(); updateSellState(); }
+  let lastSync = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !account) return;
+    if (Date.now() - lastSync < 15000) return;
+    lastSync = Date.now();
+    refreshAll();
+  });
+
   if (isMarket) {
     refresh();
     loadOwned();
