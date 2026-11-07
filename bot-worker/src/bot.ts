@@ -44,7 +44,7 @@ const MSG = {
     startMarket: '🔔 <b>Đã bật cảnh báo Squeek Market</b>\nBạn sẽ nhận tin khi có NFT được list, bid mới hoặc NFT được bán — kèm địa chỉ và tx.\nTắt bằng <code>/market off</code>.\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOn: '🏪 Đã bật cảnh báo Squeek Market (list, bid, sold).\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOff: '🏪 Đã tắt cảnh báo Squeek Market.',
-    marketNow: '🏪 Cảnh báo Squeek Market: <b>{state}</b>\n• Listed: {list}\n• Bids: {bid}\n• Sold: {sold}\nĐổi: <code>/market list off</code>, <code>/market bid off</code>, <code>/market sold off</code>\n🛒 Squeek Market: https://squeeksotc.bid',
+    marketNow: '🏪 Cảnh báo Squeek Market: <b>{count} loại đang bật</b>\n• Listed: {list}\n• Bids: {bid}\n• Sold: {sold}\nĐổi: {change}\n🛒 Squeek Market: https://squeeksotc.bid',
     marketKind: '🏪 Cảnh báo {kind}: <b>{state}</b>\n🛒 Squeek Market: https://squeeksotc.bid',
     marketKindNow: '🏪 Cảnh báo {kind}: <b>{state}</b>\nĐổi bằng <code>/market {kind} on</code> hoặc <code>/market {kind} off</code>',
     badMarket: '⚠️ Dùng: <code>/market on|off</code> hoặc <code>/market list|bid|sold on|off</code>',
@@ -90,7 +90,7 @@ const MSG = {
     startMarket: '🔔 <b>Squeek Market alerts are on</b>\nYou will get a message for every new listing, bid and sale — with addresses and the tx.\nTurn it off with <code>/market off</code>.\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOn: '🏪 Squeek Market alerts on (listings, bids, sales).\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOff: '🏪 Squeek Market alerts off.',
-    marketNow: '🏪 Squeek Market alerts: <b>{state}</b>\n• Listed: {list}\n• Bids: {bid}\n• Sold: {sold}\nChange with <code>/market list off</code>, <code>/market bid off</code>, <code>/market sold off</code>\n🛒 Squeek Market: https://squeeksotc.bid',
+    marketNow: '🏪 Squeek Market alerts: <b>{count} on</b>\n• Listed: {list}\n• Bids: {bid}\n• Sold: {sold}\nChange: {change}\n🛒 Squeek Market: https://squeeksotc.bid',
     marketKind: '🏪 {kind} alerts: <b>{state}</b>\n🛒 Squeek Market: https://squeeksotc.bid',
     marketKindNow: '🏪 {kind} alerts: <b>{state}</b>\nChange with <code>/market {kind} on</code> or <code>/market {kind} off</code>',
     badMarket: '⚠️ Use <code>/market on|off</code> or <code>/market list|bid|sold on|off</code>',
@@ -430,11 +430,17 @@ export function createBot(cfg: Config, db: D1Database) {
     } as const;
 
     if (!parts.length) {
+      const on = { list: !!u.market_list, bid: !!u.market_bid, sold: !!u.market_sold };
+      const total = Number(on.list) + Number(on.bid) + Number(on.sold);
+      const change = (['list', 'bid', 'sold'] as const)
+        .map((k) => `<code>/market ${k} ${on[k] ? 'off' : 'on'}</code>`)
+        .join(' · ');
       return void (await reply(ctx, m(u, 'marketNow', {
-        state: stateWord(u, !!u.market_alerts),
-        list: stateWord(u, !!u.market_list),
-        bid: stateWord(u, !!u.market_bid),
-        sold: stateWord(u, !!u.market_sold),
+        count: `${total}/3`,
+        list: stateWord(u, on.list),
+        bid: stateWord(u, on.bid),
+        sold: stateWord(u, on.sold),
+        change,
       })));
     }
 
