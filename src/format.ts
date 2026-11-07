@@ -455,6 +455,7 @@ export type MarketAlert =
   | { kind: 'sold'; tokenId: string; seller: string; buyer: string; price: bigint; fee: bigint; tx: string };
 
 const ESCROW = '0xe0c16a29c0ad3b123600284ceb1bc1678a171799';
+const MARKET_LINK = '🛒 Squeek Market: https://squeeksotc.bid';
 const txLink = (tx: string): string =>
   `<a href="https://sepolia.etherscan.io/tx/${esc(tx)}">${esc(tx.slice(0, 10))}…${esc(tx.slice(-4))}</a>`;
 
@@ -468,6 +469,8 @@ export function marketAlert(lang: Lang, e: MarketAlert): string {
       `👤 ${vi ? 'Người bán' : 'Seller'} ${addrShort(e.seller)}`,
       `🏦 → ${vi ? 'Escrow' : 'Escrow'} ${addrShort(ESCROW)}`,
       `🔗 ${txLink(e.tx)}`,
+      '',
+      MARKET_LINK,
     ].join('\n');
   }
   if (e.kind === 'bid') {
@@ -477,6 +480,8 @@ export function marketAlert(lang: Lang, e: MarketAlert): string {
       `👤 ${vi ? 'Người đặt' : 'Bidder'} ${addrShort(e.buyer)}`,
       `🏦 → ${vi ? 'Escrow (ETH giữ tại hợp đồng)' : 'Escrow (ETH held by the contract)'} ${addrShort(ESCROW)}`,
       `🔗 ${txLink(e.tx)}`,
+      '',
+      MARKET_LINK,
     ].join('\n');
   }
   return [
@@ -486,5 +491,7 @@ export function marketAlert(lang: Lang, e: MarketAlert): string {
     `💸 ETH: ${addrShort(e.buyer)} → ${addrShort(e.seller)}`,
     `🏦 ${vi ? 'Phí' : 'Fee'} ${fmtEth(e.fee, lang)}`,
     `🔗 ${txLink(e.tx)}`,
+    '',
+    MARKET_LINK,
   ].join('\n');
 }

@@ -95,6 +95,7 @@ test('list alert shows who moved what, where it went and the tx', () => {
   assert.match(msg, /0x1111…1111/);
   assert.match(msg, /0xe0c1…1799/);
   assert.match(msg, new RegExp(`/tx/${TX}`));
+  assert.match(msg, /Squeek Market: https:\/\/squeeksotc\.bid/);
 });
 
 test('sale alert shows both directions', () => {
@@ -106,6 +107,7 @@ test('sale alert shows both directions', () => {
   assert.match(msg, /NFT: .*1111.* → .*2222/);
   assert.match(msg, /ETH: .*2222.* → .*1111/);
   assert.match(msg, /0[.,]00002 ETH/);
+  assert.match(msg, /Squeek Market/);
 });
 
 test('bid alert names the bidder and the escrow', () => {
@@ -115,4 +117,5 @@ test('bid alert names the bidder and the escrow', () => {
   assert.match(msg, /Bid #4/);
   assert.match(msg, /0\.007 ETH/);
   assert.match(msg, /0x2222…2222/);
+  assert.match(msg, /Squeek Market/);
 });
