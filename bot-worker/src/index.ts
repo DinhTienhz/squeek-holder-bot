@@ -1,7 +1,8 @@
 
 import { Bot, webhookCallback } from 'grammy';
 import { ApiClient, type Account } from '../../src/api.ts';
-import { activityBatch, alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, type Lang } from '../../src/format.ts';
+import { activityBatch, alertActivity, alertBlock, alertClaim, alertCooldown, alertHamster, digestMsg, marketAlert, type Lang } from '../../src/format.ts';
+import { blockNumber, decodeMarketLog, fetchMarketLogs, nextWindow, type MarketEvent } from '../../src/market.ts';
 import { ChatQueue, inQuietHours } from '../../src/queue.ts';
 import { claimAlertDue, evaluateAccount, hamsterRunMs, isHamsterRunning, snapshot, type AccountState } from '../../src/rules.ts';
 import { loadConfig } from './config.ts';
@@ -188,6 +189,42 @@ async function pollWallet(env: Env, bot: Bot, api: ApiClient, address: string, w
 }
 
 /** Poll a rotating slice of wallets so one minute stays inside the CPU budget. */
+
+/** Broadcast new escrow events (list, bid, sold) to everyone who opted in. */
+async function pollMarket(env: Env, bot: Bot): Promise<void> {
+  if (!env.RPC_URL) return;
+  const latest = await blockNumber(env.RPC_URL);
+  const saved = Number((await getMeta(env.DB, 'otc_block')) ?? 0);
+  if (!saved) {
+    // First run: start from the head, never replay history to users.
+    await setMeta(env.DB, 'otc_block', String(latest));
+    return;
+  }
+  const win = nextWindow(saved, latest);
+  if (!win) return;
+
+  const logs = await fetchMarketLogs(env.RPC_URL, win.from, win.to);
+  const events: MarketEvent[] = logs.map(decodeMarketLog).filter((e): e is MarketEvent => e !== null);
+
+  if (events.length) {
+    const { results } = await env.DB.prepare(
+      'SELECT tg_id, lang FROM users WHERE market_alerts = 1 AND alerts = 1 AND blocked = 0',
+    ).all<{ tg_id: string; lang: string }>();
+    const people = results ?? [];
+    for (const ev of events) {
+      const texts = new Map<Lang, string>();
+      for (const u of people) {
+        const lang: Lang = u.lang === 'vi' ? 'vi' : 'en';
+        if (!texts.has(lang)) texts.set(lang, marketAlert(lang, ev));
+        await notify(env, bot, u.tg_id, texts.get(lang)!);
+      }
+    }
+    console.log(JSON.stringify({ market: events.map((e) => e.kind), blocks: [win.from, win.to], sent: people.length }));
+  }
+
+  await setMeta(env.DB, 'otc_block', String(win.to));
+}
+
 async function pollWallets(env: Env, bot: Bot, api: ApiClient): Promise<void> {
   const wallets = await allWallets(env.DB);
   if (!wallets.length) return;
@@ -275,6 +312,7 @@ export default {
     await pollStatus(env, bot, api, cfg).catch(() => {});
     if (minute % 3 === 0) await pollSettlements(env, bot, api).catch(() => {});
     await pollWallets(env, bot, api).catch(() => {});
+    if (minute % 2 === 0) await pollMarket(env, bot).catch((e) => console.error('market poll failed', String(e)));
     if (minute === 0) {
       await maybeDigest(env, bot, api).catch(() => {});
       await pruneSent(env.DB, 14).catch(() => {});

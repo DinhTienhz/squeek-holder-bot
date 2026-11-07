@@ -13,6 +13,7 @@ export type User = {
   block_alerts: number;
   hamster_alerts: number;
   activity_alerts: number;
+  market_alerts: number;
   digest: number;
   last_digest: string | null;
 };
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
   threshold   TEXT NOT NULL DEFAULT '500000000000000000',
   alerts      INTEGER NOT NULL DEFAULT 1,
   blocked     INTEGER NOT NULL DEFAULT 0,
+  market_alerts INTEGER NOT NULL DEFAULT 1,
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS wallets (
@@ -168,6 +170,10 @@ export function setActivityAlerts(db: DatabaseSync, tgId: string, on: boolean): 
 
 export function setBlockAlerts(db: DatabaseSync, tgId: string, on: boolean): void {
   db.prepare('UPDATE users SET block_alerts = ? WHERE tg_id = ?').run(on ? 1 : 0, tgId);
+}
+
+export function setMarketAlerts(db: DatabaseSync, tgId: string, on: boolean): void {
+  db.prepare('UPDATE users SET market_alerts = ? WHERE tg_id = ?').run(on ? 1 : 0, tgId);
 }
 
 export function setDigest(db: DatabaseSync, tgId: string, on: boolean): void {

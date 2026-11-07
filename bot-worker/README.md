@@ -47,3 +47,16 @@ Asia/Ho_Chi_Minh, pruning at minute 0.
 - `sent` rows migrated from SQLite prevent duplicate alerts after the switch.
 - `snapshots` stores each address's previous state so cooldown alerts survive between
   invocations (Workers have no in-memory state).
+
+## OTC market alerts
+
+`/market on|off` toggles alerts for the Sepolia escrow (`Listed`, `BidPlaced`, `Sold`,
+`BidAccepted`). Every second minute the cron scans up to 300 new blocks with `eth_getLogs`,
+decodes the events locally (`src/market.ts`) and sends one message per event and user:
+
+- what happened (`New listing` / `New bid` / `Sold`), token or bid id, price in ETH
+- the addresses involved and the direction of the move (seller → escrow, NFT seller → buyer, ETH buyer → seller)
+- a Sepolia Etherscan link to the transaction
+
+The cursor lives in `meta.otc_block`; the first run only records the head, so nothing is replayed.
+Alerts respect `/alerts`, `/quiet` and blocked users.

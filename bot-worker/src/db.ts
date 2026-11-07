@@ -4,7 +4,7 @@ export type User = {
   quiet_start: number | null; quiet_end: number | null;
   threshold: string; alerts: number; blocked: number; created_at: string;
   block_alerts: number; digest: number; last_digest: string | null;
-  hamster_alerts: number; activity_alerts: number;
+  hamster_alerts: number; activity_alerts: number; market_alerts: number;
 };
 export type Wallet = { id: number; tg_id: string; address: string; label: string | null };
 
@@ -43,6 +43,10 @@ export async function setActivityAlerts(db: DB, tgId: string, on: boolean): Prom
 export async function setBlockAlerts(db: DB, tgId: string, on: boolean): Promise<void> {
   await db.prepare('UPDATE users SET block_alerts = ? WHERE tg_id = ?').bind(on ? 1 : 0, tgId).run();
 }
+export async function setMarketAlerts(db: DB, tgId: string, on: boolean): Promise<void> {
+  await db.prepare('UPDATE users SET market_alerts = ? WHERE tg_id = ?').bind(on ? 1 : 0, tgId).run();
+}
+
 export async function setDigest(db: DB, tgId: string, on: boolean): Promise<void> {
   await db.prepare('UPDATE users SET digest = ? WHERE tg_id = ?').bind(on ? 1 : 0, tgId).run();
 }

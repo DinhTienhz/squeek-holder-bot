@@ -440,3 +440,50 @@ export function privacy(lang: Lang): string {
     '/delete để xoá toàn bộ.',
   ].join('\n');
 }
+
+/** 11000000000000000n → "0.011 ETH" (en) / "0,011 ETH" (vi) */
+export function fmtEth(base: bigint, lang: Lang = 'en'): string {
+  const whole = group((base / 10n ** 18n).toString(), lang);
+  const frac = (base % 10n ** 18n).toString().padStart(18, '0').slice(0, 6).replace(/0+$/, '');
+  return `${whole}${frac ? (lang === 'en' ? '.' : ',') + frac : ''} ETH`;
+}
+
+export type MarketAlert =
+  | { kind: 'list'; tokenId: string; seller: string; price: bigint; tx: string }
+  | { kind: 'bid'; bidId: string; buyer: string; price: bigint; tx: string }
+  | { kind: 'sold'; tokenId: string; seller: string; buyer: string; price: bigint; fee: bigint; tx: string };
+
+const ESCROW = '0xe0c16a29c0ad3b123600284ceb1bc1678a171799';
+const txLink = (tx: string): string =>
+  `<a href="https://sepolia.etherscan.io/tx/${esc(tx)}">${esc(tx.slice(0, 10))}…${esc(tx.slice(-4))}</a>`;
+
+/** One message per market event: what happened, who moved what, and the tx. */
+export function marketAlert(lang: Lang, e: MarketAlert): string {
+  const vi = lang !== 'en';
+  if (e.kind === 'list') {
+    return [
+      `🆕 <b>${vi ? 'NFT vừa được list' : 'New listing'}</b>`,
+      `#${esc(e.tokenId)} · <b>${fmtEth(e.price, lang)}</b>`,
+      `👤 ${vi ? 'Người bán' : 'Seller'} ${addrShort(e.seller)}`,
+      `🏦 → ${vi ? 'Escrow' : 'Escrow'} ${addrShort(ESCROW)}`,
+      `🔗 ${txLink(e.tx)}`,
+    ].join('\n');
+  }
+  if (e.kind === 'bid') {
+    return [
+      `📥 <b>${vi ? 'Bid mới' : 'New bid'}</b>`,
+      `Bid #${esc(e.bidId)} · <b>${fmtEth(e.price, lang)}</b>`,
+      `👤 ${vi ? 'Người đặt' : 'Bidder'} ${addrShort(e.buyer)}`,
+      `🏦 → ${vi ? 'Escrow (ETH giữ tại hợp đồng)' : 'Escrow (ETH held by the contract)'} ${addrShort(ESCROW)}`,
+      `🔗 ${txLink(e.tx)}`,
+    ].join('\n');
+  }
+  return [
+    `✅ <b>${vi ? 'Đã bán' : 'Sold'}</b>`,
+    `#${esc(e.tokenId)} · <b>${fmtEth(e.price, lang)}</b>`,
+    `🖼 NFT: ${addrShort(e.seller)} → ${addrShort(e.buyer)}`,
+    `💸 ETH: ${addrShort(e.buyer)} → ${addrShort(e.seller)}`,
+    `🏦 ${vi ? 'Phí' : 'Fee'} ${fmtEth(e.fee, lang)}`,
+    `🔗 ${txLink(e.tx)}`,
+  ].join('\n');
+}

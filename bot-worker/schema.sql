@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS users (
   digest          INTEGER NOT NULL DEFAULT 1,
   last_digest     TEXT,
   hamster_alerts  INTEGER NOT NULL DEFAULT 1,
-  activity_alerts INTEGER NOT NULL DEFAULT 1
+  activity_alerts INTEGER NOT NULL DEFAULT 1,
+  market_alerts   INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS wallets (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
