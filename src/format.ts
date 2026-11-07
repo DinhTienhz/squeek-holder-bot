@@ -91,11 +91,11 @@ export function welcome(lang: Lang): string {
 }
 
 const GROUP_TITLE: Record<Group, { en: string; vi: string }> = {
-  wallets: { en: 'Wallets', vi: 'Ví' },
-  track: { en: 'Track', vi: 'Theo dõi' },
-  notifications: { en: 'Notifications', vi: 'Thông báo' },
-  other: { en: 'Other', vi: 'Khác' },
-  admin: { en: 'Admin', vi: 'Quản trị' },
+  wallets: { en: '👛 WALLETS', vi: '👛 VÍ' },
+  track: { en: '📊 TRACK', vi: '📊 THEO DÕI' },
+  notifications: { en: '🔔 ALERTS', vi: '🔔 THÔNG BÁO' },
+  other: { en: '⚙️ OTHER', vi: '⚙️ KHÁC' },
+  admin: { en: '🛠 ADMIN', vi: '🛠 QUẢN TRỊ' },
 };
 
 export function help(lang: Lang, isAdmin = false): string {
@@ -103,14 +103,17 @@ export function help(lang: Lang, isAdmin = false): string {
   const groups: Group[] = ['wallets', 'track', 'notifications', 'other'];
   if (isAdmin) groups.push('admin');
 
-  const out: string[] = [`📖 <b>${vi ? 'LỆNH' : 'COMMANDS'}</b>`];
+  const out: string[] = [
+    `📖 <b>${vi ? 'LỆNH' : 'COMMANDS'}</b>`,
+    `<i>${vi ? 'Lệnh cần ví sẽ dùng ví nhiều Squeek nhất, trừ khi bạn truyền 0x…' : 'Wallet commands use your largest holding unless you pass 0x…'}</i>`,
+  ];
   for (const g of groups) {
     const items = COMMANDS.filter((c) => c.group === g && (isAdmin || !c.admin));
     if (!items.length) continue;
     out.push('', `<b>${GROUP_TITLE[g][lang]}</b>`);
     for (const c of items) {
       const usage = c.usage ? ` <code>${esc(c.usage)}</code>` : '';
-      out.push(`/${c.name}${usage} · ${vi ? c.vi : c.en}`);
+      out.push(`<b>/${c.name}</b>${usage} — ${vi ? c.vi : c.en}`);
     }
   }
   out.push('', '🛒 Squeek Market: https://squeeksotc.bid');
