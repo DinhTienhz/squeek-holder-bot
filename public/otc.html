@@ -478,6 +478,34 @@
   #ownedGrid.is-list .owned-card img,#ownedGrid.is-list .owned-ph{width:40px;height:40px;border-radius:6px;grid-row:1/span 2}
   #ownedGrid.is-list .owned-card b{margin:0;font-size:12px;grid-column:2;grid-row:1}
   #ownedGrid.is-list .owned-card span{grid-column:2;grid-row:2;font-size:10px}
+
+  /* ---------- dashboard polish ---------- */
+  .empty .empty-ico{width:44px;height:44px;margin:0 auto 10px;border-radius:14px;display:grid;place-items:center;
+    border:1px dashed rgba(255,255,255,.22);color:var(--muted);font-size:20px;font-weight:300}
+  .empty #emptyTitle{color:var(--text);font-size:13.5px}
+  .empty #emptySub{margin-top:4px;font-size:12px}
+  .empty #emptyCta{margin-top:12px}
+  @keyframes flashPanel{0%,100%{box-shadow:0 0 0 0 rgba(214,255,75,0)}40%{box-shadow:0 0 0 2px rgba(214,255,75,.55)}}
+  .flash{animation:flashPanel 1.1s ease}
+  @media (min-width:1100px){
+    body.is-market .panel{position:relative}
+    body.is-market .panel::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;border-radius:14px 14px 0 0;
+      background:linear-gradient(90deg,rgba(214,255,75,.6),rgba(214,255,75,0) 70%)}
+    body.is-market #bidsPanel::before{background:linear-gradient(90deg,rgba(134,232,211,.55),rgba(134,232,211,0) 70%)}
+    body.is-market aside.market-side .panel::before{background:linear-gradient(90deg,rgba(170,180,255,.5),rgba(170,180,255,0) 70%)}
+    body.is-market .panel-head h2{font-size:15.5px;letter-spacing:-.015em}
+    body.is-market .panel-head .note,.head-tools .note{font-size:11px}
+    body.is-market .stat{position:relative;overflow:hidden}
+    body.is-market .stat::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:rgba(255,255,255,.06)}
+    body.is-market .stat:first-child::after{background:var(--accent)}
+    body.is-market .stat:nth-child(4) b{color:var(--accent-2)}
+    body.is-market .stat:nth-child(5) b{color:#c3b6ff}
+    body.is-market .panel-body{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+    body.is-market .panel-body::-webkit-scrollbar{width:8px;height:8px}
+    body.is-market .panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:99px}
+    body.is-market .panel-body::-webkit-scrollbar-track{background:transparent}
+    body.is-market .owned-bar .count{margin-left:4px}
+  }
 </style>
 </head>
 <body>
@@ -589,9 +617,10 @@
     <div id="marketNotice" class="notice hidden"></div>
     <div class="grid" id="listings"></div>
     <div class="empty hidden" id="empty">
-      <div class="big">🛒</div>
+      <div class="empty-ico">+</div>
       <div><b id="emptyTitle">No Squeeks listed yet.</b></div>
       <div id="emptySub">Be the first — list one in the panel below.</div>
+      <button id="emptyCta" class="primary" type="button">List a Squeek</button>
     </div>
     </div>
   </section>
@@ -632,7 +661,7 @@
     <div class="sell-grid">
       <div>
         <div class="owned-bar">
-          <div class="bid-k">Your Squeeks</div>
+          <div class="bid-k">Your Squeeks <span class="count" id="ownedCount">—</span></div>
           <button id="ownedRefresh" class="ghost" type="button">Refresh</button>
         </div>
         <div id="ownedGrid" class="owned-grid"></div>
@@ -1314,6 +1343,7 @@
         } catch { return null; }
       }));
       const mine = checks.filter(Boolean);
+      $('ownedCount').textContent = String(mine.length);
       grid.innerHTML = '';
       if (!mine.length) {
         empty.textContent = 'No Squeeks from this collection in this wallet.';
@@ -2164,6 +2194,11 @@
 
   $('price').addEventListener('input', updateSellState);
   $('ownedRefresh').onclick = () => { statsCache.clear(); loadOwned(); };
+  $('emptyCta').onclick = () => {
+    const first = document.querySelector('.owned-card');
+    if (first) { first.click(); $('price').focus(); }
+    else if (isMarket) { $('sellPanel').classList.add('flash'); setTimeout(() => $('sellPanel').classList.remove('flash'), 1200); }
+  };
 
   const views = {
     listings: localStorage.getItem('otc.view.listings') === 'list' ? 'list' : 'grid',
