@@ -873,6 +873,50 @@
   const wallets = new Map();   // EIP-6963 announcements (uuid -> {info, provider})
   let picked = null;           // provider chosen in this session
 
+  const WALLET_KEY = 'otc.wallet';
+  let restoreBusy = false;
+  function walletId(provider) {
+    for (const d of wallets.values()) {
+      if (d.provider === provider) return d.info.rdns || d.info.uuid || d.info.name || '';
+    }
+    return '';
+  }
+  function rememberWallet(provider) {
+    const id = walletId(provider);
+    if (id) { try { localStorage.setItem(WALLET_KEY, id); } catch {} }
+  }
+  function forgetWallet() {
+    try { localStorage.removeItem(WALLET_KEY); } catch {}
+  }
+  // Silent reconnect: only eth_accounts (never opens the wallet UI).
+  async function restoreWallet() {
+    if (account || restoreBusy) return;
+    let wanted = '';
+    try { wanted = localStorage.getItem(WALLET_KEY) || ''; } catch {}
+    let p = null;
+    if (wanted) {
+      for (const d of wallets.values()) {
+        if (d.info.rdns === wanted || d.info.uuid === wanted || d.info.name === wanted) p = d.provider;
+      }
+    }
+    if (!p) p = activeProvider();
+    if (!p) return;
+    restoreBusy = true;
+    try {
+      const accs = await p.request({ method: 'eth_accounts' });
+      if (accs && accs[0] && !account) {
+        picked = p;
+        bindProvider(p);
+        account = accs[0];
+        rememberWallet(p);
+        paintAccount(); paintNetwork(); render(); updateSellState();
+        loadOwned();
+        if (document.body.classList.contains('is-market')) refresh();
+      }
+    } catch { /* wallet locked or not authorised: stay disconnected */ }
+    restoreBusy = false;
+  }
+
   function activeProvider() {
     if (picked) return picked;
     if (wallets.size === 1) return [...wallets.values()][0].provider;
@@ -905,6 +949,7 @@
     try { p.removeAllListeners && p.removeAllListeners(); } catch {}
     p.on('accountsChanged', (accs) => {
       account = accs && accs[0] ? accs[0] : null;
+      if (!account) forgetWallet();
       paintAccount(); render(); updateSellState(); paintNetwork(); loadOwned();
     });
     p.on('chainChanged', () => { paintNetwork(); refresh(); });
@@ -921,6 +966,7 @@
     const acc = await p.request({ method: 'eth_requestAccounts' });
     const chain = await p.request({ method: 'eth_chainId' });
     account = acc[0];
+    rememberWallet(p);
     closeWalletModal();
     if (parseInt(chain, 16) !== CHAIN) {
       try { await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] }); }
@@ -1006,6 +1052,8 @@
   function disconnect() {
     account = null;
     picked = null;
+    forgetWallet();
+    selectedId = null;
     paintAccount();
     render();
     updateSellState();
@@ -2314,17 +2362,13 @@
     if (!d || !d.info || !d.provider) return;
     wallets.set(d.info.uuid || d.info.rdns || d.info.name, d);
     if (!$('walletModal').classList.contains('hidden')) renderWalletList();
+    restoreWallet();
   });
   try { window.dispatchEvent(new Event('eip6963:requestProvider')); } catch {}
 
-  const auto = activeProvider();
-  if (auto) {
-    bindProvider(auto);
-    auto.request({ method: 'eth_accounts' }).then((accs) => {
-      if (accs && accs[0]) { account = accs[0]; paintAccount(); loadOwned(); }
-      paintNetwork();
-    }).catch(() => {});
-  }
+  restoreWallet();
+  setTimeout(restoreWallet, 1200);
+  setTimeout(restoreWallet, 3000);
 
   const params = new URLSearchParams(location.search);
   if (params.get('admin') === '1') $('change').classList.remove('hidden');
