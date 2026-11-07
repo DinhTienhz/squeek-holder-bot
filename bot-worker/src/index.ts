@@ -315,6 +315,8 @@ export default {
     if (minute % 2 === 0) await pollMarket(env, bot).catch((e) => console.error('market poll failed', String(e)));
     if (minute === 0) {
       await maybeDigest(env, bot, api).catch(() => {});
+      // Keep the Telegram command menu in sync with src/commands.ts (hourly is plenty).
+      await registerCommands(bot).catch(() => {});
       await pruneSent(env.DB, 14).catch(() => {});
       await pruneActivity(env.DB, 30).catch(() => {});
       await env.DB.prepare("DELETE FROM snapshots WHERE at < datetime('now', '-90 days')").run().catch(() => {});

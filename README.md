@@ -110,14 +110,19 @@ Also: **English by default**, switch to Vietnamese with `/lang vi`; `/privacy`, 
 | `/status` | wheel status + block |
 | `/claim [0x…]` | claimable SQK + number of batches (32 NFTs per batch) |
 | `/mergecheck [0x…]` | Squeeks past their cooldown |
+| `/ladder [0x…]` | merge plan + power gain |
 | `/threshold 0.5` | claim alert threshold |
 | `/alerts on\|off` | wallet alerts |
 | `/hamster on\|off` | hamster start/stop alerts |
 | `/block on\|off` | block-completed alerts |
+| `/activity on\|off` | every wallet event, incl. rewards claimed (bare: show state) |
+| `/market on\|off` | OTC market alerts: new listings, bids and sales, with addresses and tx |
 | `/digest on\|off` | daily digest |
 | `/help` | command list |
 | `/quiet 22:00-07:00` | quiet hours in server time |
 | `/lang vi\|en` | switch language |
+| `/privacy` | what is stored |
+| `/delete` | wipe your data |
 | `/privacy`, `/delete` | data handling |
 
 
