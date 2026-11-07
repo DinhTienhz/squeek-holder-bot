@@ -538,6 +538,15 @@
     body.is-market #bidsPanel .bid-row,body.is-market #bidsPanel .calc{flex:none}
     body.is-market #bidsPanel .bid-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:4px}
   }
+  .merge-line{min-height:14px;margin:5px 0 2px}
+  .mpill{display:inline-block;font-size:9px;letter-spacing:.06em;font-weight:800;padding:2px 6px;border-radius:5px;
+    border:1px solid var(--line);color:var(--dim);background:rgba(255,255,255,.03)}
+  .mpill.ready{color:#86efac;border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.10)}
+  .mpill.wait{color:var(--muted)}
+  .mpill.max{color:#e8d652;border-color:rgba(212,175,55,.45);background:rgba(212,175,55,.10)}
+  .owned-card .merge-line{min-height:0;margin:2px 0 0;line-height:0}
+  .owned-card .mpill{font-size:8px;padding:1px 4px;letter-spacing:.04em}
+  #ownedGrid.is-list .owned-card .merge-line{grid-column:2}
 </style>
 </head>
 <body>
@@ -833,7 +842,8 @@
     placeBid: '0xecfc7ecc', cancelBid: '0x9703ef35', acceptBid: '0x02e9d5e4',
     bids: '0x4423c5f1', myBidIds: '0x4477cf92', levelCount: '0x651a2b4c',
     levels: '0xb2596a67', activeAt: '0x15d6f71a', headBid: '0x073b4f37',
-    feeBps: '0xbf333f2c', feeTo: '0x017e7e58', isApprovedForAll: '0xe985e9c5'
+    feeBps: '0xbf333f2c', feeTo: '0x017e7e58', isApprovedForAll: '0xe985e9c5',
+    level: '0x05c58df2', nextMergeHeight: '0x0bd1733a'
   };
   const TOPIC = {
     listed: '0x50955776c5778c3b7d968d86d8c51fb6b29a7a74c20866b533268e209fc08343',
@@ -1204,6 +1214,56 @@
   // ---------- on-chain stats (level / power) ----------
   const API = 'https://api.squeekchain.com/v1';
   const statsCache = new Map();
+  const mergeCache = new Map();
+  const coreState = { at: 0, height: null, maxLevel: 10 };
+
+  async function coreInfo() {
+    if (coreState.height != null && Date.now() - coreState.at < 60000) return coreState;
+    try {
+      const d = await getJson(API + '/economy/state');
+      coreState.height = Number(d?.capabilities?.core?.blockHeight);
+      coreState.maxLevel = Number(d?.nft?.maximumLevel) || 10;
+      coreState.at = Date.now();
+    } catch { /* keep the last known height */ }
+    return coreState;
+  }
+
+  async function mergeInfo(id) {
+    const key = String(id);
+    if (mergeCache.has(key)) return mergeCache.get(key);
+    try {
+      const [lv, next] = await Promise.all([
+        call(collection, SEL.level + pad(id)),
+        call(collection, SEL.nextMergeHeight + pad(id))
+      ]);
+      const info = { level: Number(BigInt(lv)), next: Number(BigInt(next)) };
+      mergeCache.set(key, info);
+      return info;
+    } catch { return null; }
+  }
+
+  function fmtBlocks(n) {
+    return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : String(n);
+  }
+
+  async function paintMerge(el, id) {
+    if (!el) return;
+    const [info, core] = await Promise.all([mergeInfo(id), coreInfo()]);
+    if (!info || core.height == null) return;
+    if (info.level >= core.maxLevel) {
+      el.innerHTML = '<span class="mpill max">MAX LEVEL</span>';
+      el.title = 'Level ' + info.level + ' is the maximum — this Squeek cannot merge again.';
+      return;
+    }
+    const left = info.next - core.height;
+    if (left <= 0) {
+      el.innerHTML = '<span class="mpill ready">MERGE READY</span>';
+      el.title = 'Can merge now (ready since Squeek block ' + info.next + ').';
+    } else {
+      el.innerHTML = '<span class="mpill wait">MERGE IN ' + fmtBlocks(left) + ' BLOCKS</span>';
+      el.title = 'Unlocks at Squeek block ' + info.next + ' · current height ' + core.height + '.';
+    }
+  }
 
   async function getJson(url, tries = 2) {
     let last;
@@ -1380,8 +1440,10 @@
         '<div class="card-top"><div class="card-id">Squeek <span>#' + r.id + '</span></div>' +
           '<div class="card-price">' + fmtEth(r.price) + '<small>ETH</small></div></div>' +
         '<div class="card-stats"></div>' +
+        '<div class="merge-line"></div>' +
         '<div class="card-seller">seller ' + short(r.seller) + (mine ? ' · you' : '') + '</div>' +
       '</div>';
+    paintMerge(el.querySelector('.merge-line'), r.id);
     const btn = document.createElement('button');
     btn.className = mine ? 'ghost' : 'buy';
     btn.textContent = mine ? 'Cancel listing' : 'Buy · ' + fmtEth(r.price + feeOf(r.price)) + ' ETH';
@@ -1424,6 +1486,7 @@
         '<div class="im-img" id="imImg"><div class="ph">#' + r.id + '</div></div>' +
         '<div class="im-info">' +
           '<div class="im-stats" id="imStats">Reading level &amp; power…</div>' +
+          '<div class="merge-line" id="imMerge"></div>' +
           '<div class="im-seller">' + (mine ? 'Your listing' : 'Seller ' + short(r.seller)) + '</div>' +
           '<div id="imTraits"></div>' +
         '</div>' +
@@ -1457,6 +1520,7 @@
         img.innerHTML = '<div class="ph">#' + r.id + '</div>';
       }
       $('imStats').textContent = statLine(stats) || 'Level/power unavailable';
+      paintMerge($('imMerge'), r.id);
       $('imTraits').innerHTML = '<div class="im-label">Traits (' + meta.traits.length + ')</div>' +
         traitsHtml(meta.traits);
     } catch (e) {
@@ -1516,7 +1580,8 @@
         if (st && st.level != null && isFinite(Number(st.level))) bits.push('L' + Number(st.level));
         if (st && st.power != null) bits.push(Number(st.power).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 }));
         card.innerHTML = '<div class="owned-ph">#' + id + '</div><b>#' + id + '</b><span>' +
-          (bits.join(' · ') || '—') + '</span>';
+          (bits.join(' · ') || '—') + '</span><i class="merge-line"></i>';
+        paintMerge(card.querySelector('.merge-line'), id);
         card.onclick = () => selectToken(id);
         grid.appendChild(card);
         tokenMeta(id).then((m) => {
