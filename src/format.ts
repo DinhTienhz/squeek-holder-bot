@@ -113,6 +113,7 @@ export function help(lang: Lang, isAdmin = false): string {
       out.push(`/${c.name}${usage} · ${vi ? c.vi : c.en}`);
     }
   }
+  out.push('', `🛒 ${vi ? 'Chợ OTC' : 'OTC market'}: https://squeeksotc.bid`);
   return out.join('\n');
 }
 
