@@ -1258,7 +1258,9 @@
     const left = info.next - core.height;
     if (left <= 0) {
       el.innerHTML = '<span class="mpill ready">MERGE READY</span>';
-      el.title = 'Can merge now (ready since Squeek block ' + info.next + ').';
+      el.title = info.next === 0
+        ? 'Level ' + info.level + ' has no merge cooldown — this Squeek can merge now.'
+        : 'Can merge now (ready since Squeek block ' + info.next + ').';
     } else {
       el.innerHTML = '<span class="mpill wait">MERGE IN ' + fmtBlocks(left) + ' BLOCKS</span>';
       el.title = 'Unlocks at Squeek block ' + info.next + ' · current height ' + core.height + '.';
