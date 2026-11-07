@@ -524,6 +524,13 @@
     padding:11px 16px;color:var(--text);font:inherit;font-size:13.5px;transition:border-color .15s,box-shadow .15s;
   }
   .collection-search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.18)}
+
+  .bid-scroll{min-height:0}
+  @media (min-width:1100px){
+    body.is-market #bidsPanel .panel-body{display:flex;flex-direction:column;overflow:hidden}
+    body.is-market #bidsPanel .bid-row,body.is-market #bidsPanel .calc{flex:none}
+    body.is-market #bidsPanel .bid-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:4px}
+  }
 </style>
 </head>
 <body>
@@ -660,8 +667,10 @@
       <button id="placeBid" class="primary" type="button" disabled>Place bid</button>
     </div>
     <div class="calc" id="bidNote">Bids are for the whole collection. Your ETH stays in escrow until a seller accepts or you cancel.</div>
-    <div class="bid-book" id="bidBook"></div>
-    <div class="my-bids" id="myBids"></div>
+    <div class="bid-scroll">
+      <div class="bid-book" id="bidBook"></div>
+      <div class="my-bids" id="myBids"></div>
+    </div>
     </div>
   </section>
 
