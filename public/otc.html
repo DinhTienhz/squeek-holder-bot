@@ -443,6 +443,12 @@
     body.is-market .panel-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:4px;padding-bottom:4px}
     body.is-market .sell-grid{grid-template-columns:1fr;gap:12px}
     body.is-market #listings .card-item.promo{display:none}
+    body.is-market #bidsPanel .panel-body,body.is-market aside.market-side .panel-body{overflow-y:auto;overflow-x:hidden}
+    body.is-market #bidsPanel .panel-body > *,body.is-market aside.market-side .panel-body > *{max-width:100%;min-width:0}
+    body.is-market .bid-book .my-bid,body.is-market .my-bids .my-bid{flex-wrap:wrap}
+    body.is-market .bid-book .grow,body.is-market .my-bids .grow{min-width:0;overflow-wrap:anywhere}
+    body.is-market .act-row{min-width:0}
+    body.is-market .act-id,body.is-market .act-actor,body.is-market .act-time{min-width:0;overflow:hidden;text-overflow:ellipsis}
     body.is-market .grid{gap:10px}
   }
 
