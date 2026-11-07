@@ -6,3 +6,5 @@ logs/
 *.db-wal
 *.db-shm
 .wrangler/
+bot-worker/.wrangler/
+bot-worker/worker-configuration.d.ts

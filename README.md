@@ -120,6 +120,30 @@ Also: **English by default**, switch to Vietnamese with `/lang vi`; `/privacy`, 
 | `/lang vi\|en` | switch language |
 | `/privacy`, `/delete` | data handling |
 
+
+### Running on Cloudflare Workers
+
+The bot also runs serverless in `bot-worker/`: a Worker for the Telegram webhook and a cron
+trigger for polling, with state in D1 instead of SQLite. No server to keep alive.
+
+- `POST /telegram` requires the `X-Telegram-Bot-Api-Secret-Token` header (set with `secret_token` on `setWebhook`); anything else gets 403.
+- `GET /health` for uptime checks.
+- Cron every minute: sensor sample, settlements every 3 minutes, a rotating slice of wallets, digest at 09:00 Asia/Ho_Chi_Minh.
+
+```bash
+cd bot-worker
+npx wrangler d1 execute squeek-bot --remote --file=schema.sql   # first time
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+npx wrangler secret put TELEGRAM_WEBHOOK_SECRET
+npx wrangler secret put ADMIN_IDS
+npx wrangler secret put RPC_URL
+npx wrangler deploy
+./cutover.sh   # sets the webhook and stops the Node bot
+```
+
+Free plan processes `WALLET_BATCH=8` wallets per minute; on Workers Paid ($5) raise it to 300.
+See [bot-worker/README.md](bot-worker/README.md) for the scaling table and rollback steps.
+
 ## Running
 
 ```bash
