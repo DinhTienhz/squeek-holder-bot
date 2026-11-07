@@ -170,7 +170,8 @@ export function createBot(cfg: Config, db: D1Database) {
           tokens: a.tokens.length,
           ready: a.tokens.filter((t) => t.mergeState === 'ready').length,
         }] as const;
-      } catch {
+      } catch (e) {
+        console.error('list account failed', w.address, (e as Error).message);
         return null;
       }
     }));

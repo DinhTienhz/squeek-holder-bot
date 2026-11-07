@@ -256,6 +256,7 @@ export default {
   },
 
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
+    const started = Date.now();
     const cfg = loadConfig(env as unknown as Record<string, unknown>);
     if (!cfg.botToken) return;
     const bot = new Bot(cfg.botToken);
@@ -270,5 +271,6 @@ export default {
       await pruneSent(env.DB, 14).catch(() => {});
       await pruneActivity(env.DB, 30).catch(() => {});
     }
+    console.log(JSON.stringify({ cron: event.cron, ms: Date.now() - started, minute }));
   },
 };

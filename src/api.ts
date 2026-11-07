@@ -57,7 +57,7 @@ export class ApiClient {
   private fetchImpl: FetchLike;
   private timeoutMs: number;
 
-  constructor(base: string, fetchImpl: FetchLike = fetch, timeoutMs = 12_000) {
+  constructor(base: string, fetchImpl: FetchLike = (input, init) => fetch(input, init), timeoutMs = 12_000) {
     this.base = base;
     this.fetchImpl = fetchImpl;
     this.timeoutMs = timeoutMs;
