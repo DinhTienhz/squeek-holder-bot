@@ -1,5 +1,5 @@
 /**
- * Sepolia OTC escrow event reader.
+ * Sepolia Squeek Market escrow event reader.
  *
  * The market's escrow is a plain contract on Sepolia, so the bot reads its
  * logs straight from an RPC endpoint — no indexer, no API key.

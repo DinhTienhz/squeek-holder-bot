@@ -48,7 +48,7 @@ Asia/Ho_Chi_Minh, pruning at minute 0.
 - `snapshots` stores each address's previous state so cooldown alerts survive between
   invocations (Workers have no in-memory state).
 
-## OTC market alerts
+## Squeek Market alerts
 
 `/market on|off` toggles alerts for the Sepolia escrow (`Listed`, `BidPlaced`, `Sold`,
 `BidAccepted`). Every second minute the cron scans up to 300 new blocks with `eth_getLogs`,

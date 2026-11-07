@@ -1,6 +1,6 @@
 # squeek-monitor
 
-Independent uptime check for the bot **and the OTC market**. A separate Worker so it survives a
+Independent uptime check for the bot **and the Squeek Market**. A separate Worker so it survives a
 broken bot Worker.
 
 - Cron `*/5 * * * *`, checks three targets in parallel:

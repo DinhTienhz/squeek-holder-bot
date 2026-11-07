@@ -30,7 +30,7 @@ export const COMMANDS: CommandDef[] = [
   { name: 'alerts', usage: '[on|off]', group: 'notifications', en: 'all wallet alerts (bare: show state)', vi: 'mọi cảnh báo ví (trống: xem trạng thái)' },
   { name: 'hamster', usage: '[on|off]', group: 'notifications', en: 'wheel start/stop alerts', vi: 'cảnh báo hamster chạy/dừng' },
   { name: 'activity', usage: '[on|off | 0x…]', group: 'notifications', en: 'every wallet event, incl. rewards claimed (0x…: recent)', vi: 'mọi biến động ví, gồm claim thưởng (0x…: xem gần đây)' },
-  { name: 'market', usage: '[on|off]', group: 'notifications', en: 'OTC market alerts: listings, bids, sales', vi: 'cảnh báo chợ OTC: list, bid, bán' },
+  { name: 'market', usage: '[on|off]', group: 'notifications', en: 'Squeek Market alerts: listings, bids, sales', vi: 'cảnh báo Squeek Market: list, bid, bán' },
   { name: 'block', usage: '[on|off]', group: 'notifications', en: 'completed block alerts', vi: 'cảnh báo block hoàn thành' },
   { name: 'digest', usage: '[on|off]', group: 'notifications', en: 'daily summary', vi: 'tổng hợp hằng ngày' },
   { name: 'quiet', usage: '[22:00-07:00 | off]', group: 'notifications', en: 'quiet hours (bare: show state)', vi: 'giờ im lặng (trống: xem trạng thái)' },
