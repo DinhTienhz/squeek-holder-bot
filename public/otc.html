@@ -925,6 +925,14 @@
         account = accs[0];
         rememberWallet(p);
         paintAccount(); paintNetwork();
+        // the wallet may have come back on another chain: move it to Sepolia first
+        try {
+          const chain = await p.request({ method: 'eth_chainId' });
+          if (parseInt(chain, 16) !== CHAIN) {
+            await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] });
+            paintNetwork();
+          }
+        } catch { /* banner still offers the switch */ }
         refreshAll();
       }
     } catch { /* wallet locked or not authorised: stay disconnected */ }
