@@ -8,7 +8,7 @@ const env = {
     fetch: async (req) => {
       const p = new URL(req.url).pathname;
       if (p === '/otc' || p === '/otc.html' || p === '/' || p === '/index.html' ||
-          p === '/preview/index' || p === '/preview/market') {
+          p === '/preview/home' || p === '/preview/market') {
         return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } });
       }
       if (p.endsWith('.png') || p.endsWith('.svg')) {
@@ -57,7 +57,10 @@ test('otc host: the landing page does not exist there', async () => {
 });
 
 test('otc host: the static previews are served', async () => {
-  assert.equal((await get('https://squeeksotc.bid/preview')).status, 200);
+  const r = await get('https://squeeksotc.bid/preview');
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/preview/home');
+  assert.equal((await get('https://squeeksotc.bid/preview/home')).status, 200);
   assert.equal((await get('https://squeeksotc.bid/preview/market')).status, 200);
   assert.equal((await get('https://squeeksotc.bid/preview/market.html')).status, 200);
 });
