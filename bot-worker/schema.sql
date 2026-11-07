@@ -12,7 +12,10 @@ CREATE TABLE IF NOT EXISTS users (
   last_digest     TEXT,
   hamster_alerts  INTEGER NOT NULL DEFAULT 1,
   activity_alerts INTEGER NOT NULL DEFAULT 1,
-  market_alerts   INTEGER NOT NULL DEFAULT 1
+  market_alerts   INTEGER NOT NULL DEFAULT 1,
+  market_list     INTEGER NOT NULL DEFAULT 1,
+  market_bid      INTEGER NOT NULL DEFAULT 1,
+  market_sold     INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS wallets (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,

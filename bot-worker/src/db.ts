@@ -5,6 +5,7 @@ export type User = {
   threshold: string; alerts: number; blocked: number; created_at: string;
   block_alerts: number; digest: number; last_digest: string | null;
   hamster_alerts: number; activity_alerts: number; market_alerts: number;
+  market_list: number; market_bid: number; market_sold: number;
 };
 export type Wallet = { id: number; tg_id: string; address: string; label: string | null };
 
@@ -44,7 +45,14 @@ export async function setBlockAlerts(db: DB, tgId: string, on: boolean): Promise
   await db.prepare('UPDATE users SET block_alerts = ? WHERE tg_id = ?').bind(on ? 1 : 0, tgId).run();
 }
 export async function setMarketAlerts(db: DB, tgId: string, on: boolean): Promise<void> {
-  await db.prepare('UPDATE users SET market_alerts = ? WHERE tg_id = ?').bind(on ? 1 : 0, tgId).run();
+  const v = on ? 1 : 0;
+  await db.prepare('UPDATE users SET market_alerts = ?, market_list = ?, market_bid = ?, market_sold = ? WHERE tg_id = ?')
+    .bind(v, v, v, v, tgId).run();
+}
+
+export async function setMarketKind(db: DB, tgId: string, kind: 'list' | 'bid' | 'sold', on: boolean): Promise<void> {
+  const col = kind === 'list' ? 'market_list' : kind === 'bid' ? 'market_bid' : 'market_sold';
+  await db.prepare(`UPDATE users SET ${col} = ? WHERE tg_id = ?`).bind(on ? 1 : 0, tgId).run();
 }
 
 export async function setDigest(db: DB, tgId: string, on: boolean): Promise<void> {

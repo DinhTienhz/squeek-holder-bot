@@ -208,12 +208,14 @@ async function pollMarket(env: Env, bot: Bot): Promise<void> {
 
   if (events.length) {
     const { results } = await env.DB.prepare(
-      'SELECT tg_id, lang FROM users WHERE market_alerts = 1 AND alerts = 1 AND blocked = 0',
-    ).all<{ tg_id: string; lang: string }>();
+      'SELECT tg_id, lang, market_list, market_bid, market_sold FROM users WHERE market_alerts = 1 AND alerts = 1 AND blocked = 0',
+    ).all<{ tg_id: string; lang: string; market_list: number; market_bid: number; market_sold: number }>();
     const people = results ?? [];
     for (const ev of events) {
       const texts = new Map<Lang, string>();
       for (const u of people) {
+        const wants = ev.kind === 'list' ? u.market_list : ev.kind === 'bid' ? u.market_bid : u.market_sold;
+        if (!wants) continue;
         const lang: Lang = u.lang === 'vi' ? 'vi' : 'en';
         if (!texts.has(lang)) texts.set(lang, marketAlert(lang, ev));
         await notify(env, bot, u.tg_id, texts.get(lang)!);

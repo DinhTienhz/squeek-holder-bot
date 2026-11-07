@@ -14,6 +14,9 @@ export type User = {
   hamster_alerts: number;
   activity_alerts: number;
   market_alerts: number;
+  market_list: number;
+  market_bid: number;
+  market_sold: number;
   digest: number;
   last_digest: string | null;
 };
@@ -30,6 +33,9 @@ CREATE TABLE IF NOT EXISTS users (
   alerts      INTEGER NOT NULL DEFAULT 1,
   blocked     INTEGER NOT NULL DEFAULT 0,
   market_alerts INTEGER NOT NULL DEFAULT 1,
+  market_list   INTEGER NOT NULL DEFAULT 1,
+  market_bid    INTEGER NOT NULL DEFAULT 1,
+  market_sold   INTEGER NOT NULL DEFAULT 1,
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS wallets (
@@ -173,7 +179,14 @@ export function setBlockAlerts(db: DatabaseSync, tgId: string, on: boolean): voi
 }
 
 export function setMarketAlerts(db: DatabaseSync, tgId: string, on: boolean): void {
-  db.prepare('UPDATE users SET market_alerts = ? WHERE tg_id = ?').run(on ? 1 : 0, tgId);
+  const v = on ? 1 : 0;
+  db.prepare('UPDATE users SET market_alerts = ?, market_list = ?, market_bid = ?, market_sold = ? WHERE tg_id = ?')
+    .run(v, v, v, v, tgId);
+}
+
+export function setMarketKind(db: DatabaseSync, tgId: string, kind: 'list' | 'bid' | 'sold', on: boolean): void {
+  const col = kind === 'list' ? 'market_list' : kind === 'bid' ? 'market_bid' : 'market_sold';
+  db.prepare(`UPDATE users SET ${col} = ? WHERE tg_id = ?`).run(on ? 1 : 0, tgId);
 }
 
 export function setDigest(db: DatabaseSync, tgId: string, on: boolean): void {

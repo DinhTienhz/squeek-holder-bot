@@ -11,7 +11,7 @@ import {
 } from './format.ts';
 import {
   addWallet, getUser, listWallets, openDb, removeWallet, setAlerts, setBlockAlerts, setHamsterAlerts,
-  setActivityAlerts, setMarketAlerts, setBlocked, setDigest, setLang, setQuiet, setThreshold, stats, upsertUser, wipeUser, type User,
+  setActivityAlerts, setMarketAlerts, setMarketKind, setBlocked, setDigest, setLang, setQuiet, setThreshold, stats, upsertUser, wipeUser, type User,
 } from './db.ts';
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -44,7 +44,10 @@ const MSG = {
     startMarket: '🔔 <b>Đã bật cảnh báo Squeek Market</b>\nBạn sẽ nhận tin khi có NFT được list, bid mới hoặc NFT được bán — kèm địa chỉ và tx.\nTắt bằng <code>/market off</code>.\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOn: '🏪 Đã bật cảnh báo Squeek Market (list, bid, sold).\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOff: '🏪 Đã tắt cảnh báo Squeek Market.',
-    marketNow: '🏪 Cảnh báo Squeek Market: <b>{state}</b>\nĐổi bằng <code>/market on</code> hoặc <code>/market off</code>\n🛒 Squeek Market: https://squeeksotc.bid',
+    marketNow: '🏪 Cảnh báo Squeek Market: <b>{state}</b>\n• Listed: {list}\n• Bids: {bid}\n• Sold: {sold}\nĐổi: <code>/market list off</code>, <code>/market bid off</code>, <code>/market sold off</code>\n🛒 Squeek Market: https://squeeksotc.bid',
+    marketKind: '🏪 Cảnh báo {kind}: <b>{state}</b>\n🛒 Squeek Market: https://squeeksotc.bid',
+    marketKindNow: '🏪 Cảnh báo {kind}: <b>{state}</b>\nĐổi bằng <code>/market {kind} on</code> hoặc <code>/market {kind} off</code>',
+    badMarket: '⚠️ Dùng: <code>/market on|off</code> hoặc <code>/market list|bid|sold on|off</code>',
     digestNow: '📊 Digest: <b>{state}</b>\nĐổi bằng <code>/digest on</code> hoặc <code>/digest off</code>',
     quietNow: '🌙 Im lặng: <b>{state}</b>\nĐổi bằng <code>/quiet 22:00-07:00</code> hoặc <code>/quiet off</code>',
     threshold: '🎯 Ngưỡng báo claim: <b>{amount}</b>',
@@ -87,7 +90,10 @@ const MSG = {
     startMarket: '🔔 <b>Squeek Market alerts are on</b>\nYou will get a message for every new listing, bid and sale — with addresses and the tx.\nTurn it off with <code>/market off</code>.\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOn: '🏪 Squeek Market alerts on (listings, bids, sales).\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOff: '🏪 Squeek Market alerts off.',
-    marketNow: '🏪 Squeek Market alerts: <b>{state}</b>\nChange with <code>/market on</code> or <code>/market off</code>\n🛒 Squeek Market: https://squeeksotc.bid',
+    marketNow: '🏪 Squeek Market alerts: <b>{state}</b>\n• Listed: {list}\n• Bids: {bid}\n• Sold: {sold}\nChange with <code>/market list off</code>, <code>/market bid off</code>, <code>/market sold off</code>\n🛒 Squeek Market: https://squeeksotc.bid',
+    marketKind: '🏪 {kind} alerts: <b>{state}</b>\n🛒 Squeek Market: https://squeeksotc.bid',
+    marketKindNow: '🏪 {kind} alerts: <b>{state}</b>\nChange with <code>/market {kind} on</code> or <code>/market {kind} off</code>',
+    badMarket: '⚠️ Use <code>/market on|off</code> or <code>/market list|bid|sold on|off</code>',
     digestNow: '📊 Digest: <b>{state}</b>\nChange with <code>/digest on</code> or <code>/digest off</code>',
     quietNow: '🌙 Quiet hours: <b>{state}</b>\nChange with <code>/quiet 22:00-07:00</code> or <code>/quiet off</code>',
     threshold: '🎯 Claim threshold: <b>{amount}</b>',
@@ -416,11 +422,39 @@ export function createBot(cfg: Config) {
 
   bot.command('market', async (ctx) => {
     const u = userOf(ctx.from!.id);
-    const arg = (ctx.match ?? '').trim().toLowerCase();
-    if (!arg) return void (await reply(ctx, m(u, 'marketNow', { state: stateWord(u, !!u.market_alerts) })));
-    const on = arg !== 'off';
-    setMarketAlerts(db, u.tg_id, on);
-    await reply(ctx, m(u, on ? 'marketOn' : 'marketOff'));
+    const parts = (ctx.match ?? '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const kindOf = {
+      list: () => u.market_list,
+      bid: () => u.market_bid,
+      sold: () => u.market_sold,
+    } as const;
+
+    if (!parts.length) {
+      return void (await reply(ctx, m(u, 'marketNow', {
+        state: stateWord(u, !!u.market_alerts),
+        list: stateWord(u, !!u.market_list),
+        bid: stateWord(u, !!u.market_bid),
+        sold: stateWord(u, !!u.market_sold),
+      })));
+    }
+
+    if (parts[0] === 'on' || parts[0] === 'off') {
+      const on = parts[0] === 'on';
+      setMarketAlerts(db, u.tg_id, on);
+      return void (await reply(ctx, m(u, on ? 'marketOn' : 'marketOff')));
+    }
+
+    const kind = parts[0] as keyof typeof kindOf;
+    if (!(kind in kindOf)) return void (await reply(ctx, m(u, 'badMarket')));
+
+    if (!parts[1]) {
+      return void (await reply(ctx, m(u, 'marketKindNow', { kind, state: stateWord(u, !!kindOf[kind]()) })));
+    }
+    if (parts[1] !== 'on' && parts[1] !== 'off') return void (await reply(ctx, m(u, 'badMarket')));
+
+    const on = parts[1] === 'on';
+    setMarketKind(db, u.tg_id, kind, on);
+    await reply(ctx, m(u, 'marketKind', { kind, state: stateWord(u, on) }));
   });
 
   bot.command('block', async (ctx) => {

@@ -116,7 +116,8 @@ Also: **English by default**, switch to Vietnamese with `/lang vi`; `/privacy`, 
 | `/hamster on\|off` | hamster start/stop alerts |
 | `/block on\|off` | block-completed alerts |
 | `/activity on\|off` | every wallet event, incl. rewards claimed (bare: show state) |
-| `/market on\|off` | Squeek Market alerts: new listings, bids and sales, with addresses and tx |
+| `/market on\|off` | Squeek Market alerts, all three kinds (addresses + tx) |
+| `/market list\|bid\|sold on\|off` | toggle one kind only; bare kind shows its state |
 | `/digest on\|off` | daily digest |
 | `/help` | command list |
 | `/quiet 22:00-07:00` | quiet hours in server time |
