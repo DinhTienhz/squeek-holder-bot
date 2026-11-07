@@ -93,3 +93,39 @@ test('bot host: 404 page is the landing one', async () => {
   assert.equal(r.status, 404);
   assert.match(await r.text(), /landing page/);
 });
+
+test('security headers include HSTS on html and assets', async () => {
+  for (const u of ['https://squeeksotc.bid/', 'https://squeeksotc.bid/logo-mark.png']) {
+    const r = await get(u);
+    assert.match(r.headers.get('strict-transport-security') || '', /max-age=31536000/);
+  }
+});
+
+test('a missing image is never cached as immutable', async () => {
+  const env2 = { ASSETS: { fetch: async () => new Response('nope', { status: 404, headers: { 'content-type': 'image/png' } }) } };
+  const r = await worker.fetch(new Request('https://squeeksotc.bid/nope.png'), env2);
+  assert.equal(r.status, 404);
+  assert.equal(r.headers.get('cache-control'), 'no-store');
+});
+
+test('preview pages are marked noindex', async () => {
+  const r = await get('https://squeeksotc.bid/preview/market');
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get('x-robots-tag') || '', /noindex/);
+});
+
+test('write methods are rejected', async () => {
+  for (const u of ['https://squeeksotc.bid/market', 'https://squeek-holder-bot.chainn.workers.dev/api/staking-totals']) {
+    const r = await worker.fetch(new Request(u, { method: 'POST' }), env);
+    assert.equal(r.status, 405);
+    assert.equal(r.headers.get('allow'), 'GET, HEAD');
+  }
+});
+
+test('the synthetic asset origin never leaks to the client', async () => {
+  const env2 = { ASSETS: { fetch: async () => new Response(null, {
+    status: 307, headers: { location: 'https://assets.local/other', 'x-secret': 'leak' } }) } };
+  const r = await worker.fetch(new Request('https://squeeksotc.bid/redirect-me'), env2);
+  assert.equal(r.headers.get('location'), null);
+  assert.equal(r.headers.get('x-secret'), null);
+});

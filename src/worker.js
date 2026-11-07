@@ -12,6 +12,7 @@ const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'Content-Security-Policy': [
     "default-src 'self'",
     "img-src 'self' data:",
@@ -67,12 +68,21 @@ function isImage(path) {
 
 const RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
 const selector = { totalStaked: '0x817b1cd2', balanceOf: '0x70a08231' };
+const UPSTREAM_TIMEOUT_MS = 5000;
 let stakeCache = { at: 0, body: null };
+let stakeInflight = null;
 
-async function readStakingTotals() {
-  if (stakeCache.body && Date.now() - stakeCache.at < 60_000) return stakeCache.body;
+function readStakingTotals() {
+  if (stakeCache.body && Date.now() - stakeCache.at < 60_000) return Promise.resolve(stakeCache.body);
+  // One upstream round-trip per isolate even when many requests arrive together.
+  if (!stakeInflight) stakeInflight = computeStakingTotals().finally(() => { stakeInflight = null; });
+  return stakeInflight;
+}
+
+async function computeStakingTotals() {
   const eco = await fetch('https://api.squeekchain.com/v1/economy/state', {
     headers: { 'user-agent': 'squeek-holder-bot/0.1' },
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
   }).then((r) => r.json());
   const staking = eco?.deployment?.components?.staking?.address;
   const nft = eco?.deployment?.components?.collection?.address;
@@ -82,6 +92,7 @@ async function readStakingTotals() {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] }),
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     const j = await r.json();
     if (j.error || typeof j.result !== 'string') throw new Error('rpc failed');
@@ -135,6 +146,12 @@ export default {
     }
 
     if (url.pathname === '/api/staking-totals') {
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return new Response('Method not allowed', {
+          status: 405,
+          headers: { allow: 'GET, HEAD', 'cache-control': 'no-store', ...SECURITY_HEADERS },
+        });
+      }
       try {
         const body = await readStakingTotals();
         return new Response(body, {
@@ -146,6 +163,13 @@ export default {
           headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
         });
       }
+    }
+
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response('Method not allowed', {
+        status: 405,
+        headers: { allow: 'GET, HEAD', 'cache-control': 'no-store', ...SECURITY_HEADERS },
+      });
     }
 
     // Fetch assets by path on a synthetic origin: fetching the original URL while a
@@ -168,11 +192,20 @@ export default {
       });
     }
 
-    const headers = new Headers(res.headers);
+    // Copy only representation headers: the synthetic origin must never reach the client.
+    const PASSTHROUGH = ['content-type', 'content-length', 'content-encoding', 'cache-control',
+      'etag', 'last-modified', 'vary', 'accept-ranges', 'content-range'];
+    const headers = new Headers();
+    for (const name of PASSTHROUGH) {
+      const v = res.headers.get(name);
+      if (v) headers.set(name, v);
+    }
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
+    if (/^\/preview(\/|$)/.test(url.pathname)) headers.set('X-Robots-Tag', 'noindex, nofollow');
 
     if (isImage(url.pathname)) {
-      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      // A missing image must not be cached for a year by browsers or CDNs.
+      headers.set('Cache-Control', res.ok ? 'public, max-age=31536000, immutable' : 'no-store');
     } else if (res.headers.get('content-type')?.includes('text/html')) {
       headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
     }

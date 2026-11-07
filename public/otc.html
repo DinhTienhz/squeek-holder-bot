@@ -967,6 +967,17 @@
   }
   async function call(to, data) { return rpc('eth_call', [{ to, data }, 'latest']); }
 
+  // Every value-bearing write goes through here: refuse to send on the wrong chain.
+  async function sendTx(args) {
+    const c = await rpc('eth_chainId');
+    if (parseInt(c, 16) !== CHAIN) {
+      try { await rpc('wallet_switchEthereumChain', [{ chainId: CHAIN_HEX }]); } catch {}
+      const c2 = await rpc('eth_chainId');
+      if (parseInt(c2, 16) !== CHAIN) throw new Error('Switch your wallet to Sepolia before trading.');
+    }
+    return rpc('eth_sendTransaction', args);
+  }
+
   function bindProvider(p) {
     if (!p || !p.on) return;
     try { p.removeAllListeners && p.removeAllListeners(); } catch {}
@@ -1084,6 +1095,8 @@
     updateSellState();
     paintNetwork();
     loadOwned();
+    $('bidLevels').innerHTML = '';
+    paintBids();
   }
 
   function paintAccount() {
@@ -1125,9 +1138,22 @@
   }
   function toWei(input) {
     let s = String(input).trim().replace(/\s+/g, '');
-    // accept Vietnamese/European decimals: 0,1 and 1.000,5
-    if (s.includes(',')) {
-      s = s.replace(/\./g, '').replace(',', '.');
+    if (!s) return null;
+    const hasDot = s.includes('.'), hasComma = s.includes(',');
+    // "1,000.5" mixes separators: which one is the decimal? Refuse instead of guessing.
+    if (hasDot && hasComma) return null;
+    if (hasComma) {
+      const parts = s.split(',');
+      // 3 digits after the last comma (or several commas) = thousands separator.
+      const thousands = parts.length > 2 || (parts.length === 2 && parts[1].length === 3);
+      if (thousands) {
+        if (!/^\d{1,3}(,\d{3})+$/.test(s)) return null;
+        s = s.replace(/,/g, '');
+      } else {
+        // decimal comma: 0,1 / 1,50
+        if (parts.length !== 2 || !/^\d+$/.test(parts[0]) || !/^\d{1,2}$/.test(parts[1])) return null;
+        s = parts[0] + '.' + parts[1];
+      }
     }
     if (!/^\d*\.?\d*$/.test(s) || s === '' || s === '.') return null;
     const [a, b = ''] = s.split('.');
@@ -1486,7 +1512,7 @@
         card.setAttribute('aria-pressed', 'false');
         const st = map.get(id);
         const bits = [];
-        if (st && st.level != null) bits.push('L' + st.level);
+        if (st && st.level != null && isFinite(Number(st.level))) bits.push('L' + Number(st.level));
         if (st && st.power != null) bits.push(Number(st.power).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 }));
         card.innerHTML = '<div class="owned-ph">#' + id + '</div><b>#' + id + '</b><span>' +
           (bits.join(' · ') || '—') + '</span>';
@@ -1831,7 +1857,7 @@
     try {
       const fee = feeOf(r.price);
       say('Confirm ' + fmtEth(r.price + fee) + ' ETH (' + fmtEth(r.price) + ' + ' + fmtEth(fee) + ' fee)…');
-      const hash = await rpc('eth_sendTransaction', [{
+      const hash = await sendTx([{
         from: account, to: escrow, value: '0x' + (r.price + fee).toString(16), data: SEL.buy + pad(r.id)
       }]);
       say('Buying Squeek #' + r.id + '… ' + shortHash(hash));
@@ -1845,7 +1871,7 @@
     if (!canTrade()) return say('Unverified market — trading is disabled.', 'bad');
     try {
       say('Confirm cancelling #' + r.id + ' in your wallet…');
-      const hash = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.cancel + pad(r.id) }]);
+      const hash = await sendTx([{ from: account, to: escrow, data: SEL.cancel + pad(r.id) }]);
       await receipt(hash);
       say('Cancelled #' + r.id + ' — the Squeek returned to you.', 'ok', EXPLORER + '/tx/' + hash);
       await refresh();
@@ -1872,6 +1898,7 @@
     else if ($('listStatus').textContent === 'Connect a wallet to list a Squeek.') sellNote('');
     $('bidBox').classList.add('hidden');
     if (!id || !escrow || !account) return;
+    $('bidLevels').innerHTML = '';
 
     try {
       const owner = hexAddr(await call(collection, SEL.ownerOf + pad(id)));
@@ -1938,11 +1965,11 @@
       const approved = hexAddr(await call(collection, SEL.getApproved + pad(id)));
       if (approved.toLowerCase() !== escrow.toLowerCase()) {
         sellNote('Step 1/2 — approve the escrow in your wallet…');
-        const ah = await rpc('eth_sendTransaction', [{ from: account, to: collection, data: SEL.approve + addrWord(escrow) + pad(id) }]);
+        const ah = await sendTx([{ from: account, to: collection, data: SEL.approve + addrWord(escrow) + pad(id) }]);
         await receipt(ah);
       }
       sellNote('Step 2/2 — confirm the listing in your wallet…');
-      const lh = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.list + pad(id) + pad(price) }]);
+      const lh = await sendTx([{ from: account, to: escrow, data: SEL.list + pad(id) + pad(price) }]);
       await receipt(lh);
       sellNote('Listed Squeek #' + id + '. It is now in escrow.', 'ok');
       say('Listed Squeek #' + id + ' for ' + fmtEth(price) + ' ETH.', 'ok', EXPLORER + '/tx/' + lh);
@@ -2021,7 +2048,7 @@
     try {
       btn.disabled = true;
       bidNote('Confirm ' + fmtEth(amount) + ' ETH in your wallet…');
-      const h = await rpc('eth_sendTransaction', [{
+      const h = await sendTx([{
         from: account, to: escrow, value: '0x' + amount.toString(16), data: SEL.placeBid
       }]);
       await receipt(h);
@@ -2042,7 +2069,7 @@
     if (!account) return say('Connect a wallet first.', 'bad');
     try {
       btn.disabled = true;
-      const h = await rpc('eth_sendTransaction', [{ from: account, to: escrow, data: SEL.cancelBid + pad(id) }]);
+      const h = await sendTx([{ from: account, to: escrow, data: SEL.cancelBid + pad(id) }]);
       await receipt(h);
       say('Bid cancelled — ETH returned.', 'ok', EXPLORER + '/tx/' + h);
       await paintBids();
@@ -2184,13 +2211,13 @@
       const all = BigInt(await call(collection, SEL.isApprovedForAll + addrWord(account) + addrWord(escrow))) !== 0n;
       if (!all && approved.toLowerCase() !== escrow.toLowerCase()) {
         sellNote('Step 1/2 — approve the escrow in your wallet…');
-        const ah = await rpc('eth_sendTransaction', [{
+        const ah = await sendTx([{
           from: account, to: collection, data: SEL.approve + addrWord(escrow) + pad(tokenId)
         }]);
         await receipt(ah);
       }
       sellNote('Step 2/2 — accept the ' + fmtEth(price) + ' ETH bid…');
-      const bh = await rpc('eth_sendTransaction', [{
+      const bh = await sendTx([{
         from: account, to: escrow, data: SEL.acceptBid + pad(tokenId) + pad(price)
       }]);
       await receipt(bh);
@@ -2360,9 +2387,10 @@
     else if (isMarket) { $('sellPanel').classList.add('flash'); setTimeout(() => $('sellPanel').classList.remove('flash'), 1200); }
   };
 
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   const views = {
-    listings: localStorage.getItem('otc.view.listings') === 'list' ? 'list' : 'grid',
-    owned: localStorage.getItem('otc.view.owned') === 'list' ? 'list' : 'grid'
+    listings: lsGet('otc.view.listings') === 'list' ? 'list' : 'grid',
+    owned: lsGet('otc.view.owned') === 'list' ? 'list' : 'grid'
   };
   function applyViews() {
     $('listings').classList.toggle('is-list', views.listings === 'list');
@@ -2398,7 +2426,7 @@
   const params = new URLSearchParams(location.search);
   if (params.get('admin') === '1') $('change').classList.remove('hidden');
   const requested = (params.get('c') || '').trim();
-  const saved = (localStorage.getItem('otc.address') || '').trim();
+  const saved = (lsGet('otc.address') || '').trim();
   let initial = '';
   if (requested) {
     if (isOfficial(requested)) initial = requested;
