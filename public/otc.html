@@ -2181,10 +2181,12 @@
     } catch { /* ignore */ }
   }
 
+  let bookSeq = 0;
   async function paintBook() {
     const box = $('bidBook');
     if (!box) return;
-    if (!bidsSupported || !escrow) { box.innerHTML = ''; return; }
+    if (!bidsSupported || !escrow) { bookSeq++; box.innerHTML = ''; return; }
+    const seq = ++bookSeq;
     try {
       const n = Number(await call(escrow, SEL.levelCount));
       const idx = Array.from({ length: Math.min(n, 24) }, (_, i) => i);
@@ -2212,9 +2214,14 @@
           }
         } catch { /* ignore */ }
       }
-      box.innerHTML = '';
+      if (seq !== bookSeq) return;
+      const frag = document.createDocumentFragment();
       if (!levels.length) {
-        box.innerHTML = '<div class="calc">No bids yet — be the first.</div>';
+        const empty = document.createElement('div');
+        empty.className = 'calc';
+        empty.textContent = 'No bids yet — be the first.';
+        frag.appendChild(empty);
+        box.replaceChildren(frag);
         return;
       }
       for (const l of levels) {
@@ -2233,16 +2240,19 @@
           tag.textContent = first ? 'you are first' : 'in queue';
           row.appendChild(tag);
         }
-        box.appendChild(row);
+        frag.appendChild(row);
       }
-    } catch { box.innerHTML = ''; }
+      if (seq === bookSeq) box.replaceChildren(frag);
+    } catch { if (seq === bookSeq) box.innerHTML = ''; }
   }
 
+  let myBidsSeq = 0;
   async function paintMyBids() {
     const box = $('myBids');
     if (!box) return;
-    if (!bidsSupported || !account || !escrow) { box.innerHTML = ''; return; }
-    box.innerHTML = '';
+    if (!bidsSupported || !account || !escrow) { myBidsSeq++; box.innerHTML = ''; return; }
+    const seq = ++myBidsSeq;
+    const frag = document.createDocumentFragment();
     try {
       const ids = decodeUintArray(await call(escrow, SEL.myBidIds + addrWord(account)));
       let live = 0;
@@ -2254,7 +2264,7 @@
           const h = document.createElement('div');
           h.className = 'bid-k';
           h.textContent = 'Your bids';
-          box.appendChild(h);
+          frag.appendChild(h);
         }
         let first = false;
         try {
@@ -2272,10 +2282,17 @@
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'ghost'; btn.textContent = 'Cancel';
         btn.onclick = () => cancelBid(id, btn);
-        row.appendChild(txt); row.appendChild(tag); row.appendChild(btn); box.appendChild(row);
+        row.appendChild(txt); row.appendChild(tag); row.appendChild(btn); frag.appendChild(row);
       }
-      if (!live) box.innerHTML = '<div class="calc">No active bids from this wallet.</div>';
-    } catch { box.innerHTML = ''; }
+      if (seq !== myBidsSeq) return;
+      if (!live) {
+        const empty = document.createElement('div');
+        empty.className = 'calc';
+        empty.textContent = 'No active bids from this wallet.';
+        frag.appendChild(empty);
+      }
+      box.replaceChildren(frag);
+    } catch { if (seq === myBidsSeq) box.innerHTML = ''; }
   }
 
   async function acceptBidAt(tokenId, price) {
