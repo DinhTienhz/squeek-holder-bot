@@ -224,18 +224,9 @@
   .step-note.ok{color:var(--accent)}
   .step-note.bad{color:var(--bad)}
   .step-note a{color:var(--accent-2)}
-  .sell-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:22px;align-items:start}
-  .preview{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:rgba(255,255,255,.02)}
-  .preview-img{aspect-ratio:1;background:#0d0d14;display:grid;place-items:center;overflow:hidden}
-  .preview-img img{width:100%;height:100%;object-fit:cover}
-  .preview-img .ph{font-size:12px;color:var(--dim);text-align:center;padding:20px}
-  .preview-body{padding:12px 13px 14px}
-  .preview-name{font-size:13.5px;font-weight:750;letter-spacing:-.01em;margin-bottom:2px}
-  .preview-stats{font-size:11px;color:var(--accent-2);min-height:14px;margin-bottom:2px}
+  .sell-grid{display:grid;grid-template-columns:1fr;gap:22px;align-items:start}
   .traits{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
   .traits span{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:3px 7px}
-  .owner-line{font-size:11px;color:var(--muted);margin-top:8px;overflow-wrap:anywhere;font-family:var(--mono)}
-  .owner-line.ok{color:var(--accent)}
 
   /* ---------- bids ---------- */
   .bid-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
@@ -388,7 +379,6 @@
     nav.site a{font-size:12px;padding:6px 10px;white-space:nowrap}
     nav.site::-webkit-scrollbar{display:none}
     .sell-grid{grid-template-columns:1fr}
-    .preview{max-width:300px;width:100%;margin:0 auto}
     .im-grid{grid-template-columns:1fr}
     .im-img{max-width:240px;margin:0 auto}
     .how{grid-template-columns:1fr}
@@ -441,12 +431,38 @@
     body.is-market aside.market-side{grid-area:activity}
     body.is-market .panel{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:14px;margin:0;position:static}
     body.is-market .panel-head{flex:none;margin-bottom:8px}
-    body.is-market .panel-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:4px;padding-bottom:4px}
-    body.is-market .sell-grid{grid-template-columns:minmax(0,1fr) 190px;gap:14px}
-    body.is-market .preview-img{max-height:130px;aspect-ratio:auto;height:130px}
+    body.is-market .panel-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:4px;padding-bottom:4px}
+    body.is-market .sell-grid{grid-template-columns:1fr;gap:12px}
     body.is-market .card-item.promo{display:none}
     body.is-market .grid{gap:10px}
   }
+
+  /* ---------- view toggles ---------- */
+  .view-toggle{display:flex;gap:2px;border:1px solid var(--line-2);border-radius:8px;padding:2px}
+  .view-toggle button{background:none;border:0;color:var(--muted);font:inherit;font-size:12px;line-height:1;padding:5px 7px;border-radius:6px;cursor:pointer}
+  .view-toggle button:hover{color:var(--text)}
+  .view-toggle button.on{background:rgba(214,255,75,.15);color:var(--accent)}
+  .head-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+  /* ---------- list mode: listings ---------- */
+  #listings.is-list{display:flex;flex-direction:column;gap:8px}
+  #listings.is-list .card-item{display:grid;grid-template-columns:56px minmax(0,1fr);gap:10px;padding:8px;transform:none}
+  #listings.is-list .card-item:hover{transform:none;box-shadow:none}
+  #listings.is-list .thumb{width:56px;height:56px;border-radius:8px;grid-row:1}
+  #listings.is-list .card-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:0;min-width:0}
+  #listings.is-list .card-top{grid-column:1;display:flex;gap:8px;align-items:baseline;min-width:0}
+  #listings.is-list .card-id{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #listings.is-list .card-stats{grid-column:1}
+  #listings.is-list .card-seller{grid-column:1}
+  #listings.is-list .card-body .buy,#listings.is-list .card-body .ghost{
+    grid-column:2;grid-row:1/span 3;align-self:center;margin:0;width:auto;padding:7px 10px;font-size:11.5px;white-space:nowrap}
+
+  /* ---------- list mode: owned tokens ---------- */
+  #ownedGrid.is-list{display:flex;flex-direction:column;gap:6px;max-height:none}
+  #ownedGrid.is-list .owned-card{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;gap:10px;padding:6px}
+  #ownedGrid.is-list .owned-card img,#ownedGrid.is-list .owned-ph{width:40px;height:40px;border-radius:6px;grid-row:1/span 2}
+  #ownedGrid.is-list .owned-card b{margin:0;font-size:12px;grid-column:2;grid-row:1}
+  #ownedGrid.is-list .owned-card span{grid-column:2;grid-row:2;font-size:10px}
 </style>
 </head>
 <body>
@@ -542,6 +558,10 @@
           <button data-f="mine" type="button">Mine</button>
         </div>
         <button id="refresh" class="icon-btn" type="button" title="Refresh listings" aria-label="Refresh listings">↻</button>
+        <div class="view-toggle" role="group" aria-label="Listings view" data-view-group="listings">
+          <button data-view="grid" class="on" type="button" title="Grid view" aria-label="Grid view">▦</button>
+          <button data-view="list" type="button" title="List view" aria-label="List view">☰</button>
+        </div>
       </div>
     </div>
 
@@ -585,7 +605,13 @@
   <section class="panel" id="sellPanel" aria-labelledby="sell-title">
     <div class="panel-head">
       <div><h2 id="sell-title">List</h2></div>
-      <div class="note">NFT only · buyer pays 0.1% · you receive the full price</div>
+      <div class="head-tools">
+        <div class="note">NFT only · buyer pays 0.1%</div>
+        <div class="view-toggle" role="group" aria-label="Token view" data-view-group="owned">
+          <button data-view="grid" class="on" type="button" title="Grid view" aria-label="Grid view">▦</button>
+          <button data-view="list" type="button" title="List view" aria-label="List view">☰</button>
+        </div>
+      </div>
     </div>
     <div class="panel-body">
     <div class="sell-grid">
@@ -606,15 +632,6 @@
         <div id="bidBox" class="bid-box hidden">
           <div class="bid-k">Collection bids — pick a price</div>
           <div id="bidLevels"></div>
-        </div>
-      </div>
-      <div class="preview">
-        <div class="preview-img" id="previewImg"><div class="ph">Token preview</div></div>
-        <div class="preview-body">
-          <div class="preview-name" id="previewName">—</div>
-          <div class="preview-stats" id="previewStats"></div>
-          <div id="previewTraits"></div>
-          <div class="owner-line" id="ownerLine"></div>
         </div>
       </div>
     </div>
@@ -1679,98 +1696,53 @@
     if (!escrow) sellNote('No escrow configured for this market yet.');
     else if (!account) { if (!$('listStatus').textContent) sellNote('Connect a wallet to list a Squeek.'); }
     else if ($('listStatus').textContent === 'Connect a wallet to list a Squeek.') sellNote('');
+    $('bidBox').classList.add('hidden');
+    if (!id || !escrow || !account) return;
 
-    if (!/^\d+$/.test(id) || !escrow) {
-      $('previewImg').innerHTML = '<div class="ph">Token preview</div>';
-      $('previewName').textContent = '—';
-      $('previewStats').textContent = '';
-      $('previewTraits').innerHTML = '';
-      $('ownerLine').textContent = '';
-      $('bidBox').classList.add('hidden');
-      return;
-    }
     try {
-      const [meta, ownerWord, stats] = await Promise.all([
-        tokenMeta(id),
-        call(collection, SEL.ownerOf + pad(id)),
-        tokenStats(id).catch(() => null)
-      ]);
-      const owner = hexAddr(ownerWord);
-      const imgBox = $('previewImg');
-      imgBox.innerHTML = '';
-      if (meta.image) {
-        const im = document.createElement('img');
-        im.src = meta.image; im.alt = meta.name;
-        imgBox.appendChild(im);
-      } else {
-        imgBox.innerHTML = '<div class="ph">#' + id + '</div>';
-      }
-      $('previewName').textContent = meta.name;
-      $('previewStats').textContent = statLine(stats) || 'Level/power unavailable';
-      $('previewTraits').innerHTML = '<div class="im-label">Traits (' + meta.traits.length + ')</div>' +
-        traitsHtml(meta.traits);
-      const mine = account && owner.toLowerCase() === account.toLowerCase();
-      $('ownerLine').className = 'owner-line' + (mine ? ' ok' : '');
-      if (account && !mine) {
-        $('ownerLine').textContent = 'Owner ' + short(owner) + ' — not your wallet';
+      const owner = hexAddr(await call(collection, SEL.ownerOf + pad(id)));
+      if (owner.toLowerCase() !== account.toLowerCase()) {
         btn.disabled = true;
-        $('bidBox').classList.add('hidden');
         sellNote('This Squeek is not in the connected wallet.', 'bad');
-      } else if (mine && escrow) {
-        let listed = false, listedPrice = 0n;
-        try {
-          const h = (await call(escrow, SEL.listing + pad(id))).replace(/^0x/, '');
-          const seller = hexAddr(h.slice(0, 64));
-          listedPrice = BigInt('0x' + (h.slice(64, 128) || '0'));
-          listed = seller !== '0x0000000000000000000000000000000000000000';
-        } catch { /* treat as not listed */ }
-        if (listed) {
-          $('ownerLine').textContent = 'Already listed for ' + fmtEth(listedPrice) + ' ETH in this market';
-          btn.disabled = true;
-          $('bidBox').classList.add('hidden');
-          sellNote('Cancel the existing listing before listing it again.', 'bad');
-        } else {
-          $('ownerLine').textContent = 'Owned by you · ready to list';
-          sellNote('');
-          $('bidBox').classList.add('hidden');
-          $('bidLevels').innerHTML = '';
-          if (bidsSupported) {
-            try {
-              const n = Number(await call(escrow, SEL.levelCount));
-              const idx = Array.from({ length: Math.min(n, 24) }, (_, i) => i);
-              const levels = (await Promise.all(idx.map(async (i) => {
-                const p = BigInt(await call(escrow, SEL.levels + pad(i)));
-                const c = BigInt(await call(escrow, SEL.activeAt + pad(p)));
-                return { p, c };
-              }))).filter((l) => l.c > 0n);
-              levels.sort((a, b) => (a.p === b.p ? 0 : a.p > b.p ? -1 : 1));
-              for (const l of levels.slice(0, 3)) {
-                const row = document.createElement('div');
-                row.className = 'bid-opt';
-                const txt = document.createElement('div');
-                txt.className = 'grow';
-                txt.innerHTML = '<b>' + fmtEth(l.p) + ' ETH</b> <span>' + l.c.toString() +
-                  (l.c === 1n ? ' bid' : ' bids') + ' · you get ' + fmtEth(l.p - feeOf(l.p)) + '</span>';
-                const b = document.createElement('button');
-                b.type = 'button'; b.className = 'primary'; b.textContent = 'Accept';
-                b.onclick = () => acceptBidAt(id, l.p);
-                row.appendChild(txt); row.appendChild(b);
-                $('bidLevels').appendChild(row);
-              }
-              if (levels.length) $('bidBox').classList.remove('hidden');
-            } catch { /* no bids */ }
-          }
-        }
-      } else {
-        $('ownerLine').textContent = mine ? 'Owned by you · ready to list' : 'Owner ' + short(owner);
-        sellNote('');
+        return;
       }
-    } catch (e) {
-      $('previewImg').innerHTML = '<div class="ph">#' + id + '</div>';
-      $('previewName').textContent = 'Squeek #' + id;
-      $('previewTraits').innerHTML = '';
-      $('ownerLine').textContent = 'Could not read this token — check the ID.';
+      const h = (await call(escrow, SEL.listing + pad(id))).replace(/^0x/, '');
+      const seller = hexAddr(h.slice(0, 64));
+      const listedPrice = BigInt('0x' + (h.slice(64, 128) || '0'));
+      if (seller !== '0x0000000000000000000000000000000000000000') {
+        btn.disabled = true;
+        sellNote('Already listed for ' + fmtEth(listedPrice) + ' ETH — cancel it first.', 'bad');
+        return;
+      }
+      sellNote('#' + id + ' is ready to list.');
+      if (!bidsSupported) return;
+      try {
+        const n = Number(await call(escrow, SEL.levelCount));
+        const idx = Array.from({ length: Math.min(n, 24) }, (_, i) => i);
+        const levels = (await Promise.all(idx.map(async (i) => {
+          const p = BigInt(await call(escrow, SEL.levels + pad(i)));
+          const c = BigInt(await call(escrow, SEL.activeAt + pad(p)));
+          return { p, c };
+        }))).filter((l) => l.c > 0n);
+        levels.sort((a, b) => (a.p === b.p ? 0 : a.p > b.p ? -1 : 1));
+        for (const l of levels.slice(0, 3)) {
+          const row = document.createElement('div');
+          row.className = 'bid-opt';
+          const txt = document.createElement('div');
+          txt.className = 'grow';
+          txt.innerHTML = '<b>' + fmtEth(l.p) + ' ETH</b> <span>' + l.c.toString() +
+            (l.c === 1n ? ' bid' : ' bids') + ' · you get ' + fmtEth(l.p - feeOf(l.p)) + '</span>';
+          const b = document.createElement('button');
+          b.type = 'button'; b.className = 'primary'; b.textContent = 'Accept';
+          b.onclick = () => acceptBidAt(id, l.p);
+          row.appendChild(txt); row.appendChild(b);
+          $('bidLevels').appendChild(row);
+        }
+        if (levels.length) $('bidBox').classList.remove('hidden');
+      } catch { /* no bids */ }
+    } catch {
       btn.disabled = true;
+      sellNote('Could not read this token.', 'bad');
     }
   }
 
@@ -2177,6 +2149,27 @@
 
   $('price').addEventListener('input', updateSellState);
   $('ownedRefresh').onclick = () => { statsCache.clear(); loadOwned(); };
+
+  const views = {
+    listings: localStorage.getItem('otc.view.listings') === 'list' ? 'list' : 'grid',
+    owned: localStorage.getItem('otc.view.owned') === 'list' ? 'list' : 'grid'
+  };
+  function applyViews() {
+    $('listings').classList.toggle('is-list', views.listings === 'list');
+    $('ownedGrid').classList.toggle('is-list', views.owned === 'list');
+    document.querySelectorAll('[data-view-group]').forEach((g) => {
+      g.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.view === views[g.dataset.viewGroup]));
+    });
+  }
+  document.querySelectorAll('[data-view-group] button').forEach((b) => {
+    b.onclick = () => {
+      const key = b.parentElement.dataset.viewGroup;
+      views[key] = b.dataset.view;
+      localStorage.setItem('otc.view.' + key, views[key]);
+      applyViews();
+    };
+  });
+  applyViews();
 
   // EIP-6963: discover every installed EVM wallet instead of trusting window.ethereum.
   window.addEventListener('eip6963:announceProvider', (ev) => {
