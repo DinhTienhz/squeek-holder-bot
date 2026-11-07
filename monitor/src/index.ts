@@ -56,6 +56,7 @@ export default {
     const now = Date.now();
 
     if (!ok) {
+      console.log(JSON.stringify({ health: 'down', prev: prev.state, detail }));
       // One alert per outage, then a reminder every 6 hours.
       if (prev.state !== 'down' || now - prev.at > 6 * 3600_000) {
         await alert(env, `⚠️ <b>Squeek bot health check failed</b>\n${url}\n<i>${detail}</i>\n${new Date(now).toISOString()}`);
@@ -68,5 +69,6 @@ export default {
       await alert(env, `✅ <b>Squeek bot recovered</b>\n${url}\n${new Date(now).toISOString()}`);
     }
     if (prev.state !== 'up') await writeState(env, 'up', now);
+    console.log(JSON.stringify({ health: ok ? 'up' : 'down', prev: prev.state, detail }));
   },
 };
