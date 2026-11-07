@@ -238,6 +238,11 @@ export function createBot(cfg: Config, db: D1Database) {
     const ws = await listWallets(db, u.tg_id);
     if (arg && ADDRESS.test(arg.trim())) return arg.trim().toLowerCase();
     if (!ws.length) return undefined;
+    if (arg) {
+      const label = arg.trim().toLowerCase();
+      const byLabel = ws.find((w) => (w.label ?? '').toLowerCase() === label);
+      if (byLabel) return byLabel.address;
+    }
     if (ws.length === 1) return ws[0].address;
     // Several wallets: default to the one with the most Squeeks (then most claimable).
     const scored = await Promise.all(ws.map(async (w) => {

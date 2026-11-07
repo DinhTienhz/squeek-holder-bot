@@ -108,9 +108,9 @@ Also: **English by default**, switch to Vietnamese with `/lang vi`; `/privacy`, 
 | `/unwatch 0x… \| name` | remove a wallet |
 | `/list` | list wallets |
 | `/status` | wheel status + block |
-| `/claim [0x…]` | claimable SQK + number of batches (32 NFTs per batch) |
-| `/mergecheck [0x…]` | Squeeks past their cooldown |
-| `/ladder [0x…]` | merge plan + power gain |
+| `/claim [0x… \| label]` | claimable SQK + number of batches (32 NFTs per batch) |
+| `/mergecheck [0x… \| label]` | Squeeks past their cooldown |
+| `/ladder [0x… \| label]` | merge plan + power gain |
 | `/threshold 0.5` | claim alert threshold |
 | `/alerts on\|off` | wallet alerts |
 | `/hamster on\|off` | hamster start/stop alerts |

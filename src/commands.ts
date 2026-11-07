@@ -21,9 +21,9 @@ export const COMMANDS: CommandDef[] = [
 
   // Tracking
   { name: 'status', group: 'track', en: 'chain, wheel and round', vi: 'chain, bánh xe và round' },
-  { name: 'claim', usage: '[0x…]', group: 'track', en: 'exact claimable, one tx', vi: 'số claim chính xác, 1 giao dịch' },
-  { name: 'mergecheck', usage: '[0x…]', group: 'track', en: 'Squeeks off cooldown', vi: 'Squeek đã hết cooldown' },
-  { name: 'ladder', usage: '[0x…]', group: 'track', en: 'merge plan + power gain', vi: 'kế hoạch merge + power gain' },
+  { name: 'claim', usage: '[0x… | label]', group: 'track', en: 'exact claimable, one tx', vi: 'số claim chính xác, 1 giao dịch' },
+  { name: 'mergecheck', usage: '[0x… | label]', group: 'track', en: 'Squeeks off cooldown', vi: 'Squeek đã hết cooldown' },
+  { name: 'ladder', usage: '[0x… | label]', group: 'track', en: 'merge plan + power gain', vi: 'kế hoạch merge + power gain' },
   { name: 'threshold', usage: '[amount]', group: 'track', en: 'claim alert level', vi: 'ngưỡng báo claim' },
 
   // Alerts

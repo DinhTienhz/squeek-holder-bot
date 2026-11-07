@@ -105,7 +105,7 @@ export function help(lang: Lang, isAdmin = false): string {
 
   const out: string[] = [
     `📖 <b>${vi ? 'LỆNH' : 'COMMANDS'}</b>`,
-    `<i>${vi ? 'Lệnh cần ví sẽ dùng ví nhiều Squeek nhất, trừ khi bạn truyền 0x…' : 'Wallet commands use your largest holding unless you pass 0x…'}</i>`,
+    `<i>${vi ? 'Lệnh ví áp dụng cho tất cả ví; truyền 0x… hoặc nhãn để chọn một ví.' : 'Wallet commands cover all your wallets; pass 0x… or a label to pick one.'}</i>`,
   ];
   for (const g of groups) {
     const items = COMMANDS.filter((c) => c.group === g && (isAdmin || !c.admin));
