@@ -120,7 +120,7 @@ Also: **English by default**, switch to Vietnamese with `/lang vi`; `/privacy`, 
 | `/market list\|bid\|sold on\|off` | toggle one kind only; bare kind shows its state |
 | `/digest on\|off` | daily digest |
 | `/help` | command list |
-| `/quiet 22:00-07:00` | quiet hours in server time |
+| `/quiet 22:00-07:00` | quiet hours in Vietnam time (UTC+7) |
 | `/lang vi\|en` | switch language |
 | `/privacy` | what is stored |
 | `/delete` | wipe your data |

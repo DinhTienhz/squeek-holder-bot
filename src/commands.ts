@@ -21,19 +21,19 @@ export const COMMANDS: CommandDef[] = [
 
   // Tracking
   { name: 'status', group: 'track', en: 'chain, wheel and round', vi: 'chain, bánh xe và round' },
-  { name: 'claim', usage: '[0x… | label]', group: 'track', en: 'exact claimable, one tx', vi: 'số claim chính xác, 1 giao dịch' },
+  { name: 'claim', usage: '[0x… | label]', group: 'track', en: 'exact claimable · one tx per wallet', vi: 'số claim chính xác · 1 tx mỗi ví' },
   { name: 'mergecheck', usage: '[0x… | label]', group: 'track', en: 'Squeeks off cooldown', vi: 'Squeek đã hết cooldown' },
   { name: 'ladder', usage: '[0x… | label]', group: 'track', en: 'merge plan + power gain', vi: 'kế hoạch merge + power gain' },
-  { name: 'threshold', usage: '[amount]', group: 'track', en: 'claim alert level', vi: 'ngưỡng báo claim' },
+  { name: 'threshold', usage: '[amount]', group: 'track', en: 'claim alert level (SQK)', vi: 'ngưỡng báo claim (SQK)' },
 
   // Alerts
-  { name: 'alerts', usage: '[on|off]', group: 'notifications', en: 'all wallet alerts', vi: 'mọi cảnh báo ví' },
+  { name: 'alerts', usage: '[on|off]', group: 'notifications', en: 'master switch for all alerts', vi: 'công tắc tổng mọi cảnh báo' },
   { name: 'hamster', usage: '[on|off]', group: 'notifications', en: 'wheel start / stop', vi: 'bánh xe chạy / dừng' },
   { name: 'block', usage: '[on|off]', group: 'notifications', en: 'completed blocks', vi: 'block hoàn thành' },
-  { name: 'activity', usage: '[on|off | 0x…]', group: 'notifications', en: 'every wallet event', vi: 'mọi biến động ví' },
-  { name: 'market', usage: 'on|off | list|bid|sold', group: 'notifications', en: 'Squeek Market alerts', vi: 'cảnh báo Squeek Market' },
+  { name: 'activity', usage: '[on|off | 0x…]', group: 'notifications', en: 'every wallet event · 0x… shows recent', vi: 'mọi biến động ví · 0x… xem gần đây' },
+  { name: 'market', usage: 'on|off | list|bid|sold [on|off]', group: 'notifications', en: 'Squeek Market alerts', vi: 'cảnh báo Squeek Market' },
   { name: 'digest', usage: '[on|off]', group: 'notifications', en: 'daily summary', vi: 'tổng hợp hằng ngày' },
-  { name: 'quiet', usage: '[22:00-07:00 | off]', group: 'notifications', en: 'silent hours', vi: 'giờ im lặng' },
+  { name: 'quiet', usage: '[22:00-07:00 | off]', group: 'notifications', en: 'silent hours (UTC+7)', vi: 'giờ im lặng (UTC+7)' },
 
   // Other
   { name: 'lang', usage: 'vi | en', group: 'other', en: 'language', vi: 'ngôn ngữ' },

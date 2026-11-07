@@ -432,7 +432,7 @@ export function privacy(lang: Lang): string {
       'Stored: Telegram ID, wallet addresses you add, alert settings.',
       'Not stored: private keys, seed phrases. The bot cannot sign.',
       '',
-      '/delete wipes everything.',
+      '/delete removes your Telegram ID, wallets and alert history.',
     ].join('\n');
   }
   return [
@@ -441,7 +441,7 @@ export function privacy(lang: Lang): string {
     'Lưu: Telegram ID, địa chỉ ví bạn thêm, cài đặt thông báo.',
     'Không lưu: private key, seed phrase. Bot không ký giao dịch.',
     '',
-    '/delete để xoá toàn bộ.',
+    '/delete xoá Telegram ID, ví và lịch sử thông báo của bạn.',
   ].join('\n');
 }
 

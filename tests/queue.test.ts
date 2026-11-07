@@ -30,8 +30,9 @@ test('parseClock / parseQuietRange', () => {
   assert.equal(parseQuietRange('bad'), null);
 });
 
-test('inQuietHours hỗ trợ khoảng qua nửa đêm', () => {
-  const at = (h: number, m = 0) => new Date(2026, 0, 1, h, m);
+test('inQuietHours hỗ trợ khoảng qua nửa đêm (giờ VN)', () => {
+  // Build the UTC instant that corresponds to hh:mm Vietnam time.
+  const at = (h: number, m = 0) => new Date(Date.UTC(2026, 0, 1, (h - 7 + 24) % 24, m));
   assert.equal(inQuietHours(at(23), 1320, 420), true);
   assert.equal(inQuietHours(at(6), 1320, 420), true);
   assert.equal(inQuietHours(at(6, 59), 1320, 420), true);

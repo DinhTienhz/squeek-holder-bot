@@ -32,9 +32,12 @@ export function parseClock(s: string): number | null {
 }
 
 /** Quiet hours hỗ trợ khoảng qua nửa đêm (22:00–07:00). */
-export function inQuietHours(now: Date, start: number | null, end: number | null): boolean {
+const VN_OFFSET_MIN = 7 * 60;
+
+export function inQuietHours(now: Date, start: number | null, end: number | null, offsetMinutes = VN_OFFSET_MIN): boolean {
   if (start === null || end === null) return false;
-  const mins = now.getHours() * 60 + now.getMinutes();
+  // Quiet hours are wall-clock time in Vietnam (UTC+7), like the digest.
+  const mins = (now.getUTCHours() * 60 + now.getUTCMinutes() + offsetMinutes + 1440) % 1440;
   if (start === end) return false;
   if (start < end) return mins >= start && mins < end;
   return mins >= start || mins < end;
