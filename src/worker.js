@@ -120,7 +120,8 @@ export default {
       if (url.pathname === '/api/staking-totals') {
         return new Response('Not found', { status: 404, headers: SECURITY_HEADERS });
       }
-      if (url.pathname !== '/' && url.pathname !== '/market' && !isAssetPath(url.pathname)) {
+      const isPreview = url.pathname === '/preview' || url.pathname.startsWith('/preview/');
+      if (url.pathname !== '/' && url.pathname !== '/market' && !isPreview && !isAssetPath(url.pathname)) {
         return new Response(OTC_NOT_FOUND, {
           status: 404,
           headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
@@ -148,7 +149,11 @@ export default {
     // custom-domain route exists can loop back into this Worker (Cloudflare 1042).
     // On the market host the root path serves the market page. Fetch it as /otc:
     // asking for /otc.html makes the assets layer 307-redirect to the clean URL.
-    const assetPath = onOtcHost && (url.pathname === '/' || url.pathname === '/market') ? '/otc' : url.pathname;
+    let assetPath = url.pathname;
+    if (onOtcHost) {
+      if (url.pathname === '/' || url.pathname === '/market') assetPath = '/otc';
+      else if (url.pathname === '/preview' || url.pathname === '/preview/') assetPath = '/preview/index.html';
+    }
     const assetReq = new Request('https://assets.local' + assetPath + url.search, request);
     const res = await env.ASSETS.fetch(assetReq);
 

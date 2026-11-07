@@ -55,6 +55,11 @@ test('otc host: the landing page does not exist there', async () => {
   assert.equal(r.headers.get('location'), 'https://squeeksotc.bid/');
 });
 
+test('otc host: the static previews are served', async () => {
+  assert.equal((await get('https://squeeksotc.bid/preview/')).status, 200);
+  assert.equal((await get('https://squeeksotc.bid/preview/market.html')).status, 200);
+});
+
 test('otc host: unknown pages return the market 404', async () => {
   const r = await get('https://squeeksotc.bid/claim');
   assert.equal(r.status, 404);

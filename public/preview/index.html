@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squeak OTC - Buy, Bid, Sell NFTs On-Chain</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #10b981;
+            --accent: #d4af37;
+            --accent-bright: #e8d652;
+            --danger: #ef4444;
+            --bg-0: #06080d;
+            --bg-1: #0f131b;
+            --bg-2: #1a1f2e;
+            --bg-3: #252d3d;
+            --text-1: #ffffff;
+            --text-2: #e2e8f0;
+            --text-3: #cbd5e1;
+            --text-4: #94a3b8;
+            --border: rgba(226, 232, 240, 0.1);
+            --border-light: rgba(226, 232, 240, 0.2);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-0) 0%, var(--bg-1) 50%, var(--bg-0) 100%);
+            color: var(--text-1);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Header */
+        header {
+            background: rgba(15, 19, 27, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 40px;
+            position: relative;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            height: 65px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--text-1);
+        }
+
+        .logo:hover {
+            transform: translateY(-2px);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #6366f1 0%, #10b981 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 20px;
+            color: white;
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        nav {
+            display: flex;
+            gap: 32px;
+        }
+
+        nav a {
+            color: var(--text-4);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            position: relative;
+            transition: all 0.3s ease;
+            padding-bottom: 4px;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        nav a:hover,
+        nav a.active {
+            color: var(--text-2);
+        }
+
+        nav a:hover::after,
+        nav a.active::after {
+            width: 100%;
+        }
+
+        .btn-connect {
+            background: linear-gradient(135deg, #d4af37 0%, #e8d652 100%);
+            color: #0f131b;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        /* Main Container */
+        .main-container {
+            height: calc(100vh - 65px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            flex-shrink: 0;
+        }
+
+        /* Collections Section */
+        .collections-section {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+            height: 100%;
+        }
+
+        /* Section Header */
+        .section-header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--text-1);
+            line-height: 1.2;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #d4af37 0%, #e8d652 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 900;
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            color: var(--text-3);
+        }
+
+        /* Search Section */
+        .search-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-input {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(26, 31, 46, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            color: var(--text-1);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(26, 31, 46, 0.8);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-4);
+        }
+
+        /* Collections Grid Container */
+        .collections-container {
+            background: rgba(26, 31, 46, 0.3);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 32px;
+            max-height: 480px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Collections Grid */
+        .collections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 24px;
+            margin-bottom: 0;
+            width: 100%;
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-4);
+            font-size: 14px;
+        }
+
+        /* Collection Card */
+        .collection-card {
+            background: rgba(26, 31, 46, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            height: 100%;
+        }
+
+        .collection-card:hover {
+            border-color: var(--primary);
+            background: rgba(26, 31, 46, 0.7);
+            transform: translateY(-6px);
+            box-shadow: 0 16px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .collection-card.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+
+        .collection-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 56px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .collection-image::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(0, 0, 0, 0.2) 100%);
+            pointer-events: none;
+        }
+
+        .collection-info {
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        .collection-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-2);
+            letter-spacing: -0.3px;
+        }
+
+        .collection-meta {
+            font-size: 12px;
+            color: var(--text-4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collection-badge {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .collection-card.selected .collection-badge {
+            background: var(--primary);
+            color: white;
+        }
+
+        .selection-indicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            border: 2px solid white;
+            border-radius: 8px;
+            background: transparent;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .collection-card.selected .selection-indicator {
+            opacity: 1;
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .selection-indicator::after {
+            content: '✓';
+        }
+
+        /* Scrollbar */
+        .collections-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .collections-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .collections-container::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 4px;
+        }
+
+        .collections-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.5);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                height: auto;
+                min-height: calc(100vh - 65px);
+                padding: 24px;
+            }
+
+            .collections-container {
+                max-height: 400px;
+                padding: 20px;
+            }
+
+            .how-it-works {
+                padding: 40px 20px;
+            }
+
+            .how-it-works-title {
+                font-size: 24px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .feature-card {
+                padding: 20px;
+            }
+        }
+
+        /* Footer */
+        /* How It Works Section */
+        .how-it-works {
+            padding: 60px 40px;
+            background: rgba(26, 31, 46, 0.2);
+            border-top: 1px solid var(--border);
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .how-it-works-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .how-it-works-title {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+            text-align: center;
+        }
+
+        .how-it-works-subtitle {
+            font-size: 14px;
+            color: var(--text-4);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: rgba(26, 31, 46, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            background: rgba(26, 31, 46, 0.8);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+        }
+
+        .feature-badge {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #d4af37 0%, #e8d652 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f131b;
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+
+        .feature-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-2);
+            letter-spacing: -0.3px;
+        }
+
+        .feature-description {
+            font-size: 13px;
+            color: var(--text-3);
+            line-height: 1.6;
+        }
+
+        footer {
+            background: rgba(15, 19, 27, 0.5);
+            border-top: 1px solid var(--border);
+            padding: 12px 40px;
+            text-align: center;
+            color: var(--text-4);
+            font-size: 11px;
+            flex-shrink: 0;
+            height: auto;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        footer a:hover {
+            color: var(--primary-light);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">S</div>
+                <div class="logo-text">Squeak OTC</div>
+            </a>
+            <nav>
+                <a href="index.html" class="active">Home</a>
+                <a href="market.html">Market</a>
+            </nav>
+        </div>
+        <button class="btn-connect">Connect wallet</button>
+    </header>
+
+    <div class="main-container">
+        <section class="collections-section" id="collections">
+            <div class="section-header">
+                <h1 class="section-title">The Squeak market, <span class="highlight">settled on-chain.</span></h1>
+                <p class="section-subtitle">Select a collection to get started</p>
+            </div>
+
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="🔍 Search collections..."
+                    onkeyup="filterCollections()"
+                >
+            </div>
+
+            <div class="collections-container">
+                <div class="collections-grid" id="collectionsGrid">
+                    <!-- Collection 1: Squeak -->
+                    <div class="collection-card" onclick="selectCollection(this)">
+                        <div class="collection-image">
+                            🎨
+                            <div class="selection-indicator"></div>
+                        </div>
+                        <div class="collection-info">
+                            <div class="collection-name">Squeak</div>
+                            <div class="collection-meta">
+                                <span>1.2K items</span>
+                                <span class="collection-badge">Popular</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection 2: Pixel Cats -->
+                    <div class="collection-card" onclick="selectCollection(this)">
+                        <div class="collection-image">
+                            🐱
+                            <div class="selection-indicator"></div>
+                        </div>
+                        <div class="collection-info">
+                            <div class="collection-name">Pixel Cats</div>
+                            <div class="collection-meta">
+                                <span>856 items</span>
+                                <span class="collection-badge">Active</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection 3: Abstract Vibes -->
+                    <div class="collection-card" onclick="selectCollection(this)">
+                        <div class="collection-image">
+                            ✨
+                            <div class="selection-indicator"></div>
+                        </div>
+                        <div class="collection-info">
+                            <div class="collection-name">Abstract Vibes</div>
+                            <div class="collection-meta">
+                                <span>543 items</span>
+                                <span class="collection-badge">New</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection 4: Cyber Punk -->
+                    <div class="collection-card" onclick="selectCollection(this)">
+                        <div class="collection-image">
+                            🤖
+                            <div class="selection-indicator"></div>
+                        </div>
+                        <div class="collection-info">
+                            <div class="collection-name">Cyber Punk</div>
+                            <div class="collection-meta">
+                                <span>2.1K items</span>
+                                <span class="collection-badge">Popular</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection 5: Genesis Blocks -->
+                    <div class="collection-card" onclick="selectCollection(this)">
+                        <div class="collection-image">
+                            ⛓️
+                            <div class="selection-indicator"></div>
+                        </div>
+                        <div class="collection-info">
+                            <div class="collection-name">Genesis Blocks</div>
+                            <div class="collection-meta">
+                                <span>234 items</span>
+                                <span class="collection-badge">Rare</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection 6: Space Explorers -->
+                    <div class="collection-card" onclick="selectCollection(this)">
+                        <div class="collection-image">
+                            🚀
+                            <div class="selection-indicator"></div>
+                        </div>
+                        <div class="collection-info">
+                            <div class="collection-name">Space Explorers</div>
+                            <div class="collection-meta">
+                                <span>678 items</span>
+                                <span class="collection-badge">Active</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection 7: Mystic Realm -->
+                    <div class="collection-card" onclick="selectCollection(this)">
+                        <div class="collection-image">
+                            🔮
+                            <div class="selection-indicator"></div>
+                        </div>
+                        <div class="collection-info">
+                            <div class="collection-name">Mystic Realm</div>
+                            <div class="collection-meta">
+                                <span>412 items</span>
+                                <span class="collection-badge">Trending</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection 8: Digital Dreams -->
+                    <div class="collection-card" onclick="selectCollection(this)">
+                        <div class="collection-image">
+                            💎
+                            <div class="selection-indicator"></div>
+                        </div>
+                        <div class="collection-info">
+                            <div class="collection-name">Digital Dreams</div>
+                            <div class="collection-meta">
+                                <span>891 items</span>
+                                <span class="collection-badge">Premium</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <div class="how-it-works-content">
+            <h2 class="how-it-works-title">How it works</h2>
+            <p class="how-it-works-subtitle">Simple, transparent, and secure trading on-chain</p>
+
+            <div class="feature-grid">
+                <!-- List -->
+                <div class="feature-card">
+                    <div class="feature-badge">📋</div>
+                    <h3 class="feature-title">List</h3>
+                    <p class="feature-description">Approve the escrow and set a price. The Squeak cash inside the contract until it sells or you pull it back.</p>
+                </div>
+
+                <!-- Buy -->
+                <div class="feature-card">
+                    <div class="feature-badge">🛒</div>
+                    <h3 class="feature-title">Buy</h3>
+                    <p class="feature-description">The buyer pays the price plus the 0.1% fee; the NFT and the ETH move in the same transaction.</p>
+                </div>
+
+                <!-- Bid -->
+                <div class="feature-card">
+                    <div class="feature-badge">💰</div>
+                    <h3 class="feature-title">Bid</h3>
+                    <p class="feature-description">Lock ETH at any price for the whole collection. The earliest bid at a level is served first, and any holder can accept — the seller pays the 0.1%.</p>
+                </div>
+
+                <!-- Cancel Anytime -->
+                <div class="feature-card">
+                    <div class="feature-badge">↩️</div>
+                    <h3 class="feature-title">Cancel anytime</h3>
+                    <p class="feature-description">Sellers can withdraw a listed Squeak. Bidders can cancel a bid and get their ETH back.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>✨ Non-custodial • Peer-to-peer • Settled on-chain ✨ | © 2024 Squeak OTC</p>
+    </footer>
+
+    <script>
+        function selectCollection(element) {
+            document.querySelectorAll('.collection-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            element.classList.add('selected');
+
+            const collectionName = element.querySelector('.collection-name').textContent;
+            console.log(`Selected collection: ${collectionName}`);
+        }
+
+        function filterCollections() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const collectionsGrid = document.getElementById('collectionsGrid');
+            const collectionCards = document.querySelectorAll('.collection-card');
+            let visibleCount = 0;
+
+            collectionCards.forEach(card => {
+                const collectionName = card.querySelector('.collection-name').textContent.toLowerCase();
+                const collectionMeta = card.querySelector('.collection-meta').textContent.toLowerCase();
+
+                if (collectionName.includes(searchInput) || collectionMeta.includes(searchInput)) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            let noResultsMsg = document.getElementById('noResults');
+            if (visibleCount === 0) {
+                if (!noResultsMsg) {
+                    noResultsMsg = document.createElement('div');
+                    noResultsMsg.id = 'noResults';
+                    noResultsMsg.className = 'no-results';
+                    noResultsMsg.textContent = '😢 No collections found. Try a different search.';
+                    collectionsGrid.appendChild(noResultsMsg);
+                }
+                noResultsMsg.style.display = 'grid';
+            } else {
+                if (noResultsMsg) {
+                    noResultsMsg.style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

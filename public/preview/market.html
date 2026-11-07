@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squeak OTC - Market</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #10b981;
+            --accent: #d4af37;
+            --accent-bright: #e8d652;
+            --danger: #ef4444;
+            --bg-0: #06080d;
+            --bg-1: #0f131b;
+            --bg-2: #1a1f2e;
+            --bg-3: #252d3d;
+            --text-1: #ffffff;
+            --text-2: #e2e8f0;
+            --text-3: #cbd5e1;
+            --text-4: #94a3b8;
+            --border: rgba(226, 232, 240, 0.1);
+            --border-light: rgba(226, 232, 240, 0.2);
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-0) 0%, var(--bg-1) 50%, var(--bg-0) 100%);
+            color: var(--text-1);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Header */
+        header {
+            background: rgba(15, 19, 27, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 40px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--text-1);
+        }
+
+        .logo:hover {
+            transform: translateY(-2px);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #6366f1 0%, #10b981 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 20px;
+            color: white;
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        nav {
+            display: flex;
+            gap: 32px;
+        }
+
+        nav a {
+            color: var(--text-4);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            position: relative;
+            transition: all 0.3s ease;
+            padding-bottom: 4px;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        nav a:hover,
+        nav a.active {
+            color: var(--text-2);
+        }
+
+        nav a:hover::after,
+        nav a.active::after {
+            width: 100%;
+        }
+
+        .btn-connect {
+            background: linear-gradient(135deg, #d4af37 0%, #e8d652 100%);
+            color: #0f131b;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+            text-transform: capitalize;
+        }
+
+        .btn-connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: rgba(26, 31, 46, 0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 40px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 24px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-4);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-1);
+            letter-spacing: -0.3px;
+        }
+
+        /* Main Container */
+        .container {
+            display: grid;
+            grid-template-columns: 1.3fr 1.2fr 1fr 1.2fr;
+            gap: 20px;
+            padding: 24px 40px;
+            max-width: 2000px;
+            margin: 0 auto;
+            min-height: calc(100vh - 145px);
+        }
+
+        .page-title {
+            grid-column: 1 / 5;
+            margin-bottom: -12px;
+        }
+
+        .page-title h2 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .page-title p {
+            font-size: 12px;
+            color: var(--text-4);
+        }
+
+        /* Glass Card */
+        .card {
+            background: rgba(26, 31, 46, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 500px;
+        }
+
+        .card:hover {
+            border-color: var(--border-light);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-badge {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 5px 11px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        /* Listings Filter */
+        .listings-filters {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .filter-btn {
+            background: transparent;
+            color: var(--text-4);
+            border: 1px solid var(--border);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 9px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Listing Grid */
+        .listing-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 8px;
+        }
+
+        .listing-card {
+            background: rgba(37, 45, 61, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: 70px 1fr;
+            gap: 10px;
+            align-items: flex-start;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .listing-card:hover {
+            background: rgba(37, 45, 61, 0.5);
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .listing-image {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .listing-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .listing-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-2);
+        }
+
+        .listing-meta {
+            font-size: 10px;
+            color: var(--text-4);
+            display: flex;
+            gap: 8px;
+        }
+
+        .listing-price {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 2px;
+        }
+
+        /* Stacked Cards (Your Listings + Your NFTs + Form) */
+        .card-stacked {
+            display: flex;
+            flex-direction: column;
+            min-height: auto;
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        .card-section {
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .card-section:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-badge {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            font-size: 9px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* Activity Filter */
+        .activity-filters {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        /* Activity List */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .activity-item {
+            background: rgba(37, 45, 61, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.3s ease;
+            font-size: 10px;
+        }
+
+        .activity-item:hover {
+            background: rgba(37, 45, 61, 0.5);
+            border-color: var(--border-light);
+        }
+
+        .activity-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-type {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            font-size: 9px;
+        }
+
+        .activity-type.sold {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--secondary);
+        }
+
+        .activity-type.delist {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .activity-time {
+            color: var(--text-4);
+            font-size: 9px;
+        }
+
+        .activity-value {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* NFT Grid */
+        .nft-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .nft-item {
+            background: rgba(37, 45, 61, 0.3);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nft-item:hover {
+            border-color: var(--primary);
+            background: rgba(37, 45, 61, 0.5);
+        }
+
+        .nft-item.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .nft-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .nft-name {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-2);
+            margin-bottom: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nft-id {
+            font-size: 8px;
+            color: var(--text-4);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nft-select-indicator {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--primary);
+            border-radius: 3px;
+            background: transparent;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .nft-item.selected .nft-select-indicator {
+            opacity: 1;
+            background: var(--primary);
+        }
+
+        .nft-select-indicator::after {
+            content: '✓';
+        }
+
+        /* Form */
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-2);
+            margin-bottom: 4px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            background: rgba(37, 45, 61, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: var(--text-1);
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(37, 45, 61, 0.8);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        input::placeholder {
+            color: var(--text-4);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: capitalize;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            font-family: inherit;
+            margin-top: 4px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .info-box {
+            font-size: 9px;
+            color: var(--text-4);
+            background: rgba(99, 102, 241, 0.08);
+            border-left: 2px solid var(--primary);
+            padding: 6px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .status-box {
+            font-size: 10px;
+            color: var(--primary);
+            padding: 6px 8px;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .listing-action {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .listing-action:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--danger);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.4);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(26, 31, 46, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-4);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--text-1);
+        }
+
+        .nft-detail-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .nft-detail-row {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .nft-detail-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-4);
+            text-transform: uppercase;
+        }
+
+        .nft-detail-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-2);
+            font-family: 'Monaco', monospace;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .container {
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            .page-title {
+                grid-column: 1 / 4;
+            }
+
+            .card {
+                min-height: 400px;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 16px;
+                gap: 16px;
+            }
+
+            .page-title {
+                grid-column: 1;
+            }
+
+            .card {
+                min-height: auto;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                padding: 12px 16px;
+            }
+
+            nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">S</div>
+                <div class="logo-text">Squeak OTC</div>
+            </a>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="market.html" class="active">Market</a>
+            </nav>
+        </div>
+        <button class="btn-connect">Connect wallet</button>
+    </header>
+
+    <div class="stats-bar">
+        <div class="stat-box">
+            <span class="stat-label">Listings</span>
+            <span class="stat-value">12</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-label">24H Volume</span>
+            <span class="stat-value">2.85 ETH</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-label">Total Volume</span>
+            <span class="stat-value">15.3 ETH</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-label">Floor Price</span>
+            <span class="stat-value">0.05 ETH</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-label">Open Bids</span>
+            <span class="stat-value">18</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-title">
+            <h2>Market</h2>
+            <p>Buy, bid, and sell Squeak NFTs on-chain.</p>
+        </div>
+
+        <!-- COLUMN 1: Listings (All Market Listings) -->
+        <div class="card">
+            <div class="card-title">
+                Listings
+                <span class="card-badge">12</span>
+            </div>
+
+            <div class="listings-filters">
+                <button class="filter-btn active" onclick="filterListings('all')">All</button>
+                <button class="filter-btn" onclick="filterListings('price')">Price ↑</button>
+                <button class="filter-btn" onclick="filterListings('recent')">Recent</button>
+            </div>
+
+            <div class="listing-grid">
+                <div class="listing-card" onclick="openNFTDetail('Squeak #042', 'Squeak #042', '0x7f...a2k', '0.15', 'russe...c2c', 'Listed')">
+                    <div class="listing-image">🎨</div>
+                    <div class="listing-content">
+                        <div class="listing-name">Squeak #042</div>
+                        <div class="listing-meta">
+                            <span>by russe...c2c</span>
+                        </div>
+                        <div class="listing-price">0.15 ETH</div>
+                    </div>
+                </div>
+
+                <div class="listing-card" onclick="openNFTDetail('Squeak #156', 'Squeak #156', '0x3c...f5n', '0.12', 'trader...x1k', 'Listed')">
+                    <div class="listing-image">🎨</div>
+                    <div class="listing-content">
+                        <div class="listing-name">Squeak #156</div>
+                        <div class="listing-meta">
+                            <span>by trader...x1k</span>
+                        </div>
+                        <div class="listing-price">0.12 ETH</div>
+                    </div>
+                </div>
+
+                <div class="listing-card" onclick="openNFTDetail('Squeak #289', 'Squeak #289', '0x9k...m2l', '0.08', 'you', 'Listed')">
+                    <div class="listing-image">🎨</div>
+                    <div class="listing-content">
+                        <div class="listing-name">Squeak #289</div>
+                        <div class="listing-meta">
+                            <span>by you</span>
+                        </div>
+                        <div class="listing-price">0.08 ETH</div>
+                    </div>
+                </div>
+
+                <div class="listing-card" onclick="openNFTDetail('Squeak #503', 'Squeak #503', '0x5p...x8j', '0.11', 'buyer...k7n', 'Listed')">
+                    <div class="listing-image">🎨</div>
+                    <div class="listing-content">
+                        <div class="listing-name">Squeak #503</div>
+                        <div class="listing-meta">
+                            <span>by buyer...k7n</span>
+                        </div>
+                        <div class="listing-price">0.11 ETH</div>
+                    </div>
+                </div>
+
+                <div class="listing-card" onclick="openNFTDetail('Squeak #667', 'Squeak #667', '0x2m...n5k', '0.09', 'trader...a2f', 'Listed')">
+                    <div class="listing-image">🎨</div>
+                    <div class="listing-content">
+                        <div class="listing-name">Squeak #667</div>
+                        <div class="listing-meta">
+                            <span>by trader...a2f</span>
+                        </div>
+                        <div class="listing-price">0.09 ETH</div>
+                    </div>
+                </div>
+
+                <div class="listing-card" onclick="openNFTDetail('Squeak #711', 'Squeak #711', '0x8l...p2o', '0.07', 'buyer...m2l', 'Listed')">
+                    <div class="listing-image">🎨</div>
+                    <div class="listing-content">
+                        <div class="listing-name">Squeak #711</div>
+                        <div class="listing-meta">
+                            <span>by buyer...m2l</span>
+                        </div>
+                        <div class="listing-price">0.07 ETH</div>
+                    </div>
+                </div>
+
+                <div class="listing-card" onclick="openNFTDetail('Squeak #845', 'Squeak #845', '0x4k...q3l', '0.10', 'you', 'Listed')">
+                    <div class="listing-image">🎨</div>
+                    <div class="listing-content">
+                        <div class="listing-name">Squeak #845</div>
+                        <div class="listing-meta">
+                            <span>by you</span>
+                        </div>
+                        <div class="listing-price">0.10 ETH</div>
+                    </div>
+                </div>
+
+                <div class="listing-card" onclick="openNFTDetail('Squeak #999', 'Squeak #999', '0x6j...r4m', '0.14', 'seller...n6p', 'Listed')">
+                    <div class="listing-image">🎨</div>
+                    <div class="listing-content">
+                        <div class="listing-name">Squeak #999</div>
+                        <div class="listing-meta">
+                            <span>by seller...n6p</span>
+                        </div>
+                        <div class="listing-price">0.14 ETH</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: Bids -->
+        <div class="card card-stacked">
+            <div class="card-section">
+                <div class="section-title">
+                    Place Bid
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Bid Amount (ETH)</label>
+                    <input type="number" id="bidInput" placeholder="0.10" step="0.001">
+                </div>
+                <div class="info-box">💡 Highest bid wins when seller accepts</div>
+                <button class="btn-primary" onclick="placeBid()">Place Bid</button>
+            </div>
+
+            <div class="card-section">
+                <div class="section-title">
+                    All Bids
+                    <span class="section-badge">18</span>
+                </div>
+                <div class="activity-list">
+                    <div style="background: rgba(37, 45, 61, 0.3); border: 1px solid var(--border); border-radius: 10px; padding: 8px; cursor: pointer;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 3px;">Bid #1 - 0.15 ETH</div>
+                        <div style="font-size: 9px; color: var(--text-4);">bidder: russe...c2c</div>
+                        <div style="font-size: 9px; color: var(--text-4);">2h ago</div>
+                    </div>
+
+                    <div style="background: rgba(37, 45, 61, 0.3); border: 1px solid var(--border); border-radius: 10px; padding: 8px; cursor: pointer;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 3px;">Bid #2 - 0.13 ETH</div>
+                        <div style="font-size: 9px; color: var(--text-4);">bidder: trader...x1k</div>
+                        <div style="font-size: 9px; color: var(--text-4);">4h ago</div>
+                    </div>
+
+                    <div style="background: rgba(37, 45, 61, 0.3); border: 1px solid var(--border); border-radius: 10px; padding: 8px; cursor: pointer;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 3px;">Bid #3 - 0.11 ETH</div>
+                        <div style="font-size: 9px; color: var(--text-4);">bidder: you</div>
+                        <div style="font-size: 9px; color: var(--text-4);">1d ago</div>
+                    </div>
+
+                    <div style="background: rgba(37, 45, 61, 0.3); border: 1px solid var(--border); border-radius: 10px; padding: 8px; cursor: pointer;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 3px;">Bid #4 - 0.09 ETH</div>
+                        <div style="font-size: 9px; color: var(--text-4);">bidder: buyer...k7n</div>
+                        <div style="font-size: 9px; color: var(--text-4);">1d ago</div>
+                    </div>
+
+                    <div style="background: rgba(37, 45, 61, 0.3); border: 1px solid var(--border); border-radius: 10px; padding: 8px; cursor: pointer;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 3px;">Bid #5 - 0.08 ETH</div>
+                        <div style="font-size: 9px; color: var(--text-4);">bidder: trader...a2f</div>
+                        <div style="font-size: 9px; color: var(--text-4);">2d ago</div>
+                    </div>
+
+                    <div style="background: rgba(37, 45, 61, 0.3); border: 1px solid var(--border); border-radius: 10px; padding: 8px; cursor: pointer;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 3px;">Bid #6 - 0.06 ETH</div>
+                        <div style="font-size: 9px; color: var(--text-4);">bidder: buyer...m2l</div>
+                        <div style="font-size: 9px; color: var(--text-4);">3d ago</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: Activity Feed -->
+        <div class="card">
+            <div class="card-title">
+                Activity
+                <span class="card-badge">All</span>
+            </div>
+
+            <div class="activity-filters">
+                <button class="filter-btn active" onclick="filterActivity('all')">All</button>
+                <button class="filter-btn" onclick="filterActivity('listed')">Listed</button>
+                <button class="filter-btn" onclick="filterActivity('sold')">Sold</button>
+                <button class="filter-btn" onclick="filterActivity('bids')">Bids</button>
+                <button class="filter-btn" onclick="filterActivity('delist')">Delist</button>
+            </div>
+
+            <div class="activity-list">
+                <div class="activity-item">
+                    <div class="activity-row">
+                        <span class="activity-type">LISTED</span>
+                        <span class="activity-time">5m</span>
+                    </div>
+                    <div class="activity-row">
+                        <span style="font-weight: 700; color: var(--text-2);">Squeak #042</span>
+                        <span class="activity-value">0.15 ETH</span>
+                    </div>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-row">
+                        <span class="activity-type sold">SOLD</span>
+                        <span class="activity-time">2h</span>
+                    </div>
+                    <div class="activity-row">
+                        <span style="font-weight: 700; color: var(--text-2);">Squeak #999</span>
+                        <span class="activity-value">0.20 ETH</span>
+                    </div>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-row">
+                        <span class="activity-type">BIDS</span>
+                        <span class="activity-time">4h</span>
+                    </div>
+                    <div class="activity-row">
+                        <span style="font-weight: 700; color: var(--text-2);">Bid #1</span>
+                        <span class="activity-value">0.15 ETH</span>
+                    </div>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-row">
+                        <span class="activity-type delist">DELIST</span>
+                        <span class="activity-time">1d</span>
+                    </div>
+                    <div class="activity-row">
+                        <span style="font-weight: 700; color: var(--text-2);">Squeak #500</span>
+                    </div>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-row">
+                        <span class="activity-type">LISTED</span>
+                        <span class="activity-time">2d</span>
+                    </div>
+                    <div class="activity-row">
+                        <span style="font-weight: 700; color: var(--text-2);">Squeak #156</span>
+                        <span class="activity-value">0.12 ETH</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 4: Your Listings + Your NFTs + List Form -->
+        <div class="card card-stacked">
+            <div class="card-section">
+                <div class="section-title">
+                    Your Listings
+                    <span class="section-badge">3</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; padding-right: 4px;">
+                    <div class="listing-card" onclick="openNFTDetail('Squeak #042', 'Squeak #042', '0x7f...a2k', '0.15', 'you', 'Listed')">
+                        <div class="listing-image">🎨</div>
+                        <div class="listing-content">
+                            <div class="listing-name">Squeak #042</div>
+                            <div class="listing-price">0.15 ETH</div>
+                        </div>
+                    </div>
+                    <div class="listing-card" onclick="openNFTDetail('Squeak #289', 'Squeak #289', '0x9k...m2l', '0.08', 'you', 'Listed')">
+                        <div class="listing-image">🎨</div>
+                        <div class="listing-content">
+                            <div class="listing-name">Squeak #289</div>
+                            <div class="listing-price">0.08 ETH</div>
+                        </div>
+                    </div>
+                    <div class="listing-card" onclick="openNFTDetail('Squeak #845', 'Squeak #845', '0x4k...q3l', '0.10', 'you', 'Listed')">
+                        <div class="listing-image">🎨</div>
+                        <div class="listing-content">
+                            <div class="listing-name">Squeak #845</div>
+                            <div class="listing-price">0.10 ETH</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-section">
+                <div class="section-title">
+                    Your NFTs
+                    <span class="section-badge">4</span>
+                </div>
+                <div class="nft-grid">
+                    <div class="nft-item" onclick="toggleNFT(this)">
+                        <div class="nft-select-indicator"></div>
+                        <div class="nft-image">🎨</div>
+                        <div class="nft-name">Squeak #042</div>
+                        <div class="nft-id">0x7f...a2k</div>
+                    </div>
+                    <div class="nft-item" onclick="toggleNFT(this)">
+                        <div class="nft-select-indicator"></div>
+                        <div class="nft-image">🎨</div>
+                        <div class="nft-name">Squeak #156</div>
+                        <div class="nft-id">0x3c...f5n</div>
+                    </div>
+                    <div class="nft-item" onclick="toggleNFT(this)">
+                        <div class="nft-select-indicator"></div>
+                        <div class="nft-image">🎨</div>
+                        <div class="nft-name">Squeak #289</div>
+                        <div class="nft-id">0x9k...m2l</div>
+                    </div>
+                    <div class="nft-item" onclick="toggleNFT(this)">
+                        <div class="nft-select-indicator"></div>
+                        <div class="nft-image">🎨</div>
+                        <div class="nft-name">Squeak #503</div>
+                        <div class="nft-id">0x5p...x8j</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-section">
+                <div class="section-title">List NFT</div>
+                <div class="status-box" id="statusBox">No NFT selected</div>
+                <div class="input-group">
+                    <label class="input-label">Price (ETH)</label>
+                    <input type="number" id="priceInput" placeholder="0.05" step="0.001">
+                </div>
+                <div class="info-box" id="infoBox">💡 Select NFTs to list</div>
+                <button class="btn-primary" onclick="listNFTs()">Approve & list</button>
+                <div style="font-size: 8px; color: var(--text-4); text-align: center; margin-top: 6px;">
+                    <a href="#" style="color: var(--primary); text-decoration: none;">Connect wallet</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NFT Detail Modal -->
+    <div class="modal" id="nftModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">NFT Details</h3>
+                <button class="modal-close" onclick="closeNFTDetail()">✕</button>
+            </div>
+            <div class="nft-detail-image" id="modalImage">🎨</div>
+            <div>
+                <div class="nft-detail-row">
+                    <div class="nft-detail-label">Name</div>
+                    <div class="nft-detail-value" id="modalName">-</div>
+                </div>
+                <div class="nft-detail-row">
+                    <div class="nft-detail-label">Contract</div>
+                    <div class="nft-detail-value" id="modalAddress">-</div>
+                </div>
+                <div class="nft-detail-row">
+                    <div class="nft-detail-label">Price</div>
+                    <div class="nft-detail-value" id="modalPrice">-</div>
+                </div>
+                <div class="nft-detail-row">
+                    <div class="nft-detail-label">Seller</div>
+                    <div class="nft-detail-value" id="modalSeller">-</div>
+                </div>
+                <div class="nft-detail-row">
+                    <div class="nft-detail-label">Status</div>
+                    <div class="nft-detail-value" id="modalStatus">-</div>
+                </div>
+                <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; font-size: 9px; color: var(--text-4); line-height: 1.5;">
+                    <div>Collection: Squeak</div>
+                    <div>Chain: Sepolia</div>
+                    <div>Fee: 0.1% when sold</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleNFT(element) {
+            element.classList.toggle('selected');
+            updateListForm();
+        }
+
+        function updateListForm() {
+            const selected = document.querySelectorAll('.nft-item.selected');
+            const count = selected.length;
+            const statusBox = document.getElementById('statusBox');
+            const infoBox = document.getElementById('infoBox');
+
+            if (count === 0) {
+                statusBox.textContent = 'No NFT selected';
+                infoBox.textContent = '💡 Select NFTs to list';
+            } else if (count === 1) {
+                const nftName = selected[0].querySelector('.nft-name').textContent;
+                statusBox.textContent = `Selected: ${nftName}`;
+                infoBox.textContent = '💡 Set price for 1 NFT • Fee: 0.1%';
+            } else {
+                statusBox.textContent = `Selected: ${count} NFTs`;
+                infoBox.textContent = `💡 Set price for ${count} NFTs • Fee: 0.1% each`;
+            }
+        }
+
+        function openNFTDetail(name, fullName, address, price, seller, status) {
+            document.getElementById('nftModal').classList.add('active');
+            document.getElementById('modalTitle').textContent = fullName;
+            document.getElementById('modalName').textContent = fullName;
+            document.getElementById('modalAddress').textContent = address;
+            document.getElementById('modalPrice').textContent = price + ' ETH';
+            document.getElementById('modalSeller').textContent = seller;
+            document.getElementById('modalStatus').textContent = status;
+        }
+
+        function closeNFTDetail() {
+            document.getElementById('nftModal').classList.remove('active');
+        }
+
+        function listNFTs() {
+            const selected = document.querySelectorAll('.nft-item.selected').length;
+            const price = document.getElementById('priceInput').value;
+
+            if (selected === 0) {
+                alert('Please select at least one NFT');
+                return;
+            }
+
+            if (!price) {
+                alert('Please enter a price');
+                return;
+            }
+
+            if (selected === 1) {
+                alert(`Listing 1 NFT at ${price} ETH`);
+            } else {
+                alert(`Listing ${selected} NFTs at ${price} ETH each`);
+            }
+        }
+
+        function placeBid() {
+            const bidAmount = document.getElementById('bidInput').value;
+
+            if (!bidAmount) {
+                alert('Please enter a bid amount');
+                return;
+            }
+
+            if (bidAmount <= 0) {
+                alert('Bid amount must be greater than 0');
+                return;
+            }
+
+            alert(`Bid placed: ${bidAmount} ETH`);
+            document.getElementById('bidInput').value = '';
+        }
+
+        function filterListings(filter) {
+            document.querySelectorAll('.listings-filters .filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function filterActivity(filter) {
+            document.querySelectorAll('.activity-filters .filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('nftModal').addEventListener('click', (e) => {
+            if (e.target.id === 'nftModal') {
+                closeNFTDetail();
+            }
+        });
+    </script>
+</body>
+</html>
