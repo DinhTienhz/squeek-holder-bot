@@ -78,6 +78,8 @@
   .num{width:22px;height:22px;border-radius:7px;background:#20202c;color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
   .cmds{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
   .cmd{display:flex;gap:12px;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .cmd a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(99,102,241,.4)}
+  .cmd a:hover{border-bottom-color:var(--accent)}
   .cmd code{color:var(--accent);white-space:nowrap}
   .cmd span{color:var(--muted);font-size:14px}
   .steps{counter-reset:s;display:grid;gap:12px}
@@ -333,7 +335,7 @@
         <div class="cmd"><code>/hamster on|off</code><span>wheel starts or stops</span></div>
         <div class="cmd"><code>/block on|off</code><span>completed blocks</span></div>
         <div class="cmd"><code>/activity on|off</code><span>every wallet event, incl. rewards claimed</span></div>
-        <div class="cmd"><code>/market on|off</code><span>OTC listings, bids and sales — with addresses and tx</span></div>
+        <div class="cmd"><code>/market on|off</code><span>OTC listings, bids and sales — with addresses and tx · <a href="https://squeeksotc.bid/" target="_blank" rel="noopener">squeeksotc.bid ↗</a></span></div>
         <div class="cmd"><code>/digest on|off</code><span>daily summary</span></div>
         <div class="cmd"><code>/quiet 22:00-07:00</code><span>sleep hours</span></div>
       </div>
