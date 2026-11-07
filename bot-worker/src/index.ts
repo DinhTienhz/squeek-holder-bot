@@ -5,6 +5,7 @@ import { activityBatch, alertActivity, alertBlock, alertClaim, alertCooldown, al
 import { ChatQueue, inQuietHours } from '../../src/queue.ts';
 import { claimAlertDue, evaluateAccount, hamsterRunMs, isHamsterRunning, snapshot, type AccountState } from '../../src/rules.ts';
 import { loadConfig } from './config.ts';
+import { stakingTotals } from '../../src/chain.ts';
 import { createBot, registerCommands } from './bot.ts';
 import {
   allWallets, firstTime, getMeta, getUser, markDigest, newActivity, pruneActivity, pruneSent, setMeta, type User,
@@ -23,6 +24,7 @@ type Env = {
   DEFAULT_THRESHOLD_SQK?: string;
   DIGEST_HOUR?: string;
   CLAIM_ALERT_MIN_HOURS?: string;
+  TELEGRAM_WEBHOOK_SECRET?: string;
 };
 
 const langOf = (u: { lang: string }): Lang => (u.lang === 'vi' ? 'vi' : 'en');
@@ -200,10 +202,11 @@ async function pollWallets(env: Env, bot: Bot, api: ApiClient): Promise<void> {
   const entries = [...byAddress.entries()];
   const batch = Math.max(5, Number(env.WALLET_BATCH ?? 40));
   const cursor = (Number(await getMeta(env.DB, 'wallet_cursor')) || 0) % entries.length;
-  const slice = entries.slice(cursor, cursor + batch);
-  const wrapped = entries.slice(0, Math.max(0, cursor + batch - entries.length));
-  const todo = [...slice, ...wrapped];
-  await setMeta(env.DB, 'wallet_cursor', String((cursor + batch) % entries.length));
+  // Take at most `batch` distinct addresses, wrapping once around the ring.
+  const take = Math.min(batch, entries.length);
+  const todo: [string, string[]][] = [];
+  for (let i = 0; i < take; i++) todo.push(entries[(cursor + i) % entries.length]);
+  await setMeta(env.DB, 'wallet_cursor', String((cursor + take) % entries.length));
 
   const concurrency = Math.max(1, Number(env.WALLET_CONCURRENCY ?? 6));
   for (let i = 0; i < todo.length; i += concurrency) {
@@ -245,6 +248,11 @@ export default {
     const url = new URL(req.url);
     if (url.pathname === '/health') return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } });
     if (url.pathname !== '/telegram' || req.method !== 'POST') return new Response('not found', { status: 404 });
+    const expected = env.TELEGRAM_WEBHOOK_SECRET ?? '';
+    if (!expected) return new Response('webhook secret not configured', { status: 503 });
+    if (req.headers.get('x-telegram-bot-api-secret-token') !== expected) {
+      return new Response('forbidden', { status: 403 });
+    }
     const cfg = loadConfig(env as unknown as Record<string, unknown>);
     if (!cfg.botToken) return new Response('bot not configured', { status: 503 });
     const { bot } = createBot(cfg, env.DB);
@@ -270,6 +278,7 @@ export default {
       await maybeDigest(env, bot, api).catch(() => {});
       await pruneSent(env.DB, 14).catch(() => {});
       await pruneActivity(env.DB, 30).catch(() => {});
+      await env.DB.prepare("DELETE FROM snapshots WHERE at < datetime('now', '-90 days')").run().catch(() => {});
     }
     console.log(JSON.stringify({ cron: event.cron, ms: Date.now() - started, minute }));
   },
