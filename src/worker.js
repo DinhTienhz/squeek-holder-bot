@@ -152,7 +152,8 @@ export default {
     let assetPath = url.pathname;
     if (onOtcHost) {
       if (url.pathname === '/' || url.pathname === '/market') assetPath = '/otc';
-      else if (url.pathname === '/preview' || url.pathname === '/preview/') assetPath = '/preview/index.html';
+      else if (url.pathname === '/preview' || url.pathname === '/preview/') assetPath = '/preview/index';
+      else if (url.pathname === '/preview/market.html') assetPath = '/preview/market';
     }
     const assetReq = new Request('https://assets.local' + assetPath + url.search, request);
     const res = await env.ASSETS.fetch(assetReq);
