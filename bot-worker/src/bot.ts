@@ -41,6 +41,7 @@ const MSG = {
     activityOn: '🔔 Đã bật theo dõi mọi hoạt động ví (gồm claim phần thưởng).',
     activityOff: '🔕 Đã tắt theo dõi hoạt động ví.',
     activityNow: '🔔 Hoạt động ví: <b>{state}</b>\nĐổi bằng <code>/activity on</code> hoặc <code>/activity off</code>\nXem gần đây: <code>/activity 0x…</code>',
+    startMarket: '🔔 <b>Đã bật cảnh báo Squeek Market</b>\nBạn sẽ nhận tin khi có NFT được list, bid mới hoặc NFT được bán — kèm địa chỉ và tx.\nTắt bằng <code>/market off</code>.\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOn: '🏪 Đã bật cảnh báo Squeek Market (list, bid, sold).\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOff: '🏪 Đã tắt cảnh báo Squeek Market.',
     marketNow: '🏪 Cảnh báo Squeek Market: <b>{state}</b>\nĐổi bằng <code>/market on</code> hoặc <code>/market off</code>\n🛒 Squeek Market: https://squeeksotc.bid',
@@ -83,6 +84,7 @@ const MSG = {
     activityOn: '🔔 Wallet activity tracking on (includes rewards claimed).',
     activityOff: '🔕 Wallet activity tracking off.',
     activityNow: '🔔 Wallet activity: <b>{state}</b>\nChange with <code>/activity on</code> or <code>/activity off</code>\nRecent: <code>/activity 0x…</code>',
+    startMarket: '🔔 <b>Squeek Market alerts are on</b>\nYou will get a message for every new listing, bid and sale — with addresses and the tx.\nTurn it off with <code>/market off</code>.\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOn: '🏪 Squeek Market alerts on (listings, bids, sales).\n🛒 Squeek Market: https://squeeksotc.bid',
     marketOff: '🏪 Squeek Market alerts off.',
     marketNow: '🏪 Squeek Market alerts: <b>{state}</b>\nChange with <code>/market on</code> or <code>/market off</code>\n🛒 Squeek Market: https://squeeksotc.bid',
@@ -133,6 +135,10 @@ export function createBot(cfg: Config, db: D1Database) {
     const isNew = !await getUser(db, id);
     const u = await userOf(id);
     if (u.blocked) return;
+    if (((ctx.match ?? '') as string).trim().toLowerCase() === 'market') {
+      await setMarketAlerts(db, u.tg_id, true);
+      return void (await reply(ctx, m(u, 'startMarket')));
+    }
     const hint = langOf(u) === 'vi'
       ? '👉 <i>Mới dùng? Gõ /help để xem mọi lệnh, /status để xem chain trực tiếp.</i>'
       : '👉 <i>New here? Type /help for every command, /status to see the chain live.</i>';
