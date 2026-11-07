@@ -899,6 +899,7 @@
     loadActivity();
     loadVolume();
     render();
+    detectBids().then(() => { paintBids(); updateSellState(); });
     updateSellState();
   }
 
