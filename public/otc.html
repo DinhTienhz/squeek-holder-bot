@@ -886,11 +886,15 @@
     if (id) { try { localStorage.setItem(WALLET_KEY, id); } catch {} }
   }
   function forgetWallet() {
-    try { localStorage.removeItem(WALLET_KEY); } catch {}
+    try { localStorage.removeItem(WALLET_KEY); localStorage.setItem(WALLET_KEY + '.off', '1'); } catch {}
+  }
+  function allowWallet() {
+    try { localStorage.removeItem(WALLET_KEY + '.off'); } catch {}
   }
   // Silent reconnect: only eth_accounts (never opens the wallet UI).
   async function restoreWallet() {
     if (account || restoreBusy) return;
+    try { if (localStorage.getItem(WALLET_KEY + '.off') === '1') return; } catch {}
     let wanted = '';
     try { wanted = localStorage.getItem(WALLET_KEY) || ''; } catch {}
     let p = null;
@@ -966,6 +970,7 @@
     const acc = await p.request({ method: 'eth_requestAccounts' });
     const chain = await p.request({ method: 'eth_chainId' });
     account = acc[0];
+    allowWallet();
     rememberWallet(p);
     closeWalletModal();
     if (parseInt(chain, 16) !== CHAIN) {
