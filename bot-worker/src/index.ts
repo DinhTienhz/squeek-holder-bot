@@ -25,6 +25,7 @@ type Env = {
   DIGEST_HOUR?: string;
   CLAIM_ALERT_MIN_HOURS?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
+  HEALTHCHECK_URL?: string;
 };
 
 const langOf = (u: { lang: string }): Lang => (u.lang === 'vi' ? 'vi' : 'en');
@@ -279,6 +280,10 @@ export default {
       await pruneSent(env.DB, 14).catch(() => {});
       await pruneActivity(env.DB, 30).catch(() => {});
       await env.DB.prepare("DELETE FROM snapshots WHERE at < datetime('now', '-90 days')").run().catch(() => {});
+    }
+    // Dead-man's switch: an external checker alerts if these pings stop.
+    if (env.HEALTHCHECK_URL) {
+      try { await fetch(env.HEALTHCHECK_URL, { method: 'GET' }); } catch { /* ping is best-effort */ }
     }
     console.log(JSON.stringify({ cron: event.cron, ms: Date.now() - started, minute }));
   },

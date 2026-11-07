@@ -144,6 +144,9 @@ npx wrangler deploy
 Free plan processes `WALLET_BATCH=8` wallets per minute; on Workers Paid ($5) raise it to 300.
 See [bot-worker/README.md](bot-worker/README.md) for the scaling table and rollback steps.
 
+`monitor/` is a second, independent Worker: every 5 minutes it calls the bot's `/health` and sends one
+Telegram alert when the bot goes down (plus a reminder every 6 hours and a recovery message).
+
 ## Running
 
 ```bash
