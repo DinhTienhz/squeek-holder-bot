@@ -971,33 +971,48 @@
     if (wallets.size === 0 && window.ethereum) return window.ethereum;
     return null;
   }
-  const PUBLIC_RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
+  const PUBLIC_RPCS = [
+    'https://ethereum-sepolia-rpc.publicnode.com',
+    'https://sepolia.drpc.org'
+  ];
   const READ_METHODS = new Set(['eth_call', 'eth_getLogs', 'eth_getBlockByNumber', 'eth_getCode',
     'eth_blockNumber', 'eth_chainId', 'eth_getBalance']);
-  async function rpc(method, params) {
-    const p = activeProvider();
-    if (p) return p.request({ method, params });
-    // No wallet: read-only calls go to a public Sepolia node so the market is browsable.
-    if (!READ_METHODS.has(method)) {
-      throw new Error('No EVM wallet found. Open this page inside MetaMask or Rabby.');
+
+  async function publicRpc(method, params) {
+    let lastErr = null;
+    for (const url of PUBLIC_RPCS) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+        });
+        const j = await res.json();
+        if (j.error) throw new Error(j.error.message || 'RPC error');
+        return j.result;
+      } catch (e) { lastErr = e; }
     }
-    const res = await fetch(PUBLIC_RPC, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
-    });
-    const j = await res.json();
-    if (j.error) throw new Error(j.error.message || 'RPC error');
-    return j.result;
+    throw lastErr || new Error('RPC error');
+  }
+
+  async function rpc(method, params) {
+    // Reads go to a public node: injected wallets often prune logs, which breaks
+    // the market history even though the chain still has it.
+    if (READ_METHODS.has(method)) return publicRpc(method, params);
+    const p = activeProvider();
+    if (!p) throw new Error('No EVM wallet found. Open this page inside MetaMask or Rabby.');
+    return p.request({ method, params });
   }
   async function call(to, data) { return rpc('eth_call', [{ to, data }, 'latest']); }
 
   // Every value-bearing write goes through here: refuse to send on the wrong chain.
   async function sendTx(args) {
-    const c = await rpc('eth_chainId');
+    const p = activeProvider();
+    const walletRpc = (method, params) => p ? p.request({ method, params }) : Promise.reject(new Error('No EVM wallet found.'));
+    const c = await walletRpc('eth_chainId', []);
     if (parseInt(c, 16) !== CHAIN) {
-      try { await rpc('wallet_switchEthereumChain', [{ chainId: CHAIN_HEX }]); } catch {}
-      const c2 = await rpc('eth_chainId');
+      try { await walletRpc('wallet_switchEthereumChain', [{ chainId: CHAIN_HEX }]); } catch {}
+      const c2 = await walletRpc('eth_chainId', []);
       if (parseInt(c2, 16) !== CHAIN) throw new Error('Switch your wallet to Sepolia before trading.');
     }
     return rpc('eth_sendTransaction', args);
@@ -1719,7 +1734,7 @@
   }
 
   async function logsSince(addr, from, to) {
-    const CHUNK = 45000;
+    const CHUNK = 9000;
     let out = [];
     for (let start = from; start <= to; start += CHUNK) {
       out = out.concat(await logsRange(addr, start, Math.min(to, start + CHUNK - 1)));
