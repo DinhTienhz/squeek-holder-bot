@@ -20,7 +20,7 @@ const SECURITY_HEADERS = {
     "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     "script-src 'self' 'unsafe-inline'",
-    "connect-src 'self' https://api.squeekchain.com https://ethereum-sepolia-rpc.publicnode.com",
+    "connect-src 'self' https://api.squeekchain.com https://ethereum-sepolia-rpc.publicnode.com https://sepolia.gateway.tenderly.co",
     "base-uri 'none'",
     "form-action 'none'",
     "frame-ancestors 'none'",
@@ -123,9 +123,51 @@ async function computeStakingTotals() {
   return body;
 }
 
+const RPC_METHODS = new Set([
+  'eth_call', 'eth_getLogs', 'eth_getBlockByNumber', 'eth_getCode',
+  'eth_blockNumber', 'eth_chainId', 'eth_getBalance',
+]);
+const RPC_UPSTREAMS = [
+  'https://ethereum-sepolia-rpc.publicnode.com',
+  'https://sepolia.gateway.tenderly.co',
+];
+
+/**
+ * Same-origin RPC proxy: injected wallets and some ISPs prune or block public
+ * Sepolia nodes, so reads go through our own origin instead.
+ */
+async function rpcProxy(request) {
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: { allow: 'POST', ...SECURITY_HEADERS } });
+  }
+  let body;
+  try { body = await request.json(); } catch { return new Response('Bad request', { status: 400, headers: SECURITY_HEADERS }); }
+  if (!body || typeof body.method !== 'string' || !RPC_METHODS.has(body.method)) {
+    return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { message: 'method not allowed' } }),
+      { status: 400, headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...SECURITY_HEADERS } });
+  }
+  const payload = JSON.stringify({ jsonrpc: '2.0', id: 1, method: body.method, params: Array.isArray(body.params) ? body.params : [] });
+  for (const upstream of RPC_UPSTREAMS) {
+    try {
+      const res = await fetch(upstream, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: payload,
+        signal: AbortSignal.timeout(9000),
+      });
+      if (!res.ok) continue;
+      const text = await res.text();
+      return new Response(text, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS } });
+    } catch { /* try the next upstream */ }
+  }
+  return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { message: 'rpc unavailable' } }),
+    { status: 502, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS } });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/rpc') return rpcProxy(request);
     const onOtcHost = OTC_HOSTS.has(url.hostname);
 
     if (onOtcHost) {

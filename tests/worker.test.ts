@@ -143,3 +143,17 @@ test('redirects carry the security header set', async () => {
   assert.match(r.headers.get('strict-transport-security') || '', /max-age/);
   assert.equal(r.headers.get('cross-origin-opener-policy'), 'same-origin');
 });
+
+test('the RPC proxy only accepts POST and read-only methods', async () => {
+  const g = await worker.fetch(new Request('https://squeeksotc.bid/api/rpc'), env);
+  assert.equal(g.status, 405);
+  assert.equal(g.headers.get('allow'), 'POST');
+
+  const bad = await worker.fetch(new Request('https://squeeksotc.bid/api/rpc', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_sendTransaction', params: [] }),
+  }), env);
+  assert.equal(bad.status, 400);
+  assert.match(await bad.text(), /method not allowed/);
+});
